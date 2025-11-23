@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Script to create parent/child relationships for knowledge articles
+Run via: python3 -c "exec(open('scripts/create_relationships.py').read())"
+Or run via Odoo UI: Settings > Technical > Database Structure > Odoo Shell
+Then copy and paste the code below (without the shebang and docstring)
+"""
+
+# Code to paste in Odoo Shell UI:
+CODE_FOR_SHELL = """
+print("=" * 70)
+print("Setting up Parent/Child Relationships for Knowledge Articles")
+print("=" * 70)
+
+env = self.env
+Article = env['knowledge.article']
+
+articles = Article.search([('active', '=', True)], order='id')
+print(f"\\nFound {len(articles)} active articles:")
+
+for article in articles:
+    parent_name = article.parent_id.name if article.parent_id else "None"
+    print(f"  ID {article.id}: {article.name[:60]}")
+    print(f"    Current parent: {parent_name}")
+
+print("\\n" + "=" * 70)
+print("Creating Parent/Child Relationships...")
+print("=" * 70)
+
+article_1 = None
+article_2 = None
+article_3 = None
+
+for article in articles:
+    name_upper = article.name.upper()
+    if "CAFÉ DIVISION" in name_upper or "CAFE DIVISION" in name_upper:
+        article_1 = article
+        print(f"  ✓ Found Article 1 (Parent): {article.name[:60]}")
+    elif "OPERATIONS & PROCUREMENT" in name_upper or "OPERATIONS AND PROCUREMENT" in name_upper:
+        article_2 = article
+        print(f"  ✓ Found Article 2 (Child): {article.name[:60]}")
+    elif "BASKET DEX" in name_upper or "BEP MHW" in name_upper:
+        article_3 = article
+        print(f"  ✓ Found Article 3 (Child): {article.name[:60]}")
+
+updated_count = 0
+
+if article_1 and article_2:
+    if article_2.parent_id != article_1:
+        article_2.write({'parent_id': article_1.id})
+        print(f"\\n  ✅ Set Article 2 as child of Article 1")
+        updated_count += 1
+    else:
+        print(f"\\n  ℹ️  Article 2 already has correct parent")
+
+if article_1 and article_3:
+    if article_3.parent_id != article_1:
+        article_3.write({'parent_id': article_1.id})
+        print(f"  ✅ Set Article 3 as child of Article 1")
+        updated_count += 1
+    else:
+        print(f"  ℹ️  Article 3 already has correct parent")
+
+print("\\n" + "=" * 70)
+print(f"✅ Updated {updated_count} article(s)")
+print("=" * 70)
+
+print("\\nFinal structure:")
+print("-" * 70)
+
+articles = Article.search([('active', '=', True)], order='id')
+for article in articles:
+    parent_name = article.parent_id.name if article.parent_id else "None (Root)"
+    child_count = len(article.child_ids)
+    print(f"  ID {article.id}: {article.name[:50]}")
+    print(f"    Parent: {parent_name}")
+    print(f"    Children: {child_count}")
+    if child_count > 0:
+        for child in article.child_ids:
+            print(f"      └─ {child.name[:45]}")
+
+print("\\n" + "=" * 70)
+print("✅ Done! Please refresh your browser to see the tree structure.")
+print("=" * 70)
+"""
+
+if __name__ == '__main__':
+    print(CODE_FOR_SHELL)
+

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Default Categories -->
+        <record id="category_sop" model="knowledge.article.category">
+            <field name="name">SOP / Workflow</field>
+            <field name="code">sop</field>
+            <field name="icon">📋</field>
+            <field name="sequence">10</field>
+            <field name="color">5</field>
+            <field name="description">Standard Operating Procedures and Workflows</field>
+        </record>
+
+        <record id="category_product" model="knowledge.article.category">
+            <field name="name">Product Knowledge</field>
+            <field name="code">product</field>
+            <field name="icon">📦</field>
+            <field name="sequence">20</field>
+            <field name="color">10</field>
+            <field name="description">Product information and specifications</field>
+        </record>
+
+        <record id="category_system" model="knowledge.article.category">
+            <field name="name">System / Tools Manual</field>
+            <field name="code">system</field>
+            <field name="icon">⚙️</field>
+            <field name="sequence">30</field>
+            <field name="color">1</field>
+            <field name="description">System manuals and tools documentation</field>
+        </record>
+
+        <record id="category_policy" model="knowledge.article.category">
+            <field name="name">Policy / HR</field>
+            <field name="code">policy</field>
+            <field name="icon">📄</field>
+            <field name="sequence">40</field>
+            <field name="color">2</field>
+            <field name="description">Company policies and HR procedures</field>
+        </record>
+
+        <record id="category_other" model="knowledge.article.category">
+            <field name="name">Other</field>
+            <field name="code">other</field>
+            <field name="icon">📝</field>
+            <field name="sequence">50</field>
+            <field name="color">0</field>
+            <field name="description">Other knowledge articles</field>
+        </record>
+    </data>
+</odoo>
+
