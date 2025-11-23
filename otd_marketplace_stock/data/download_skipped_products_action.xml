@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Server Action for Download Skipped Products -->
+    <record id="action_download_skipped_products" model="ir.actions.server">
+        <field name="name">Download Skipped/Not Found Products Report</field>
+        <field name="model_id" ref="otd_marketplace_stock.model_marketplace_account"/>
+        <field name="binding_model_id" ref="otd_marketplace_stock.model_marketplace_account"/>
+        <field name="binding_view_types">form</field>
+        <field name="state">code</field>
+        <field name="code">
+action = record.action_download_skipped_products()
+        </field>
+    </record>
+</odoo>
+

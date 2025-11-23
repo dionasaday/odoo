@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="marketplace_channel_woocommerce" model="marketplace.channel">
+        <field name="name">WooCommerce</field>
+        <field name="code">woocommerce</field>
+    </record>
+    <record id="marketplace_channel_shopee" model="marketplace.channel">
+        <field name="name">Shopee</field>
+        <field name="code">shopee</field>
+    </record>
+    <record id="marketplace_channel_lazada" model="marketplace.channel">
+        <field name="name">Lazada</field>
+        <field name="code">lazada</field>
+    </record>
+    <record id="marketplace_channel_tiktok" model="marketplace.channel">
+        <field name="name">TikTok Shop</field>
+        <field name="code">tiktok</field>
+    </record>
+    <record id="marketplace_channel_zortout" model="marketplace.channel">
+        <field name="name">Zortout</field>
+        <field name="code">zortout</field>
+    </record>
+</odoo>
+

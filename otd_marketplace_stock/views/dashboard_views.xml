@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Marketplace Dashboard -->
+    <record id="action_marketplace_dashboard" model="ir.actions.act_window">
+        <field name="name">Marketplace Dashboard</field>
+        <field name="res_model">marketplace.order</field>
+        <field name="view_mode">list,pivot,graph</field>
+        <field name="context">{}</field>
+        <field name="domain">[]</field>
+    </record>
+
+    <!-- Dashboard Graph View - Simplified to avoid JavaScript errors -->
+    <record id="view_marketplace_order_graph" model="ir.ui.view">
+        <field name="name">marketplace.order.graph</field>
+        <field name="model">marketplace.order</field>
+        <field name="arch" type="xml">
+            <graph string="Marketplace Orders" type="bar" sample="false">
+                <field name="state" type="row"/>
+                <field name="id" type="measure" operator="count"/>
+            </graph>
+        </field>
+    </record>
+
+    <!-- Dashboard Pivot View - Simplified -->
+    <record id="view_marketplace_order_pivot" model="ir.ui.view">
+        <field name="name">marketplace.order.pivot</field>
+        <field name="model">marketplace.order</field>
+        <field name="arch" type="xml">
+            <pivot string="Marketplace Orders" sample="false">
+                <field name="state" type="row"/>
+                <field name="id" type="measure" operator="count"/>
+            </pivot>
+        </field>
+    </record>
+</odoo>
+

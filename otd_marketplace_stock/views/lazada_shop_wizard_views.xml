@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Lazada Import Products Wizard -->
+    <record id="view_lazada_import_products_wizard_form" model="ir.ui.view">
+        <field name="name">lazada.import.products.wizard.form</field>
+        <field name="model">lazada.import.products.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import Lazada Products">
+                <sheet class="o_lazada_wizard_sheet">
+                    <h2 class="o_lazada_wizard_title">ยืนยันการนำเข้าข้อมูลสินค้า</h2>
+                    <div class="o_lazada_wizard_intro">
+                        <span class="o_badge">Step 1</span>
+                        <div class="o_meta">
+                            <span class="o_label">Shop</span>
+                            <span class="o_value"><field name="shop_id" readonly="1"/></span>
+                        </div>
+                    </div>
+                    <div class="o_lazada_wizard_card o_theme-import">
+                        <div class="o_badge_icon"/>
+                        <div class="o_content">
+                            <h3>ดึงข้อมูลสินค้าเข้าระบบหลัก</h3>
+                            <p>สินค้าทั้งหมดจากร้านนี้จะถูกบันทึกเข้าระบบเพื่อพร้อมสำหรับการเชื่อมต่อกับช่องทางอื่น</p>
+                            <div class="o_confirm_tip">
+                                <span class="o_hint">พิมพ์คำว่า</span>
+                                <span class="o_keyword">confirm</span>
+                                <span class="o_hint">เพื่อยืนยันการนำเข้าข้อมูลสินค้า</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="o_input_block">
+                        <div class="o_form_label">ข้อความยืนยัน</div>
+                        <field name="confirm_text" placeholder="กรอกคำว่า confirm"/>
+                        <div class="o_confirm_note">Type 'confirm' to continue</div>
+                    </div>
+                </sheet>
+                <footer class="o_lazada_wizard_footer">
+                    <button string="ยกเลิก" class="btn btn-secondary" special="cancel"/>
+                    <button string="ยืนยัน" name="action_confirm" type="object" class="btn btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Lazada Update Images Wizard -->
+    <record id="view_lazada_update_images_wizard_form" model="ir.ui.view">
+        <field name="name">lazada.update.images.wizard.form</field>
+        <field name="model">lazada.update.images.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Update Lazada Images">
+                <sheet class="o_lazada_wizard_sheet">
+                    <h2 class="o_lazada_wizard_title">ยืนยันการอัปเดทรูปภาพสินค้า</h2>
+                    <div class="o_lazada_wizard_intro">
+                        <span class="o_badge">Step 2</span>
+                        <div class="o_meta">
+                            <span class="o_label">Shop</span>
+                            <span class="o_value"><field name="shop_id" readonly="1"/></span>
+                        </div>
+                    </div>
+                    <div class="o_lazada_wizard_card o_theme-image">
+                        <div class="o_badge_icon"/>
+                        <div class="o_content">
+                            <h3>อัปเดทรูปภาพจาก Lazada</h3>
+                            <p>ระบบจะดึงรูปสินค้าใหม่และจัดเก็บใน Odoo เพื่อใช้กับทุกช่องทาง</p>
+                            <div class="o_confirm_tip">
+                                <span class="o_hint">พิมพ์คำว่า</span>
+                                <span class="o_keyword">confirm</span>
+                                <span class="o_hint">เพื่อยืนยันการอัปเดทรูปภาพสินค้า</span>
+                            </div>
+                            <field name="update_existing_images" widget="boolean_toggle"/>
+                            <span class="o_checkbox_hint">ปรับปรุงรูปที่มีอยู่แล้วด้วยภาพล่าสุด</span>
+                        </div>
+                    </div>
+                    <div class="o_input_block">
+                        <div class="o_form_label">ข้อความยืนยัน</div>
+                        <field name="confirm_text" placeholder="กรอกคำว่า confirm"/>
+                    </div>
+                </sheet>
+                <footer class="o_lazada_wizard_footer">
+                    <button string="ยกเลิก" class="btn btn-secondary" special="cancel"/>
+                    <button string="ยืนยัน" name="action_confirm" type="object" class="btn btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Lazada Push Stock Wizard -->
+    <record id="view_lazada_push_stock_wizard_form" model="ir.ui.view">
+        <field name="name">lazada.push.stock.wizard.form</field>
+        <field name="model">lazada.push.stock.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Sync Stock to Lazada">
+                <sheet class="o_lazada_wizard_sheet">
+                    <h2 class="o_lazada_wizard_title">ยืนยันการซิงก์สต็อกไปยัง Lazada</h2>
+                    <div class="o_lazada_wizard_intro">
+                        <span class="o_badge">Step 3</span>
+                        <div class="o_meta">
+                            <span class="o_label">Shop</span>
+                            <span class="o_value"><field name="shop_id" readonly="1"/></span>
+                        </div>
+                    </div>
+                    <div class="o_lazada_wizard_card o_theme-stock">
+                        <div class="o_badge_icon"/>
+                        <div class="o_content">
+                            <h3>อัปเดตจำนวนสินค้าจาก Odoo ไป Lazada</h3>
+                            <p>ระบบจะใช้จำนวนสินค้าล่าสุดในคลังกลางส่งไปอัปเดตที่ Lazada เพื่อให้ยอดสต็อกตรงกัน</p>
+                            <div class="o_confirm_tip">
+                                <span class="o_hint">พิมพ์คำว่า</span>
+                                <span class="o_keyword">confirm</span>
+                                <span class="o_hint">เพื่อยืนยันการซิงก์สต็อก</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="o_input_block">
+                        <div class="o_form_label">ข้อความยืนยัน</div>
+                        <field name="confirm_text" placeholder="กรอกคำว่า confirm"/>
+                    </div>
+                </sheet>
+                <footer class="o_lazada_wizard_footer">
+                    <button string="ยกเลิก" class="btn btn-secondary" special="cancel"/>
+                    <button string="ยืนยัน" name="action_confirm" type="object" class="btn btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Lazada Backfill Orders Wizard -->
+    <record id="view_lazada_backfill_orders_wizard_form" model="ir.ui.view">
+        <field name="name">lazada.backfill.orders.wizard.form</field>
+        <field name="model">lazada.backfill.orders.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Backfill Lazada Orders">
+                <sheet class="o_lazada_wizard_sheet">
+                    <h2 class="o_lazada_wizard_title">ยืนยันการนำเข้ารายการขายย้อนหลัง</h2>
+                    <div class="o_lazada_wizard_intro">
+                        <span class="o_badge">Step 4</span>
+                        <div class="o_meta">
+                            <span class="o_label">Shop</span>
+                            <span class="o_value"><field name="shop_id" readonly="1"/></span>
+                        </div>
+                    </div>
+                    <div class="o_lazada_wizard_card o_theme-order">
+                        <div class="o_badge_icon"/>
+                        <div class="o_content">
+                            <h3>ดึงออร์เดอร์ย้อนหลังจาก Lazada</h3>
+                            <p>เลือกวันที่ต้องการนำเข้า ระบบจะดึงออร์เดอร์ทั้งหมดในวันนั้นเพื่อสร้างใน Odoo</p>
+                            <div class="o_confirm_tip">
+                                <span class="o_hint">พิมพ์คำว่า</span>
+                                <span class="o_keyword">confirm</span>
+                                <span class="o_hint">เพื่อยืนยันการนำเข้ารายการขายย้อนหลัง</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="o_input_grid">
+                        <div class="o_input_block">
+                            <div class="o_form_label">วันที่ต้องการดึงข้อมูล</div>
+                            <field name="sync_date"/>
+                        </div>
+                        <div class="o_input_block">
+                            <div class="o_form_label">ข้อความยืนยัน</div>
+                            <field name="confirm_text" placeholder="กรอกคำว่า confirm"/>
+                        </div>
+                    </div>
+                </sheet>
+                <footer class="o_lazada_wizard_footer">
+                    <button string="ยกเลิก" class="btn btn-secondary" special="cancel"/>
+                    <button string="ยืนยัน" name="action_confirm" type="object" class="btn btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- WooCommerce Backfill Orders Wizard -->
+    <record id="view_woocommerce_backfill_orders_wizard_form" model="ir.ui.view">
+        <field name="name">woocommerce.backfill.orders.wizard.form</field>
+        <field name="model">woocommerce.backfill.orders.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Backfill WooCommerce Orders">
+                <sheet class="o_lazada_wizard_sheet">
+                    <h2 class="o_lazada_wizard_title">ยืนยันการนำเข้ารายการขายย้อนหลัง</h2>
+                    <div class="o_lazada_wizard_intro">
+                        <span class="o_badge">Step 4</span>
+                        <div class="o_meta">
+                            <span class="o_label">Shop</span>
+                            <span class="o_value"><field name="shop_id" readonly="1"/></span>
+                        </div>
+                    </div>
+                    <div class="o_lazada_wizard_card o_theme-order">
+                        <div class="o_badge_icon"/>
+                        <div class="o_content">
+                            <h3>ดึงออร์เดอร์ย้อนหลังจาก WooCommerce</h3>
+                            <p>เลือกวันที่ต้องการนำเข้า ระบบจะดึงออร์เดอร์ทั้งหมดในวันนั้นเพื่อสร้างใน Odoo</p>
+                            <div class="o_confirm_tip">
+                                <span class="o_hint">พิมพ์คำว่า</span>
+                                <span class="o_keyword">confirm</span>
+                                <span class="o_hint">เพื่อยืนยันการนำเข้ารายการขายย้อนหลัง</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="o_input_grid">
+                        <div class="o_input_block">
+                            <div class="o_form_label">วันที่ต้องการดึงข้อมูล</div>
+                    <field name="sync_date"/>
+                        </div>
+                        <div class="o_input_block">
+                            <div class="o_form_label">ข้อความยืนยัน</div>
+                            <field name="confirm_text" placeholder="กรอกคำว่า confirm"/>
+                        </div>
+                    </div>
+                </sheet>
+                <footer class="o_lazada_wizard_footer">
+                    <button string="ยกเลิก" class="btn btn-secondary" special="cancel"/>
+                    <button string="ยืนยัน" name="action_confirm" type="object" class="btn btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>
+
+

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Pull Orders Wizard Form View -->
+    <record id="view_pull_orders_wizard_form" model="ir.ui.view">
+        <field name="name">marketplace.pull.orders.wizard.form</field>
+        <field name="model">marketplace.pull.orders.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Pull Orders">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="account_id" options="{'no_create': True, 'no_create_edit': True}"/>
+                            <field name="shop_id" 
+                                   options="{'no_create': True, 'no_create_edit': True}"
+                                   placeholder="All shops (leave empty to pull from all shops)"/>
+                        </group>
+                        <group>
+                            <field name="use_custom_date"/>
+                        </group>
+                    </group>
+                    <group string="Date Range" invisible="not use_custom_date">
+                        <group>
+                            <field name="date_from" widget="datetime"/>
+                            <field name="date_to" widget="datetime"/>
+                        </group>
+                        <group>
+                            <div class="alert alert-info" role="alert">
+                                <strong>💡 Tip:</strong>
+                                <ul>
+                                    <li>Select the date range for orders you want to pull</li>
+                                    <li>Maximum range: 90 days</li>
+                                    <li>If you uncheck "Use Custom Date Range", system will pull orders since last sync</li>
+                                </ul>
+                            </div>
+                        </group>
+                    </group>
+                </sheet>
+                <footer>
+                    <button name="action_pull_orders" string="Pull Orders" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Pull Orders Wizard Action -->
+    <record id="action_pull_orders_wizard" model="ir.actions.act_window">
+        <field name="name">Pull Orders</field>
+        <field name="res_model">marketplace.pull.orders.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{}</field>
+    </record>
+</odoo>
+

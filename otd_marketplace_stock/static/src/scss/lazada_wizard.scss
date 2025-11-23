@@ -1,0 +1,206 @@
+.o_lazada_wizard_sheet {
+    padding: 24px;
+    background-color: #f0f2f5;
+}
+
+.o_lazada_wizard_title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1c1c1d;
+    margin: 0 0 20px;
+}
+
+.o_lazada_wizard_intro {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.o_badge {
+    padding: 6px 14px;
+    border-radius: 999px;
+    background-color: #2b2c2e;
+    color: #f7f7f7;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    box-shadow: 0 10px 24px -12px rgba(99, 102, 241, 0.75);
+}
+
+.o_meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.o_meta .o_label {
+    font-weight: 600;
+    color: #5a5d63;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.o_meta .o_value field {
+    font-weight: 700;
+    color: #242527;
+}
+
+.o_lazada_wizard_card {
+    position: relative;
+    border-radius: 18px;
+    padding: 28px 26px;
+    background-color: #fafafa;
+    box-shadow: 0 20px 45px -30px rgba(15, 23, 42, 0.55);
+    overflow: hidden;
+    margin-bottom: 24px;
+    display: flex;
+    gap: 24px;
+}
+
+.o_lazada_wizard_card .o_badge_icon {
+    width: 10px;
+    border-radius: 999px;
+    background: #2b2d30;
+}
+
+.o_lazada_wizard_card .o_badge_icon::after {
+    content: '';
+    display: block;
+    height: 100%;
+}
+
+.o_lazada_wizard_card .o_content {
+    flex: 1;
+}
+
+.o_lazada_wizard_card h3 {
+    margin: 0 0 12px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2022;
+}
+
+.o_lazada_wizard_card p {
+    margin: 0;
+    font-size: 14px;
+    color: #3d3f44;
+    line-height: 1.6;
+}
+
+.o_confirm_tip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    margin-top: 16px;
+    background: rgba(223, 170, 0, 0.12);
+    padding: 10px 14px;
+    border-radius: 12px;
+    color: #6c3f00;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    font-size: 14px;
+    max-width: 320px;
+}
+
+.o_confirm_tip .o_hint {
+    font-weight: 500;
+    color: #6c3f00;
+}
+
+.o_confirm_tip .o_keyword {
+    font-weight: 700;
+    color: #ae5b00;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.o_input_block {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.o_input_block .o_form_label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #4a4c50;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.o_input_block field {
+    border: 1px solid #cfd2d8;
+    border-radius: 10px;
+    padding: 8px 10px;
+    background-color: #fff;
+}
+
+.o_confirm_note {
+    font-size: 12px;
+    color: #ae5b00;
+    margin-top: 6px;
+    letter-spacing: 0.04em;
+}
+
+.o_input_grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+    margin-top: 8px;
+}
+
+.o_checkbox_hint {
+    display: block;
+    font-size: 12px;
+    color: #5c5f67;
+    margin-top: 8px;
+}
+
+.o_lazada_wizard_footer {
+    background: #ffffff;
+    padding: 14px 26px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.o_lazada_wizard_footer .btn-primary {
+    border-radius: 999px;
+    padding: 10px 24px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    background-color: #1c1c1d;
+    border-color: #1c1c1d;
+}
+
+.o_lazada_wizard_footer .btn-secondary {
+    border-radius: 999px;
+    padding: 10px 24px;
+}
+
+.o_theme-image .o_badge_icon {
+    background: #2b2d30;
+}
+
+.o_theme-stock .o_badge_icon {
+    background: #2b2d30;
+}
+
+.o_theme-order .o_badge_icon {
+    background: #2b2d30;
+}
+
+@media (max-width: 768px) {
+    .o_lazada_wizard_sheet {
+        padding: 16px;
+    }
+
+    .o_lazada_wizard_card {
+        flex-direction: column;
+        gap: 18px;
+        padding: 20px;
+    }
+}
+

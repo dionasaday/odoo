@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_marketplace" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.marketplace</field>
+        <field name="model">res.config.settings</field>
+        <field name="priority" eval="50"/>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <div class="app_settings_block" data-string="Marketplace" string="Marketplace" data-key="otd_marketplace_stock">
+                    <h2>Marketplace Settings</h2>
+                    <div class="row mt16 o_settings_container">
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="marketplace_default_buffer"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="marketplace_default_buffer"/>
+                                <div class="text-muted">
+                                    Default buffer quantity to subtract from available stock
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="marketplace_default_min_qty"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="marketplace_default_min_qty"/>
+                                <div class="text-muted">
+                                    Default minimum quantity to show online
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="marketplace_batch_size"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="marketplace_batch_size"/>
+                                <div class="text-muted">
+                                    Default batch size for processing jobs
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6 o_setting_box">
+                            <div class="o_setting_left_pane">
+                                <field name="marketplace_pull_interval"/>
+                            </div>
+                            <div class="o_setting_right_pane">
+                                <label for="marketplace_pull_interval"/>
+                                <div class="text-muted">
+                                    Default pull interval in minutes
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

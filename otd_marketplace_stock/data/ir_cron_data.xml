@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- Cron: Run Marketplace Jobs -->
+        <record id="ir_cron_marketplace_run_jobs" model="ir.cron">
+            <field name="name">Marketplace: Run Jobs</field>
+            <field name="model_id" ref="model_marketplace_job"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_run_jobs()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Cron: Pull Orders (Auto) -->
+        <!-- Note: This cron runs every 1 minute to check if any account needs order pull -->
+        <!-- The actual interval is controlled by pull_interval_minutes field in marketplace.account -->
+        <record id="ir_cron_marketplace_pull_orders" model="ir.cron">
+            <field name="name">Marketplace: Pull Orders (Auto)</field>
+            <field name="model_id" ref="model_marketplace_account"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_auto_pull_orders()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Cron: Sync Stock from Zortout (Auto) -->
+        <!-- Note: This cron runs every 1 minute to check if any account needs stock sync -->
+        <!-- The actual interval is controlled by stock_sync_interval_minutes field in marketplace.account -->
+        <record id="ir_cron_marketplace_sync_stock_zortout" model="ir.cron">
+            <field name="name">Marketplace: Sync Stock from Zortout (Auto)</field>
+            <field name="model_id" ref="model_marketplace_account"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_auto_sync_stock_from_zortout()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Cron: Push Stock to Marketplace (Auto) -->
+        <!-- Note: This cron runs every 1 minute to check if any account needs stock push -->
+        <!-- The actual interval is controlled by push_stock_interval_minutes field in marketplace.account -->
+        <record id="ir_cron_marketplace_push_stock_auto" model="ir.cron">
+            <field name="name">Marketplace: Push Stock to Marketplace (Auto)</field>
+            <field name="model_id" ref="model_marketplace_account"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_auto_push_stock_to_marketplace()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Cron: Reset Stuck Jobs -->
+        <!-- Note: This cron runs every hour to reset jobs that are stuck in in_progress state for more than 60 minutes -->
+        <record id="ir_cron_marketplace_reset_stuck_jobs" model="ir.cron">
+            <field name="name">Marketplace: Reset Stuck Jobs</field>
+            <field name="model_id" ref="model_marketplace_job"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_reset_stuck_jobs()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">hours</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!-- Cron: Cleanup Old Done Jobs -->
+        <!-- Note: This cron runs daily to cleanup old done jobs based on account settings -->
+        <record id="ir_cron_marketplace_cleanup_old_done_jobs" model="ir.cron">
+            <field name="name">Marketplace: Cleanup Old Done Jobs</field>
+            <field name="model_id" ref="model_marketplace_job"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_cleanup_old_done_jobs()</field>
+            <field name="interval_number">1</field>
+            <field name="interval_type">days</field>
+            <field name="active" eval="True"/>
+        </record>
+    </data>
+</odoo>
+

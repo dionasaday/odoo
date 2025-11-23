@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Marketplace Job List View -->
+    <record id="view_marketplace_job_tree" model="ir.ui.view">
+        <field name="name">marketplace.job.tree</field>
+        <field name="model">marketplace.job</field>
+        <field name="arch" type="xml">
+            <list string="Jobs" decoration-success="state=='done'" decoration-warning="state=='pending' or state=='in_progress'" decoration-danger="state=='failed' or state=='dead'" default_order="id desc">
+                <field name="job_id_display" string="Job ID" readonly="1" widget="text"/>
+                <field name="name"/>
+                <field name="job_type"/>
+                <field name="priority" widget="badge" decoration-success="priority=='high'" decoration-info="priority=='medium'" decoration-muted="priority=='low'"/>
+                <field name="state"/>
+                <field name="progress" widget="progressbar" invisible="state != 'in_progress'"/>
+                <field name="processed_items" invisible="state != 'in_progress'"/>
+                <field name="total_items" invisible="state != 'in_progress'"/>
+                <field name="retries"/>
+                <field name="max_retries"/>
+                <field name="next_run_at"/>
+                <field name="started_at"/>
+                <field name="completed_at"/>
+                <field name="duration_seconds"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Marketplace Job Form View -->
+    <record id="view_marketplace_job_form" model="ir.ui.view">
+        <field name="name">marketplace.job.form</field>
+        <field name="model">marketplace.job</field>
+        <field name="arch" type="xml">
+            <form string="Marketplace Job">
+                <header>
+                    <button name="action_run_now" string="Run Now" type="object" class="btn-primary" 
+                            invisible="state == 'in_progress' or state == 'done'"
+                            confirm="Are you sure you want to run this job now?"/>
+                    <button name="action_retry" string="Retry" type="object" class="btn-secondary" invisible="state not in ['failed','dead']"/>
+                    <button name="action_move_to_dead" string="Move to Dead Letter" type="object" invisible="state == 'dead'"/>
+                    <button name="action_cleanup_duplicate_jobs" string="Cleanup Duplicate Jobs" type="object" class="btn-secondary"
+                            icon="fa-trash"
+                            confirm="This will delete duplicate pending jobs, keeping only the latest one for each shop/account/job_type. Continue?"/>
+                    <button name="action_reset_stuck_jobs" string="Reset Stuck Jobs" type="object" class="btn-secondary"
+                            icon="fa-refresh"
+                            confirm="This will reset jobs that are stuck in 'in_progress' state for more than 60 minutes. Continue?"/>
+                    <button name="action_cleanup_old_done_jobs" string="Cleanup Old Done Jobs" type="object" class="btn-secondary"
+                            icon="fa-trash"
+                            confirm="This will delete done jobs older than 7 days. Continue?"/>
+                    <field name="state" widget="statusbar" statusbar_visible="pending,in_progress,done,failed,dead"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-info" role="alert" invisible="state != 'in_progress'">
+                        <strong>⏳ Job กำลังทำงานอยู่...</strong>
+                        <p>Job นี้กำลังประมวลผลอยู่ กรุณารอสักครู่</p>
+                        <div class="mt-2" invisible="total_items == 0">
+                            <field name="progress" widget="progressbar" readonly="1"/>
+                            <div class="text-muted mt-1">
+                                <field name="processed_items" readonly="1"/> / <field name="total_items" readonly="1"/> items processed
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-success" role="alert" invisible="state != 'done'">
+                        <strong>✅ Job เสร็จสมบูรณ์แล้ว</strong>
+                        <p>Job ทำงานเสร็จแล้ว ตรวจสอบผลลัพธ์ด้านล่าง</p>
+                    </div>
+                    <div class="alert alert-warning" role="alert" invisible="state != 'pending'">
+                        <strong>⏸️ Job กำลังรอการทำงาน</strong>
+                        <p>Job นี้อยู่ในคิวและจะเริ่มทำงานเมื่อถึงเวลาที่กำหนด (Next Run At)</p>
+                    </div>
+                    <div class="alert alert-danger" role="alert" invisible="state not in ['failed', 'dead']">
+                        <strong>❌ Job ล้มเหลว</strong>
+                        <p>Job นี้ทำงานไม่สำเร็จ ตรวจสอบ Error ด้านล่าง</p>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="job_id_display" string="Job ID" readonly="1"/>
+                            <field name="name"/>
+                            <field name="job_type"/>
+                            <field name="priority" widget="badge" decoration-success="priority=='high'" decoration-info="priority=='medium'" decoration-muted="priority=='low'"/>
+                            <field name="account_id"/>
+                            <field name="shop_id"/>
+                        </group>
+                        <group>
+                            <field name="retries"/>
+                            <field name="max_retries"/>
+                            <field name="next_run_at"/>
+                            <field name="duration_seconds" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Progress" invisible="state != 'in_progress'">
+                        <group>
+                            <field name="progress" widget="progressbar" readonly="1"/>
+                            <field name="processed_items" readonly="1"/>
+                            <field name="total_items" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Timing">
+                        <group>
+                            <field name="started_at" readonly="1"/>
+                            <field name="completed_at" readonly="1"/>
+                        </group>
+                    </group>
+                    <group string="Result">
+                        <field name="result" readonly="1" widget="text"/>
+                    </group>
+                    <group string="Error" invisible="not last_error">
+                        <field name="last_error" readonly="1" widget="text"/>
+                    </group>
+                    <notebook>
+                        <page string="Payload">
+                            <field name="payload" readonly="1" widget="json"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Marketplace Job Search View -->
+    <record id="view_marketplace_job_search" model="ir.ui.view">
+        <field name="name">marketplace.job.search</field>
+        <field name="model">marketplace.job</field>
+        <field name="priority">16</field>
+        <field name="arch" type="xml">
+            <search string="Marketplace Jobs">
+                <field name="name"/>
+                <field name="job_type"/>
+                <field name="priority"/>
+                <separator/>
+                <filter string="Pending" name="filter_pending" domain="[('state', '=', 'pending')]"/>
+                <filter string="In Progress" name="filter_in_progress" domain="[('state', '=', 'in_progress')]"/>
+                <filter string="Failed" name="filter_failed" domain="[('state', '=', 'failed')]"/>
+                <filter string="Dead Letter" name="filter_dead" domain="[('state', '=', 'dead')]"/>
+                <separator/>
+                <filter string="High Priority" name="filter_high_priority" domain="[('priority', '=', 'high')]"/>
+                <filter string="Medium Priority" name="filter_medium_priority" domain="[('priority', '=', 'medium')]"/>
+                <filter string="Low Priority" name="filter_low_priority" domain="[('priority', '=', 'low')]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Marketplace Job Action -->
+    <record id="action_marketplace_job" model="ir.actions.act_window">
+        <field name="name">Marketplace Jobs</field>
+        <field name="res_model">marketplace.job</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_marketplace_job_search"/>
+        <field name="context">{'search_default_order': 'id desc'}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No jobs found
+            </p>
+            <p>
+                Jobs are created automatically when syncing products, pulling orders, or pushing stock.
+            </p>
+        </field>
+    </record>
+
+    <!-- Action: Cleanup Duplicate Jobs (Server Action) -->
+    <record id="action_cleanup_duplicate_jobs" model="ir.actions.server">
+        <field name="name">Cleanup Duplicate Jobs</field>
+        <field name="model_id" ref="model_marketplace_job"/>
+        <field name="binding_model_id" ref="model_marketplace_job"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = model.action_cleanup_duplicate_jobs()</field>
+    </record>
+
+    <!-- Action: Cleanup Duplicate Jobs (Wizard Action) -->
+    <record id="action_cleanup_duplicate_jobs_wizard" model="ir.actions.act_window">
+        <field name="name">Cleanup Duplicate Jobs</field>
+        <field name="res_model">marketplace.job</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'default_name': 'Cleanup Duplicate Jobs'}</field>
+    </record>
+</odoo>
+

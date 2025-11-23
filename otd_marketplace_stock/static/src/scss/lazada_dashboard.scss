@@ -1,0 +1,130 @@
+.o_lazada_sync_grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(320px, 1fr));
+    gap: 24px;
+    margin: 24px auto 8px;
+    max-width: 760px;
+    width: 100%;
+    align-items: stretch;
+}
+
+@media (max-width: 1024px) {
+    .o_lazada_sync_grid {
+        max-width: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        margin-top: 16px;
+    }
+}
+
+.o_lazada_sync_card {
+    position: relative;
+    background-color: #f5f5f5;
+    border: 1px solid #d0d2d6;
+    border-radius: 16px;
+    padding: 24px 22px 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: 220px;
+    box-shadow: 0 14px 32px -24px rgba(15, 23, 42, 0.45);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.o_lazada_sync_card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 16px;
+    pointer-events: none;
+    background: linear-gradient(120deg, rgba(43, 45, 48, 0.08), rgba(223, 170, 0, 0.08));
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.o_lazada_sync_card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 36px -18px rgba(28, 28, 29, 0.4);
+}
+
+.o_lazada_sync_card:hover::after {
+    opacity: 1;
+}
+
+.o_lazada_sync_card h3 {
+    font-size: 18px;
+    margin: 0 0 14px;
+    font-weight: 700;
+    color: #1c1c1d;
+    letter-spacing: 0.02em;
+}
+
+.o_lazada_sync_row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 4px 0;
+    color: #3f4044;
+    font-size: 14px;
+    flex-wrap: nowrap;
+    min-height: 28px;
+}
+
+.o_lazada_sync_row .o_label {
+    font-weight: 600;
+    color: #5a5d63;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.o_lazada_sync_row field {
+    font-weight: 600;
+    color: #1c1c1d;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.o_lazada_sync_row field[name*="message"] {
+    font-weight: 500;
+    color: #27282b;
+    white-space: pre-line;
+}
+
+.o_lazada_sync_footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.o_lazada_sync_card .btn {
+    border-radius: 999px;
+    padding: 8px 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.o_lazada_sync_card .btn.btn-primary {
+    background-color: #1c1c1d;
+    border-color: #1c1c1d;
+}
+
+.o_lazada_sync_card .btn.btn-primary:hover {
+    background-color: #2c2d30;
+    border-color: #2c2d30;
+}
+
+.o_lazada_status_value {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 20px;
+}
+
+.o_lazada_status_spinner {
+    color: #5a5d63;
+    font-size: 14px;
+}
+
+

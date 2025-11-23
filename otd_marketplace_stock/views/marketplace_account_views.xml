@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Marketplace Account List View -->
+    <record id="view_marketplace_account_tree" model="ir.ui.view">
+        <field name="name">marketplace.account.tree</field>
+        <field name="model">marketplace.account</field>
+        <field name="arch" type="xml">
+            <list string="Marketplace Accounts" decoration-success="active==True" decoration-muted="active==False">
+                <field name="name"/>
+                <field name="channel"/>
+                <field name="company_id"/>
+                <field name="shop_count" string="Shops"/>
+                <field name="sync_enabled"/>
+                <field name="last_sync_at"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Marketplace Account Form View -->
+    <record id="view_marketplace_account_form" model="ir.ui.view">
+        <field name="name">marketplace.account.form</field>
+        <field name="model">marketplace.account</field>
+        <field name="arch" type="xml">
+            <form string="Marketplace Account">
+                <header>
+                    <button name="action_connect_oauth" string="Connect OAuth" type="object" class="btn-primary"
+                            invisible="channel == 'zortout' or channel == 'woocommerce'"/>
+                    <button name="action_refresh_token" string="Refresh Token" type="object"
+                            invisible="channel == 'zortout' or channel == 'woocommerce'"/>
+                    <button name="action_test_woocommerce_connection" string="Test Connection" type="object" class="btn-primary"
+                            invisible="channel != 'woocommerce'"
+                            icon="fa-plug"/>
+                    <button name="action_sync_products_from_woocommerce" string="เชื่อมต่อข้อมูลสินค้า" type="object" class="btn-primary"
+                            invisible="channel != 'woocommerce'"
+                            icon="fa-link"
+                            confirm="ระบบจะดึงข้อมูลสินค้าจาก WooCommerce และสร้าง Product Bindings อัตโนมัติโดยใช้ SKU เป็นตัวเชื่อมต่อ. ต้องการดำเนินการต่อหรือไม่?"/>
+                    <button name="action_download_skipped_products" string="Download Skipped Products Report" type="object" class="btn-secondary"
+                            invisible="channel != 'woocommerce' or not sync_export_data"
+                            icon="fa-download"
+                            help="Download CSV file containing skipped and not found products from last sync"/>
+                    <button name="action_create_bindings_from_orders" string="สร้าง Bindings จาก Orders" type="object" class="btn-secondary"
+                            invisible="channel != 'woocommerce'"
+                            icon="fa-sitemap"
+                            confirm="ระบบจะสร้าง Product Bindings จาก SKUs ที่มีใน Orders แต่ยังไม่มี Bindings. ต้องการดำเนินการต่อหรือไม่?"/>
+                    <button name="action_populate_product_ids" string="Cache Product IDs" type="object" class="btn-secondary"
+                            invisible="channel != 'woocommerce'"
+                            icon="fa-database"
+                            confirm="ระบบจะค้นหาและ cache WooCommerce Product IDs สำหรับ bindings ที่ยังไม่มี. ต้องการดำเนินการต่อหรือไม่?"/>
+                    <button name="action_push_stock_to_woocommerce" string="Push Stock to WooCommerce" type="object" class="btn-secondary"
+                            invisible="channel != 'woocommerce'"
+                            icon="fa-upload"/>
+                    <button name="action_run_all_pull_orders_now" string="🚀 ดึงออเดอร์ทันที (Priority Queue)" type="object" class="btn-primary"
+                            help="Run all pending pull_order jobs immediately with high priority"/>
+                    <button name="action_pull_orders_wizard" string="ดึงออเดอร์ (เลือกวันที่)" type="object" class="btn-secondary"
+                            invisible="channel == 'zortout'"
+                            icon="fa-calendar"
+                            help="ดึงออเดอร์ด้วยวันที่ที่กำหนดเอง"/>
+                    <button name="action_import_products_from_zortout" string="นำเข้าข้อมูลสินค้า" 
+                            type="object" class="btn-secondary"
+                            invisible="channel != 'zortout'"
+                            icon="fa-download"/>
+                    <button name="action_update_product_images" string="อัพเดทรูปภาพสินค้า" 
+                            type="object" class="btn-secondary"
+                            invisible="channel != 'zortout'"
+                            icon="fa-image"/>
+                    <button name="action_enable_track_inventory_wizard" string="เปิด Track Inventory (Wizard)" 
+                            type="object" class="btn-secondary"
+                            invisible="channel != 'zortout'"
+                            icon="fa-check-square"/>
+                    <button name="action_fix_track_inventory_all_products" string="แก้ไข Track Inventory ทั้งหมด" 
+                            type="object" class="btn-secondary"
+                            invisible="channel != 'zortout'"
+                            icon="fa-magic"
+                            confirm="จะอัพเดท Track Inventory เป็น 'By Quantity' สำหรับสินค้าทั้งหมดที่มี SKU และเป็นประเภท Goods. ต้องการดำเนินการต่อหรือไม่?"/>
+                    <button name="action_apply_inventory_all_products" string="อัพเดท Stock Quantity" 
+                            type="object" class="btn-primary"
+                            invisible="channel != 'zortout'"
+                            icon="fa-check-circle"
+                            confirm="จะอัพเดท Stock Quantity จาก inventory_quantity สำหรับสินค้าทั้งหมด. ต้องการดำเนินการต่อหรือไม่?"/>
+                    <button name="action_sync_stock_from_zortout" string="ดึงสต็อกสินค้า" 
+                            type="object" class="btn-secondary"
+                            invisible="channel != 'zortout'"
+                            icon="fa-refresh"/>
+                    <button name="action_get_warehouses" string="ดู Warehouse List" 
+                            type="object" class="btn-secondary"
+                            invisible="channel != 'zortout'"
+                            icon="fa-list"/>
+                    <button name="action_test_warehouse_code" string="ทดสอบ Warehouse Code" 
+                            type="object" class="btn-secondary"
+                            invisible="channel != 'zortout'"
+                            icon="fa-check-circle"/>
+                    <field name="active" widget="boolean_toggle"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_shops" type="object" class="oe_stat_button" icon="fa-building">
+                            <field name="shop_count" widget="statinfo" string="Shops"/>
+                        </button>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="channel"/>
+                            <field name="company_id"/>
+                            <field name="sync_enabled"/>
+                        </group>
+                        <group>
+                            <field name="last_sync_at" readonly="1"/>
+                            <field name="batch_size"/>
+                        </group>
+                    </group>
+                    <notebook>
+                    <!-- LOCKED: ห้ามแก้ xpath/field นี้ เพราะมี test อ้างอิง -->
+                        <page string="OAuth Configuration / API Credentials">
+                            <group>
+                                <group>
+                                    <field name="client_id"
+                                           invisible="channel == 'zortout' or channel == 'woocommerce'"/>
+                                    <field name="client_id"
+                                           string="Store Name" 
+                                           invisible="channel != 'zortout'"/>
+                                    <field name="client_id"
+                                           string="Store URL"
+                                           placeholder="https://yourstore.com"
+                                           invisible="channel != 'woocommerce'"
+                                           help="WooCommerce store URL (e.g., https://yourstore.com)"/>
+                                    <field name="woocommerce_consumer_key" password="True"
+                                           string="Consumer Key"
+                                           placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                           invisible="channel != 'woocommerce'"
+                                           help="WooCommerce Consumer Key (ck_...) - Required for WooCommerce authentication"/>
+                                    <field name="client_secret" widget="password_toggle"
+                                           invisible="channel == 'zortout' or channel == 'woocommerce'"/>
+                                    <field name="client_secret" widget="password_toggle"
+                                           string="API Key"
+                                           invisible="channel != 'zortout'"/>
+                                    <field name="client_secret" password="True"
+                                           string="Consumer Secret"
+                                           placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                                           invisible="channel != 'woocommerce'"
+                                           help="WooCommerce Consumer Secret (cs_...) - Required for WooCommerce authentication"/>
+                                </group>
+                                <group>
+                                    <field name="access_token" password="True" readonly="1"
+                                           invisible="channel == 'zortout' or channel == 'woocommerce'"/>
+                                    <field name="access_token" widget="password_toggle" readonly="0"
+                                           string="API Secret"
+                                           invisible="channel != 'zortout'"/>
+                                    <field name="refresh_token" password="True" readonly="1"
+                                           invisible="channel == 'zortout' or channel == 'woocommerce'"/>
+                                    <field name="access_token_expire_at" readonly="1"
+                                           invisible="channel == 'zortout' or channel == 'woocommerce'"/>
+                                </group>
+                            </group>
+                        </page>
+                        <!-- END-LOCKED -->
+                        <page string="Stock Configuration">
+                            <group>
+                                <group>
+                                    <field name="stock_location_id"/>
+                                    <field name="push_buffer_qty"/>
+                                    <field name="min_online_qty"/>
+                                    <field name="stock_sync_interval_minutes" 
+                                           invisible="channel != 'zortout'"
+                                           help="Interval between automatic stock syncs from Zortout (in minutes). Minimum: 1 minute. The system will sync stock automatically at this interval."/>
+                                    <field name="stock_sync_batch_size" 
+                                           invisible="channel != 'zortout'"
+                                           help="Number of products to sync per batch when syncing stock from Zortout. Larger batches may cause timeouts. Recommended: 300-500 products per batch. Set to 0 to disable batching (sync all at once). Default: 500."/>
+                                    <field name="push_stock_interval_minutes" 
+                                           invisible="channel == 'zortout'"
+                                           help="Interval between automatic stock pushes to marketplace (in minutes). Minimum: 1 minute. Default: 30 minutes. The system will push stock automatically at this interval to prevent overselling."/>
+                                    <field name="max_concurrent_jobs" 
+                                           help="Maximum number of jobs that can run concurrently for this account. Prevents API rate limiting and system overload. Recommended: 2-5 jobs. Default: 3 jobs."/>
+                                    <field name="push_stock_batch_size" 
+                                           invisible="channel == 'zortout'"
+                                           help="Number of products to push per batch. Larger batches may cause timeouts. Recommended: 20-50 products per batch. Set to 0 to disable batching (push all at once). Default: 25."/>
+                                </group>
+                                <group string="Job Cleanup Settings">
+                                    <field name="job_cleanup_enabled"/>
+                                    <field name="job_cleanup_retention_days"
+                                           invisible="not job_cleanup_enabled"
+                                           help="Number of days to keep done jobs. Jobs older than this will be automatically deleted. Minimum: 1 day. Default: 7 days."/>
+                                    <field name="job_cleanup_keep_count"
+                                           invisible="not job_cleanup_enabled"
+                                           help="Number of recent jobs to keep per job type (0 = no limit, delete all old jobs). This ensures you always keep the most recent N jobs even if they are older than retention days. Default: 0 (no limit)."/>
+                                    <field name="job_cleanup_job_types"
+                                           invisible="not job_cleanup_enabled"
+                                           placeholder="pull_order,push_stock"
+                                           help="Comma-separated list of job types to cleanup (e.g., 'pull_order,push_stock'). Leave empty to cleanup all job types."/>
+                                </group>
+                                <group>
+                                    <field name="pull_interval_minutes" 
+                                           help="Interval between automatic order pulls (in minutes). Minimum: 1 minute. Default: 5 minutes. The system will pull orders automatically at this interval."/>
+                                    <field name="order_auto_confirm"/>
+                                    <field name="order_default_pricelist_id"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Shops">
+                            <field name="shop_ids" nolabel="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="external_shop_id"/>
+                                    <field name="warehouse_id"/>
+                                    <field name="last_order_sync_at"/>
+                                    <field name="active" widget="boolean_toggle"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Marketplace Account Search View -->
+    <record id="view_marketplace_account_search" model="ir.ui.view">
+        <field name="name">marketplace.account.search</field>
+        <field name="model">marketplace.account</field>
+        <field name="priority">16</field>
+        <field name="arch" type="xml">
+            <search string="Marketplace Accounts">
+                <field name="name"/>
+                <field name="channel"/>
+                <field name="company_id"/>
+                <separator/>
+                <filter string="Active" name="filter_active" domain="[('active', '=', True)]"/>
+                <filter string="Sync Enabled" name="filter_sync_enabled" domain="[('sync_enabled', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Marketplace Account Action -->
+    <record id="action_marketplace_account" model="ir.actions.act_window">
+        <field name="name">Marketplace Accounts</field>
+        <field name="res_model">marketplace.account</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_marketplace_account_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a marketplace account to connect with Shopee, Lazada, or TikTok Shop
+            </p>
+        </field>
+    </record>
+</odoo>
+

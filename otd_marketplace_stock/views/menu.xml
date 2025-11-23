@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_marketplace_root"
+              name="Marketplace"
+              sequence="100"
+              web_icon="otd_marketplace_stock,static/description/icon.png"/>
+
+    <!-- Accounts -->
+    <menuitem id="menu_marketplace_accounts"
+              name="Accounts"
+              parent="menu_marketplace_root"
+              action="action_marketplace_account"
+              sequence="10"/>
+
+    <!-- Shops -->
+    <menuitem id="menu_marketplace_shops"
+              name="Shops"
+              parent="menu_marketplace_root"
+              action="action_marketplace_shop"
+              sequence="20"/>
+
+    <!-- Product Bindings -->
+    <menuitem id="menu_marketplace_product_bindings"
+              name="Product Bindings"
+              parent="menu_marketplace_root"
+              action="action_marketplace_product_binding"
+              sequence="30"/>
+
+    <!-- Orders -->
+    <menuitem id="menu_marketplace_orders"
+              name="Orders"
+              parent="menu_marketplace_root"
+              action="action_marketplace_order"
+              sequence="40"/>
+
+    <!-- Sync Rules -->
+    <menuitem id="menu_marketplace_sync_rules"
+              name="Sync Rules"
+              parent="menu_marketplace_root"
+              action="action_marketplace_sync_rule"
+              sequence="50"/>
+
+    <!-- Jobs -->
+    <menuitem id="menu_marketplace_jobs"
+              name="Jobs"
+              parent="menu_marketplace_root"
+              action="action_marketplace_job"
+              sequence="60"/>
+
+    <!-- Dashboard -->
+    <menuitem id="menu_marketplace_dashboard"
+              name="Dashboard"
+              parent="menu_marketplace_root"
+              action="action_marketplace_dashboard"
+              sequence="5"/>
+</odoo>
+

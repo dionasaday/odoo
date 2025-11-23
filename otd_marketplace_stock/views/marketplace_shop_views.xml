@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Marketplace Shop List View -->
+    <record id="view_marketplace_shop_tree" model="ir.ui.view">
+        <field name="name">marketplace.shop.tree</field>
+        <field name="model">marketplace.shop</field>
+        <field name="arch" type="xml">
+            <list string="Marketplace Shops" decoration-success="active==True" decoration-muted="active==False">
+                <field name="name"/>
+                <field name="account_id"/>
+                <field name="channel"/>
+                <field name="external_shop_id"/>
+                <field name="warehouse_id"/>
+                <field name="last_order_sync_at"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Marketplace Shop Form View -->
+    <record id="view_marketplace_shop_form" model="ir.ui.view">
+        <field name="name">marketplace.shop.form</field>
+        <field name="model">marketplace.shop</field>
+        <field name="arch" type="xml">
+            <form string="Marketplace Shop">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_orders" type="object" class="oe_stat_button" icon="fa-shopping-cart">
+                            <field name="order_count" widget="statinfo" string="Orders"/>
+                        </button>
+                        <button name="action_view_bindings" type="object" class="oe_stat_button" icon="fa-cubes">
+                            <field name="binding_count" widget="statinfo" string="Bindings"/>
+                        </button>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="account_id"/>
+                            <field name="channel" readonly="1"/>
+                            <field name="external_shop_id"/>
+                        </group>
+                        <group>
+                            <field name="company_id" readonly="1"/>
+                            <field name="timezone"/>
+                            <field name="warehouse_id"/>
+                            <field name="team_id"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                    </group>
+                    <group string="Sync Status">
+                        <group>
+                            <field name="last_order_sync_at" readonly="1"/>
+                            <field name="last_stock_sync_at" readonly="1"/>
+                        </group>
+                    </group>
+                    <!-- Channel Operations: show appropriate cards per channel -->
+                    <group string="Channel Operations">
+                        <div class="o_lazada_sync_grid">
+                            <!-- Lazada: Import Products -->
+                            <div class="o_lazada_sync_card" modifiers="{'invisible': [('channel', '!=', 'lazada')]}">
+                                <h3>นำเข้าข้อมูลสินค้า</h3>
+                                <div class="o_lazada_sync_row">
+                                    <span class="o_label">สถานะ:</span>
+                                    <div class="o_lazada_status_value">
+                                        <field name="lazada_product_import_status" readonly="1"/>
+                                        <span class="fa fa-circle-notch fa-spin o_lazada_status_spinner"
+                                              modifiers="{'invisible': [('lazada_product_import_status', 'not in', ['pending', 'in_progress'])]}"/>
+                                    </div>
+                                </div>
+                                <div class="o_lazada_sync_row">
+                                    <span class="o_label">วันที่:</span>
+                                    <field name="lazada_product_import_date" readonly="1"/>
+                                </div>
+                                <div class="o_lazada_sync_row" modifiers="{'invisible': [('lazada_product_import_message', '=', False)]}">
+                                    <span class="o_label">หมายเหตุ:</span>
+                                    <field name="lazada_product_import_message" readonly="1"/>
+                                </div>
+                                <div class="o_lazada_sync_footer">
+                                    <button string="อัปเดต" type="object" class="btn btn-primary"
+                                            name="action_open_lazada_import_wizard"/>
+                                </div>
+                            </div>
+                            <!-- Lazada: Update Product Images -->
+                            <div class="o_lazada_sync_card" modifiers="{'invisible': [('channel', '!=', 'lazada')]}">
+                                <h3>อัปเดทรูปภาพสินค้า</h3>
+                                <div class="o_lazada_sync_row">
+                                    <span class="o_label">สถานะ:</span>
+                                    <div class="o_lazada_status_value">
+                                        <field name="lazada_image_update_status" readonly="1"/>
+                                        <span class="fa fa-circle-notch fa-spin o_lazada_status_spinner"
+                                              modifiers="{'invisible': [('lazada_image_update_status', 'not in', ['pending', 'in_progress'])]}"/>
+                                    </div>
+                                </div>
+                                <div class="o_lazada_sync_row">
+                                    <span class="o_label">วันที่:</span>
+                                    <field name="lazada_image_update_date" readonly="1"/>
+                                </div>
+                                <div class="o_lazada_sync_row" modifiers="{'invisible': [('lazada_image_update_message', '=', False)]}">
+                                    <span class="o_label">หมายเหตุ:</span>
+                                    <field name="lazada_image_update_message" readonly="1"/>
+                                </div>
+                                <div class="o_lazada_sync_footer">
+                                    <button string="อัปเดต" type="object" class="btn btn-primary"
+                                            name="action_open_lazada_update_images_wizard"/>
+                                </div>
+                            </div>
+                            <!-- Lazada: Sync Stock -->
+                            <div class="o_lazada_sync_card" modifiers="{'invisible': [('channel', '!=', 'lazada')]}">
+                                <h3>เชื่อมต่อข้อมูลสินค้า</h3>
+                                <div class="o_lazada_sync_row">
+                                    <span class="o_label">สถานะ:</span>
+                                    <div class="o_lazada_status_value">
+                                        <field name="lazada_stock_sync_status" readonly="1"/>
+                                        <span class="fa fa-circle-notch fa-spin o_lazada_status_spinner"
+                                              modifiers="{'invisible': [('lazada_stock_sync_status', 'not in', ['pending', 'in_progress'])]}"/>
+                                    </div>
+                                </div>
+                                <div class="o_lazada_sync_row">
+                                    <span class="o_label">วันที่:</span>
+                                    <field name="lazada_stock_sync_date" readonly="1"/>
+                                </div>
+                                <div class="o_lazada_sync_row" modifiers="{'invisible': [('lazada_stock_sync_message', '=', False)]}">
+                                    <span class="o_label">หมายเหตุ:</span>
+                                    <field name="lazada_stock_sync_message" readonly="1"/>
+                                </div>
+                                <div class="o_lazada_sync_footer">
+                                    <button string="อัปเดต" type="object" class="btn btn-primary"
+                                            name="action_open_lazada_push_stock_wizard"/>
+                                </div>
+                            </div>
+                            <!-- Backfill / Pull Orders: visible for all supported channels, button varies by channel -->
+                            <div class="o_lazada_sync_card">
+                                <h3>นำเข้าข้อมูลรายการขายย้อนหลัง</h3>
+                                <div class="o_lazada_sync_row">
+                                    <span class="o_label">สถานะ:</span>
+                                    <div class="o_lazada_status_value">
+                                        <field name="lazada_order_backfill_status" readonly="1"/>
+                                        <span class="fa fa-circle-notch fa-spin o_lazada_status_spinner"
+                                              modifiers="{'invisible': [('lazada_order_backfill_status', 'not in', ['pending', 'in_progress'])]}"/>
+                                    </div>
+                                </div>
+                                <div class="o_lazada_sync_row">
+                                    <span class="o_label">วันที่:</span>
+                                    <field name="lazada_order_backfill_date" readonly="1"/>
+                                </div>
+                                <div class="o_lazada_sync_row" modifiers="{'invisible': [('lazada_order_backfill_message', '=', False)]}">
+                                    <span class="o_label">หมายเหตุ:</span>
+                                    <field name="lazada_order_backfill_message" readonly="1"/>
+                                </div>
+                                <div class="o_lazada_sync_footer">
+                                    <button string="อัปเดต" type="object" class="btn btn-primary"
+                                            name="action_open_lazada_backfill_orders_wizard"
+                                            invisible="channel != 'lazada'"/>
+                                    <button string="อัปเดต" type="object" class="btn btn-primary"
+                                            name="action_open_woocommerce_backfill_orders_wizard"
+                                            invisible="channel != 'woocommerce'"/>
+                                    <button string="อัปเดต" type="object" class="btn btn-primary"
+                                            name="action_open_shopee_backfill_orders_wizard"
+                                            invisible="channel not in ['shopee', 'tiktok']"/>
+                                </div>
+                            </div>
+                        </div>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Marketplace Shop Search View -->
+    <record id="view_marketplace_shop_search" model="ir.ui.view">
+        <field name="name">marketplace.shop.search</field>
+        <field name="model">marketplace.shop</field>
+        <field name="priority">16</field>
+        <field name="arch" type="xml">
+            <search string="Marketplace Shops">
+                <field name="name"/>
+                <field name="external_shop_id"/>
+                <field name="account_id"/>
+                <separator/>
+                <filter string="Active" name="filter_active" domain="[('active', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Marketplace Shop Action -->
+    <record id="action_marketplace_shop" model="ir.actions.act_window">
+        <field name="name">Marketplace Shops</field>
+        <field name="res_model">marketplace.shop</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_marketplace_shop_search"/>
+        <field name="context">{}</field>
+    </record>
+</odoo>
+

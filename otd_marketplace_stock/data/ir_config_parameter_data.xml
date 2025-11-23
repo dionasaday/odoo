@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="ir_config_parameter_marketplace_lazada_callback_path" model="ir.config_parameter">
+        <field name="key">marketplace.lazada.callback_path</field>
+        <field name="value">/oauth/lazada/callback</field>
+    </record>
+</odoo>
+

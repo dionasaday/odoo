@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="0">
+    <!-- Update action contexts to remove active_id references -->
+    <record id="action_marketplace_shop" model="ir.actions.act_window">
+        <field name="context">{}</field>
+    </record>
+    
+    <record id="action_marketplace_product_binding" model="ir.actions.act_window">
+        <field name="context">{}</field>
+    </record>
+</odoo>
+

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- Enable Track Inventory Wizard Form View -->
+    <record id="view_enable_track_inventory_wizard_form" model="ir.ui.view">
+        <field name="name">enable.track.inventory.wizard.form</field>
+        <field name="model">enable.track.inventory.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Enable Track Inventory">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="filter_by_sku"/>
+                            <field name="filter_by_type"/>
+                            <field name="filter_tracking"/>
+                            <field name="limit"/>
+                        </group>
+                        <group>
+                            <field name="estimated_count" widget="statinfo" string="Estimated Products"/>
+                        </group>
+                    </group>
+                    <div class="alert alert-info" role="alert">
+                        <strong>ℹ️ Information:</strong>
+                        <p>This wizard will enable Track Inventory "By Quantity" (tracking='none') for products matching the selected criteria.</p>
+                        <p>Products will be updated to track inventory by quantity (no lot/serial numbers required).</p>
+                    </div>
+                </sheet>
+                <footer>
+                    <button name="action_enable_track_inventory" string="Enable Track Inventory" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open wizard -->
+    <record id="action_enable_track_inventory_wizard" model="ir.actions.act_window">
+        <field name="name">Enable Track Inventory</field>
+        <field name="res_model">enable.track.inventory.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>
+

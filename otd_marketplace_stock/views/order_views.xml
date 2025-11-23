@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Marketplace Order Kanban View -->
+    <record id="view_marketplace_order_kanban" model="ir.ui.view">
+        <field name="name">marketplace.order.kanban</field>
+        <field name="model">marketplace.order</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state" class="o_kanban_dashboard">
+                <field name="name"/>
+                <field name="state"/>
+                <field name="channel"/>
+                <field name="amount_total"/>
+                <field name="sale_order_id"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="oe_kanban_content">
+                                <div class="o_kanban_record_top">
+                                    <div class="o_kanban_record_headings">
+                                        <strong class="o_kanban_record_title">
+                                            <field name="name"/>
+                                        </strong>
+                                        <div class="o_kanban_record_subtitle">
+                                            <field name="channel"/> - <field name="shop_id"/>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="o_kanban_record_body">
+                                    <field name="amount_total" widget="monetary"/>
+                                    <field name="sale_order_name" string="SO"/>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Marketplace Order List View -->
+    <record id="view_marketplace_order_tree" model="ir.ui.view">
+        <field name="name">marketplace.order.tree</field>
+        <field name="model">marketplace.order</field>
+        <field name="arch" type="xml">
+            <list string="Marketplace Orders" decoration-success="state=='synced'" decoration-warning="state=='pending'" decoration-danger="state=='failed'">
+                <field name="name"/>
+                <field name="channel"/>
+                <field name="shop_id"/>
+                <field name="customer_name"/>
+                <field name="amount_total" sum="Total"/>
+                <field name="order_date"/>
+                <field name="state"/>
+                <field name="sale_order_name"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Marketplace Order Form View -->
+    <record id="view_marketplace_order_form" model="ir.ui.view">
+        <field name="name">marketplace.order.form</field>
+        <field name="model">marketplace.order</field>
+        <field name="arch" type="xml">
+            <form string="Marketplace Order">
+                <header>
+                    <button name="action_retry_sync" string="Retry Sync" type="object" class="btn-primary" invisible="state != 'failed'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="pending,synced,failed"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_sale_order" type="object" class="oe_stat_button" icon="fa-shopping-cart" invisible="sale_order_id == False">
+                            <field name="sale_order_name" widget="statinfo" string="Sale Order"/>
+                        </button>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="external_order_id"/>
+                            <field name="shop_id"/>
+                            <field name="channel" readonly="1"/>
+                            <field name="order_date"/>
+                        </group>
+                        <group>
+                            <field name="customer_name"/>
+                            <field name="customer_email"/>
+                            <field name="customer_phone"/>
+                            <field name="amount_total"/>
+                            <field name="currency_id"/>
+                        </group>
+                    </group>
+                    <group string="Customer Address">
+                        <field name="customer_address" nolabel="1"/>
+                    </group>
+                    <notebook>
+                        <page string="Order Lines">
+                            <field name="order_line_ids" nolabel="1">
+                                <list>
+                                    <field name="external_sku"/>
+                                    <field name="product_id"/>
+                                    <field name="product_name"/>
+                                    <field name="quantity"/>
+                                    <field name="price_unit"/>
+                                    <field name="sale_order_line_id"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Cancellation/Return" invisible="state not in ['cancelled','returned']">
+                            <group>
+                                <group>
+                                    <field name="cancellation_reason" invisible="state != 'cancelled'"/>
+                                    <field name="cancellation_date" invisible="state != 'cancelled'"/>
+                                </group>
+                                <group>
+                                    <field name="return_reason" invisible="state != 'returned'"/>
+                                    <field name="return_date" invisible="state != 'returned'"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Sync Info">
+                            <group>
+                                <group>
+                                    <field name="last_sync_at" readonly="1"/>
+                                    <field name="sync_error" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Raw Data">
+                            <field name="raw_payload" readonly="1" widget="text"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Marketplace Order Search View -->
+    <record id="view_marketplace_order_search" model="ir.ui.view">
+        <field name="name">marketplace.order.search</field>
+        <field name="model">marketplace.order</field>
+        <field name="priority">16</field>
+        <field name="arch" type="xml">
+            <search string="Marketplace Orders">
+                <field name="name"/>
+                <field name="external_order_id"/>
+                <field name="customer_name"/>
+                <field name="customer_email"/>
+                <field name="shop_id"/>
+                <separator/>
+                <filter string="Pending" name="filter_pending" domain="[('state', '=', 'pending')]"/>
+                <filter string="Synced" name="filter_synced" domain="[('state', '=', 'synced')]"/>
+                <filter string="Failed" name="filter_failed" domain="[('state', '=', 'failed')]"/>
+                <filter string="Cancelled" name="filter_cancelled" domain="[('state', '=', 'cancelled')]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Marketplace Order Action -->
+    <record id="action_marketplace_order" model="ir.actions.act_window">
+        <field name="name">Marketplace Orders</field>
+        <field name="res_model">marketplace.order</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_marketplace_order_search"/>
+    </record>
+</odoo>
+

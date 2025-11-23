@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Marketplace Sync Rule List View -->
+    <record id="view_marketplace_sync_rule_tree" model="ir.ui.view">
+        <field name="name">marketplace.sync.rule.tree</field>
+        <field name="model">marketplace.sync.rule</field>
+        <field name="arch" type="xml">
+            <list string="Sync Rules" decoration-success="active==True" decoration-muted="active==False">
+                <field name="name"/>
+                <field name="rule_scope"/>
+                <field name="priority"/>
+                <field name="buffer_qty"/>
+                <field name="min_qty"/>
+                <field name="rounding"/>
+                <field name="exclude_push"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Marketplace Sync Rule Form View -->
+    <record id="view_marketplace_sync_rule_form" model="ir.ui.view">
+        <field name="name">marketplace.sync.rule.form</field>
+        <field name="model">marketplace.sync.rule</field>
+        <field name="arch" type="xml">
+            <form string="Sync Rule">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="rule_scope"/>
+                            <field name="priority"/>
+                            <field name="active" widget="boolean_toggle"/>
+                        </group>
+                        <group>
+                            <field name="account_id" required="rule_scope == 'account'" invisible="rule_scope != 'account'"/>
+                            <field name="shop_id" required="rule_scope == 'shop'" invisible="rule_scope != 'shop'"/>
+                            <field name="product_id" required="rule_scope == 'product'" invisible="rule_scope != 'product'"/>
+                        </group>
+                    </group>
+                    <group string="Stock Sync Rules">
+                        <group>
+                            <field name="buffer_qty" placeholder="Use account default"/>
+                            <field name="min_qty" placeholder="Use account default"/>
+                            <field name="rounding" placeholder="No rounding"/>
+                        </group>
+                        <group>
+                            <field name="exclude_push"/>
+                        </group>
+                    </group>
+                    <group string="Conditions">
+                        <group>
+                            <field name="condition_product_category_ids" widget="many2many_tags"/>
+                            <field name="condition_product_tag_ids" widget="many2many_tags"/>
+                        </group>
+                        <group>
+                            <field name="condition_min_stock"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Marketplace Sync Rule Search View -->
+    <record id="view_marketplace_sync_rule_search" model="ir.ui.view">
+        <field name="name">marketplace.sync.rule.search</field>
+        <field name="model">marketplace.sync.rule</field>
+        <field name="priority">16</field>
+        <field name="arch" type="xml">
+            <search string="Sync Rules">
+                <field name="name"/>
+                <field name="rule_scope"/>
+                <separator/>
+                <filter string="Active" name="filter_active" domain="[('active', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Marketplace Sync Rule Action -->
+    <record id="action_marketplace_sync_rule" model="ir.actions.act_window">
+        <field name="name">Sync Rules</field>
+        <field name="res_model">marketplace.sync.rule</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_marketplace_sync_rule_search"/>
+    </record>
+</odoo>
+
