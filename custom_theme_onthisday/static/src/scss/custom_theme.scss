@@ -1,0 +1,465 @@
+/*!
+ * Custom Theme for On This Day
+ * 
+ * ไฟล์นี้ใช้สำหรับกำหนดสีธีมของ Odoo ให้ตรงกับ Corporate Identity (CI)
+ * ของบริษัท On This Day
+ * 
+ * วิธีแก้ไขสี:
+ * วิธีที่ 1 (แนะนำ): ไปที่ Settings > General Settings > Theme Colors
+ * วิธีที่ 2: แก้ไขค่าสีในส่วน :root variables ด้านล่าง
+ * 
+ * หมายเหตุ: สีจะถูก override โดย JavaScript จาก company settings
+ * ถ้าต้องการให้ใช้ค่าจาก SCSS ให้ comment JavaScript ใน theme_color.js
+ */
+
+/* ============================================
+   สีหลักของบริษัท (Default Values)
+   ค่าจริงจะถูก inject จาก company settings ผ่าน JavaScript
+   ============================================ */
+/* LOCKED: สี CI ตามแบรนด์ อย่าแก้ */
+:root {
+    /* สีหลัก (Primary Color) - ใช้ใน Navigation Bar, Buttons */
+    /* ค่า default จะถูก override โดย JavaScript จาก company settings */
+    --o-brand-primary: #232222; /* Default: Dark Gray */
+    
+    /* ตัวอย่างสีที่ใช้บ่อย:
+     * สีน้ำเงิน: #0077BE หรือ #0066CC
+     * สีเขียว: #00A859 หรือ #28A745
+     * สีส้ม: #FF6B35 หรือ #FF5733
+     * สีแดง: #DC3545 หรือ #E74C3C
+     * สีเทา: #6C757D หรือ #495057
+     */
+    
+    /* สีรอง (Secondary Color) - ใช้ใน hover states */
+    --o-brand-secondary: #623412; /* Default: Brown */
+    
+    /* สีสำหรับข้อความบนพื้นหลังสีหลัก */
+    --o-brand-optional: #FFFFFF; /* Default: White */
+    
+    /* Override Odoo NavBar CSS Variables */
+    --NavBar-entry-backgroundColor: var(--o-brand-primary) !important;
+    --NavBar-entry-hover-backgroundColor: rgba(255, 255, 255, 0.1) !important;
+    --NavBar-entry-active-backgroundColor: var(--o-brand-secondary) !important;
+}
+
+/* ============================================
+   Override Odoo Primary Color
+   ============================================ */
+$o-brand-primary: var(--o-brand-primary) !default;
+$o-brand-secondary: var(--o-brand-secondary) !default;
+
+/* ============================================
+   Navigation Bar
+   ============================================ */
+.o_main_navbar {
+    background-color: var(--o-brand-primary) !important;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Navigation Bar Links */
+.o_main_navbar .o_navbar_apps_menu,
+.o_main_navbar .o_menu_brand,
+.o_main_navbar .o_menu_sections,
+.o_main_navbar .o_menu_systray {
+    color: var(--o-brand-optional) !important;
+}
+
+.o_main_navbar .o_navbar_apps_menu:hover,
+.o_main_navbar .o_menu_brand:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Top Menu Items (Discuss, Channels, etc.) */
+.o_main_navbar .o_menu_sections > .o_menu_section {
+    background-color: var(--o-brand-primary) !important;
+    color: var(--o-brand-optional) !important;
+}
+
+.o_main_navbar .o_menu_sections > .o_menu_section:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Active Menu Item */
+.o_main_navbar .o_menu_sections > .o_menu_section.active {
+    background-color: var(--o-brand-secondary) !important;
+    color: var(--o-brand-optional) !important;
+}
+
+/* Navigation Bar Entry - Override Odoo's default purple (#71639e) */
+.o_main_navbar .o_menu_sections .o_nav_entry,
+.o_main_navbar .o_menu_sections .dropdown-toggle {
+    background: var(--NavBar-entry-backgroundColor, var(--o-brand-primary)) !important;
+    border: 1px solid transparent !important;
+    color: var(--o-brand-optional) !important;
+}
+
+.o_main_navbar .o_menu_sections .o_nav_entry:hover,
+.o_main_navbar .o_menu_sections .dropdown-toggle:hover {
+    background: var(--NavBar-entry-hover-backgroundColor, rgba(255, 255, 255, 0.1)) !important;
+}
+
+.o_main_navbar .o_menu_sections .o_nav_entry.active,
+.o_main_navbar .o_menu_sections .dropdown-toggle.active {
+    background: var(--NavBar-entry-active-backgroundColor, var(--o-brand-secondary)) !important;
+}
+
+/* Dropdown Items in Navbar */
+.o_main_navbar .o_menu_sections .dropdown-item {
+    background-color: var(--o-brand-primary) !important;
+    color: var(--o-brand-optional) !important;
+}
+
+.o_main_navbar .o_menu_sections .dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Menu Section Dropdown */
+.o_main_navbar .o_menu_sections .dropdown-menu {
+    background-color: var(--o-brand-primary) !important;
+    border-color: var(--o-brand-primary) !important;
+}
+
+.o_main_navbar .o_menu_sections .dropdown-item {
+    color: var(--o-brand-optional) !important;
+    background-color: transparent !important;
+}
+
+.o_main_navbar .o_menu_sections .dropdown-item:hover,
+.o_main_navbar .o_menu_sections .dropdown-item:focus {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--o-brand-optional) !important;
+}
+
+/* ============================================
+   Buttons
+   ============================================ */
+.btn-primary {
+    background-color: var(--o-brand-primary) !important;
+    border-color: var(--o-brand-primary) !important;
+    color: var(--o-brand-optional) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+    background-color: var(--o-brand-secondary) !important;
+    border-color: var(--o-brand-secondary) !important;
+    opacity: 0.9;
+}
+
+/* ============================================
+   Links
+   ============================================ */
+a {
+    color: var(--o-brand-primary) !important;
+}
+
+a:hover {
+    color: var(--o-brand-secondary) !important;
+}
+
+/* Keep icons/links in dark navbar readable regardless of global link color */
+.o_main_navbar a,
+.o_main_navbar .btn-link,
+.o_main_navbar .o_menu_toggle,
+.o_main_navbar .o_menu_toggle i,
+.o_main_navbar .o_menu_toggle svg,
+.o_main_navbar i.fa,
+.o_main_navbar i.fa-bars,
+.o_main_navbar a * {
+    color: var(--o-brand-optional) !important;
+    fill: var(--o-brand-optional) !important;
+}
+
+/* Stronger specificity for the menu toggle (hamburger) icon to ensure light color */
+nav.o_main_navbar a.o_menu_toggle,
+nav.o_main_navbar a.o_menu_toggle i.fa,
+nav.o_main_navbar a.o_menu_toggle i.fa-bars {
+    color: var(--o-brand-optional) !important;
+    opacity: 1 !important;
+}
+
+/* Extra specificity for the toggle selector used in some builds (border-0 hasImage) */
+nav.o_main_navbar a.o_menu_toggle.border-0.hasImage,
+nav.o_main_navbar a.o_menu_toggle.border-0.hasImage i,
+nav.o_main_navbar a.o_menu_toggle.border-0.hasImage i.fa,
+nav.o_main_navbar a.o_menu_toggle.border-0.hasImage i.fa-bars {
+    color: var(--o-brand-optional) !important;
+    fill: var(--o-brand-optional) !important;
+    opacity: 1 !important;
+}
+
+/* Force all FontAwesome icons in navbar to light color */
+nav.o_main_navbar i.fas,
+nav.o_main_navbar i.far,
+nav.o_main_navbar i.fal,
+nav.o_main_navbar i.fab,
+nav.o_main_navbar .fa {
+    color: var(--o-brand-optional) !important;
+    fill: var(--o-brand-optional) !important;
+}
+
+/* Realtime Live Status Indicator - Override white color for online/offline status */
+/* Ensure status indicators show correct colors (green for online, etc.) */
+.o-mail-ImStatus i.text-success,
+.o-mail-ImStatus i.fa-circle.text-success,
+.o_user_menu .o-mail-ImStatus i.text-success,
+.o_user_menu .o-mail-ImStatus i.fa-circle.text-success,
+nav.o_main_navbar .o-mail-ImStatus i.text-success,
+nav.o_main_navbar .o-mail-ImStatus i.fa-circle.text-success {
+    color: #28a745 !important; /* Bootstrap success green */
+    fill: #28a745 !important;
+}
+
+/* Offline status indicator (if using text-danger or text-muted) */
+.o-mail-ImStatus i.text-danger,
+.o-mail-ImStatus i.fa-circle.text-danger,
+.o_user_menu .o-mail-ImStatus i.text-danger,
+.o_user_menu .o-mail-ImStatus i.fa-circle.text-danger,
+nav.o_main_navbar .o-mail-ImStatus i.text-danger,
+nav.o_main_navbar .o-mail-ImStatus i.fa-circle.text-danger {
+    color: #dc3545 !important; /* Bootstrap danger red */
+    fill: #dc3545 !important;
+}
+
+/* If Odoo marks the icon as text-muted, force it to be bright in navbar */
+.o_main_navbar .text-muted {
+    color: var(--o-brand-optional) !important;
+    opacity: 1 !important;
+}
+/* Ensure link variables inside navbar are light so nested rules using --link-color respect it */
+nav.o_main_navbar {
+    --link-color: var(--o-brand-optional) !important;
+    --link-color-rgb: 255, 255, 255 !important;
+}
+
+/* Keep control panel icon buttons readable on light background */
+.o_control_panel .btn-link,
+.o_control_panel .btn-link i,
+.o_control_panel .o_cp_sidebar_toggler,
+.o_control_panel .o_cp_sidebar_toggler i {
+    color: var(--o-gray-900, #212529) !important;
+}
+
+/* Stronger rules for Control Panel toolbar icons (back, forward, view switcher, sidebar/hamburger) */
+.o_control_panel .o_cp_switch_buttons .btn i,
+.o_control_panel .o_cp_switch_buttons .btn svg,
+.o_control_panel .o_cp_sidebar_toggler i,
+.o_control_panel .o_cp_sidebar_toggler svg,
+.o_control_panel .o_cp_bottom_left .btn i,
+.o_control_panel .o_cp_bottom_left .btn svg {
+    color: #111111 !important;
+    fill: #111111 !important;
+    opacity: 1 !important;
+}
+
+/* If any of these icons get text-muted, override it to remain visible */
+.o_control_panel .text-muted,
+.o_control_panel .btn.text-muted i,
+.o_control_panel .btn.text-muted svg {
+    color: #111111 !important;
+    fill: #111111 !important;
+    opacity: 1 !important;
+}
+
+/* Force control panel link variables to dark so rules using --link-color don't wash out */
+.o_control_panel {
+    --link-color: #111111 !important;
+    --link-color-rgb: 17, 17, 17 !important;
+    --link-alpha: 1 !important;
+}
+
+/* ============================================
+   Active States
+   ============================================ */
+.o_menu_item.active > a {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: var(--o-brand-optional) !important;
+}
+
+/* Sidebar Menu Items */
+.o_MailboxSelectionItem,
+.o_ThreadPreview,
+.o_ThreadPreview.active {
+    background-color: transparent !important;
+}
+
+.o_ThreadPreview.active,
+.o_ThreadPreview.active:hover {
+    background-color: var(--o-brand-primary) !important;
+    color: var(--o-brand-optional) !important;
+}
+
+.o_ThreadPreview:hover {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Discuss/Mail Sidebar */
+.o_MailboxSelectionItem.active {
+    background-color: var(--o-brand-primary) !important;
+    color: var(--o-brand-optional) !important;
+}
+
+/* Channels and Direct Messages Sidebar */
+.o_ThreadPreview.active .o_ThreadPreview_name,
+.o_ThreadPreview.active .o_ThreadPreview_core {
+    color: var(--o-brand-optional) !important;
+}
+
+/* Override all purple colors in Discuss module */
+/* Active menu items */
+.o_MailboxSelectionItem.active,
+.o_ThreadPreview.active {
+    background-color: var(--o-brand-primary) !important;
+    color: var(--o-brand-optional) !important;
+}
+
+/* Menu sections in top navbar */
+.o_menu_sections .o_menu_section {
+    background-color: var(--o-brand-primary) !important;
+}
+
+/* ============================================
+   Form Views
+   ============================================ */
+.o_form_view .o_form_statusbar > .o_statusbar_status > .o_arrow_button:not(.disabled).active {
+    background-color: var(--o-brand-primary) !important;
+    color: var(--o-brand-optional) !important;
+}
+
+/* ============================================
+   List View
+   ============================================ */
+.o_list_view .o_list_table thead {
+    background-color: #f8f9fa;
+}
+
+.o_list_view .o_list_table thead th {
+    border-bottom: 2px solid var(--o-brand-primary);
+}
+
+/* ============================================
+   Search View
+   ============================================ */
+.o_searchview .o_searchview_facet {
+    background-color: var(--o-brand-primary) !important;
+    color: var(--o-brand-optional) !important;
+}
+
+/* ============================================
+   Badges & Labels
+   ============================================ */
+.badge-primary {
+    background-color: var(--o-brand-primary) !important;
+    color: var(--o-brand-optional) !important;
+}
+
+/* ============================================
+   Progress Bars
+   ============================================ */
+.o_progressbar .o_progressbar_value {
+    background-color: var(--o-brand-primary) !important;
+}
+
+/* ============================================
+   Tabs
+   ============================================ */
+.nav-tabs .nav-link.active {
+    border-bottom-color: var(--o-brand-primary) !important;
+    color: var(--o-brand-primary) !important;
+}
+
+/* ============================================
+   Dropdown Menus
+   ============================================ */
+.dropdown-menu .dropdown-item:hover,
+.dropdown-menu .dropdown-item:focus {
+    background-color: var(--o-brand-primary) !important;
+    color: var(--o-brand-optional) !important;
+}
+
+/* ============================================
+   Checkboxes & Radio Buttons
+   ============================================ */
+.custom-control-input:checked ~ .custom-control-label::before {
+    background-color: var(--o-brand-primary) !important;
+    border-color: var(--o-brand-primary) !important;
+}
+
+/* ============================================
+   Switch Toggles
+   ============================================ */
+.custom-switch .custom-control-input:checked ~ .custom-control-label::before {
+    background-color: var(--o-brand-primary) !important;
+    border-color: var(--o-brand-primary) !important;
+}
+
+/* ============================================
+   Additional Overrides for Purple Colors
+   ============================================ */
+
+/* Menu App Icons */
+.o_menu_apps .o_app {
+    background-color: transparent !important;
+}
+
+.o_menu_apps .o_app.active {
+    background-color: var(--o-brand-primary) !important;
+}
+
+/* Dropdown Menus in Navbar */
+.o_menu_sections .dropdown-toggle {
+    color: var(--o-brand-optional) !important;
+}
+
+.o_menu_sections .dropdown-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+@media (max-width: 768px) {
+    .o_main_navbar {
+        background-color: var(--o-brand-primary) !important;
+    }
+    
+    .o_menu_sections > .o_menu_section {
+        background-color: var(--o-brand-primary) !important;
+    }
+}
+
+/* ============================================
+   Print Styles (Optional)
+   ============================================ */
+@media print {
+    .o_main_navbar {
+        background-color: var(--o-brand-primary) !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+/* Hide the "Storable Product" radio option while keeping backend behavior */
+.o_form_view .o_field_widget[name="type"] .o_radio_item input[type="radio"][value="product"],
+.o_form_view .o_field_widget[name="type"] .o_radio_item input[type="radio"][value="product"] + label {
+    display: none !important;
+}
+
+/* Ensure marketplace order number column displays full value */
+.o_list_view table.o_list_table {
+    th[data-name="marketplace_order_number"],
+    td[data-name="marketplace_order_number"] {
+        min-width: 150px;
+        max-width: none;
+        white-space: nowrap;
+    }
+    th[data-name="marketplace_channel_icon"],
+    td[data-name="marketplace_channel_icon"] {
+        min-width: 200px;
+        max-width: none;
+        white-space: nowrap;
+    }
+}
+

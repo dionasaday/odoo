@@ -1,0 +1,27 @@
+/* Search facet readability overrides - moved from otd_marketplace_stock */
+.o_searchview {
+  .o_facet_value {
+    transition: background-color 0.15s ease, color 0.15s ease;
+  }
+  .o_facet_values .o_facet_value.bg-200,
+  .o_facet_values .o_facet_value.text-bg-200 {
+    background-color: #3a3a3a !important;
+    color: #ffffff !important;
+  }
+  .o_facet_values .o_facet_value:hover,
+  .o_facet_values .o_facet_value:focus-visible {
+    background-color: #2d2d2d !important;
+    color: #ffffff !important;
+  }
+  .o_facet_values .o_facet_value:hover .o_facet_remove,
+  .o_facet_values .o_facet_value:focus-visible .o_facet_remove {
+    color: #ffffff !important;
+    opacity: 0.9;
+  }
+  .o_facet_values .o_facet_value small,
+  .o_facet_values .o_facet_value span {
+    color: inherit !important;
+  }
+}
+
+

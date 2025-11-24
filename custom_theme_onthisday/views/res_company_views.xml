@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Add Theme Color Fields in Company Form View -->
+    <record id="view_company_form_theme_colors" model="ir.ui.view">
+        <field name="name">res.company.form.theme.colors</field>
+        <field name="model">res.company</field>
+        <field name="inherit_id" ref="base.view_company_form"/>
+        <field name="arch" type="xml">
+            <!-- Add Theme Colors section after Color field -->
+            <xpath expr="//field[@name='color']" position="after">
+                <field name="theme_primary_color" placeholder="#232222"/>
+                <field name="theme_secondary_color" placeholder="#623412"/>
+                <field name="theme_text_color" placeholder="#FFFFFF"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

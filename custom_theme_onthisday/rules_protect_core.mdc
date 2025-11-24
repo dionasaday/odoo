@@ -1,0 +1,19 @@
+rule "protect_core_modules" {
+  description = "ห้าม Cursor แก้ไขไฟล์ในโฟลเดอร์ core หรือ public API โดยไม่ได้รับอนุญาต"
+  when = "writing or modifying code"
+  if_path_matches = ["core/**", "api/public/**"]
+  then = "Do not edit these files unless explicitly instructed by the user. Propose changes in a separate file instead."
+}
+
+rule "respect_locked_comments" {
+  description = "ห้ามแก้ไขโค้ดที่มีคีย์เวิร์ด LOCKED"
+  when = "writing or modifying code"
+  if_contains_text = ["LOCKED"]
+  then = "Do not modify any code block containing the word LOCKED."
+}
+
+rule "edit_open_files_only" {
+  description = "อนุญาตให้แก้เฉพาะไฟล์ที่เปิดอยู่ใน IDE"
+  when = "writing or modifying code"
+  then = "Only make changes to currently open files. If other files require edits, list suggestions without modifying them."
+}
