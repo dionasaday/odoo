@@ -1,0 +1,592 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_payslipdetails">
+        <t t-call="web.html_container">
+            <t t-set="encoding" t-value="'utf-8'"/>
+            <style type="text/css">
+                @charset "UTF-8";
+            </style>
+
+            <t t-foreach="docs" t-as="o">
+                <div class="page payroll-page">
+                    <style type="text/css">
+                        @charset "UTF-8";
+
+                        html {
+                            -webkit-text-size-adjust: 100%;
+                        }
+
+                        * {
+                            font-family: "FC Vision", "DejaVu Sans", "DejaVu Sans Mono",
+                                         "Liberation Sans", "Arial Unicode MS", "Sarabun",
+                                         "Sarabun New", "Kanit", "Prompt", "Noto Sans Thai",
+                                         "TH Sarabun New", "TH SarabunPSK", "Cordia New",
+                                         "CordiaUPC", "Tahoma", sans-serif !important;
+                        }
+
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            background: #ffffff;
+                        }
+
+                        body, table, .table td, .table th, .table thead th,
+                        .payroll-page, .payroll-page * {
+                            font-size: 14px;
+                            line-height: 1.35;
+                            color: #111111;
+                        }
+
+                        .payroll-page {
+                            padding: 40px 48px 24px;
+                        }
+
+                        .company-header {
+                            display: none !important;
+                            visibility: hidden !important;
+                            height: 0 !important;
+                            overflow: hidden !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            border: none !important;
+                        }
+
+                        /* ---------- HEADER ---------- */
+                        .payroll-header-wrapper {
+                            border-bottom: 1px solid #e5e5e5;
+                            padding-bottom: 22px;
+                            margin-bottom: 26px;
+                        }
+
+                        .payroll-header-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                        }
+
+                        .header-logo-cell {
+                            width: 132px;
+                            padding: 0 18px 0 0;
+                            vertical-align: top;
+                        }
+
+                        .header-logo-box {
+                            width: 120px;
+                            height: 120px;
+                            padding: 8px;
+                            box-sizing: border-box;
+                        }
+
+                        .header-logo-box img {
+                            max-width: 100%;
+                            max-height: 100%;
+                            object-fit: contain;
+                            display: block;
+                        }
+
+                        .header-title-cell {
+                            vertical-align: top;
+                            padding: 6px 0 0 0;
+                        }
+
+                        .header-title-eyebrow {
+                            text-transform: uppercase;
+                            letter-spacing: 0.18em;
+                            font-size: 9px;
+                            color: #b0b0b0;
+                            margin: 0 0 6px 0;
+                        }
+
+                        .header-title-main {
+                            font-size: 28px;
+                            letter-spacing: 0.03em;
+                            font-weight: 600;
+                            margin: 0 0 6px 0;
+                            line-height: 1.1;
+                        }
+
+                        .header-title-sub {
+                            margin: 0;
+                            color: #666666;
+                            font-size: 13px;
+                            line-height: 1.4;
+                        }
+
+                        .header-meta-cell {
+                            width: 210px;
+                            padding: 0 0 0 24px;
+                            vertical-align: top;
+                        }
+
+                        .meta-card {
+                            border: 1px solid #ececec;
+                            border-radius: 12px;
+                            padding: 8px 14px;
+                            margin-bottom: 10px;
+                            background: #ffffff;
+                            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
+                        }
+
+                        .meta-card-label {
+                            display: block;
+                            font-size: 10px;
+                            letter-spacing: 0.16em;
+                            text-transform: uppercase;
+                            color: #a0a0a0;
+                            margin-bottom: 3px;
+                        }
+
+                        .meta-card-value {
+                            font-size: 15px;
+                            font-weight: 600;
+                            word-break: break-word;
+                            line-height: 1.3;
+                        }
+
+                        /* ---------- ตารางทั่วไป (ข้อมูลพนักงาน / สะสม) ---------- */
+                        .table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            margin-top: 0;
+                            margin-bottom: 22px;
+                            clear: both;
+                        }
+
+                        .table td,
+                        .table th {
+                            padding: 11px 16px;
+                            border: 1px solid #d7d7d7;
+                            vertical-align: middle;
+                        }
+
+                        .table thead th {
+                            background: #f7f7f7;
+                            text-transform: uppercase;
+                            font-size: 12px;
+                            letter-spacing: 0.03em;
+                        }
+
+                        .table td:first-child,
+                        .table th:first-child {
+                            padding-left: 24px;
+                            font-weight: 600;
+                            color: #444444;
+                            width: 150px;
+                        }
+
+                        .table td strong {
+                            font-weight: 600;
+                            color: #333333;
+                        }
+
+                        /* ---------- การ์ดสรุป (Totals) ---------- */
+                        .summary-cards {
+                            display: table;
+                            width: 100%;
+                            table-layout: fixed;
+                            border-collapse: separate;
+                            border-spacing: 14px;
+                            margin: 24px 0 20px;
+                        }
+
+                        .summary-card {
+                            display: table-cell;
+                            width: 33.33%;
+                            vertical-align: top;
+                            border: 1px solid #ededed;
+                            border-radius: 14px;
+                            padding: 12px 18px;
+                            background: #ffffff;
+                            box-sizing: border-box;
+                            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.02);
+                        }
+
+                        .summary-card .label {
+                            display: block;
+                            font-size: 9px;
+                            text-transform: uppercase;
+                            letter-spacing: 0.2em;
+                            color: #a0a0a0;
+                            margin-bottom: 6px;
+                        }
+
+                        .summary-card .value {
+                            display: block;
+                            font-size: 18px;
+                            font-weight: 600;
+                            margin: 0 0 2px 0;
+                        }
+
+                        .summary-card .hint {
+                            font-size: 10px;
+                            color: #8a8a8a;
+                            margin: 0;
+                        }
+
+                        /* ---------- ตารางรายละเอียดรายได้ / รายการหัก ---------- */
+                        h3 {
+                            font-size: 16px;
+                            margin: 6px 0 10px;
+                        }
+
+                        /* ---------- ตารางรายละเอียดรายได้ / รายการหัก ---------- */
+                        .premium-table {
+                            width: 100%;
+                            border-collapse: separate;  /* ใช้ separate เพื่อคุมเส้นเอง */
+                            border-spacing: 0;
+                        }
+
+                        /* base: ตัดเส้นออกก่อน */
+                        .premium-table th,
+                        .premium-table td {
+                            padding: 10px 14px;
+                            border: none !important;
+                            vertical-align: middle;
+                            font-size: 14px;
+                        }
+
+                        /* header */
+                        .premium-table thead th {
+                            background: #f7f7f7;
+                            font-size: 12px;
+                            text-transform: uppercase;
+                            letter-spacing: 0.03em;
+                            border-top: 1px solid #d7d7d7 !important;
+                            border-bottom: 1px solid #d7d7d7 !important;
+                        }
+
+                        /* footer */
+                        .premium-table tfoot th,
+                        .premium-table tfoot td {
+                            border-top: 1px solid #d7d7d7 !important;
+                            border-bottom: 1px solid #d7d7d7 !important;
+                        }
+
+                        .premium-footer-row th {
+                            background: #f3f3f3;
+                            font-weight: 600;
+                            text-transform: uppercase;
+                        }
+
+                        /* ---------- เส้นกรอบสีเทา (ซ้าย–ขวา + แบ่งซีกซ้าย/ขวา) ---------- */
+
+                        /* ซ้ายสุดของตาราง */
+                        .premium-table thead th:first-child,
+                        .premium-table tbody td:first-child,
+                        .premium-table tfoot th:first-child,
+                        .premium-table tfoot td:first-child {
+                            border-left: 1px solid #d7d7d7 !important;
+                        }
+
+                        /* ขวาสุดของตาราง */
+                        .premium-table thead th:last-child,
+                        .premium-table tbody td:last-child,
+                        .premium-table tfoot th:last-child,
+                        .premium-table tfoot td:last-child {
+                            border-right: 1px solid #d7d7d7 !important;
+                        }
+
+                        /* เส้นแบ่งครึ่งระหว่างฝั่งรายได้ (col2) กับฝั่งรายการหัก (col3) */
+                        .premium-table thead th:nth-child(2),
+                        .premium-table tbody td:nth-child(2),
+                        .premium-table tfoot th:nth-child(2),
+                        .premium-table tfoot td:nth-child(2) {
+                            border-right: 1px solid #d7d7d7 !important;
+                        }
+                        .premium-table thead th:nth-child(3),
+                        .premium-table tbody td:nth-child(3),
+                        .premium-table tfoot th:nth-child(3),
+                        .premium-table tfoot td:nth-child(3) {
+                            border-left: 1px solid #d7d7d7 !important;
+                        }
+
+                        /* ---------- เส้นแบ่งภายใน (รายละเอียด / จำนวนเงิน) ---------- */
+                        /* เส้นแบ่ง "รายละเอียด / จำนวนเงิน" ของฝั่งรายได้ (ระหว่าง col1–2) */
+                        .premium-table thead th:nth-child(2),
+                        .premium-table tbody td:nth-child(2),
+                        .premium-table tfoot th:nth-child(2),
+                        .premium-table tfoot td:nth-child(2) {
+                            border-left: 1px solid #d7d7d7 !important;
+                        }
+
+                        /* เส้นแบ่ง "รายละเอียด / จำนวนเงิน" ของฝั่งรายการหัก (ระหว่าง col3–4) */
+                        .premium-table thead th:nth-child(4),
+                        .premium-table tbody td:nth-child(4),
+                        .premium-table tfoot th:nth-child(4),
+                        .premium-table tfoot td:nth-child(4) {
+                            border-left: 1px solid #d7d7d7 !important;
+                        }
+
+                        /* ไม่มีเส้นแนวนอนใน tbody เพื่อให้ช่องยาวโล่ง */
+                        .premium-table tbody td {
+                            border-top: none !important;
+                            border-bottom: none !important;
+                        }
+
+                        /* ชิดขวาตัวเลขทุกที่ที่ใช้ class="text-right" */
+                        .premium-table .text-right {
+                            text-align: right !important;
+                        }
+
+                        /* ---------- ลายน้ำ (Watermark) สำหรับตารางรายละเอียด ---------- */
+                        .premium-table-wrapper {
+                            position: relative;
+                            overflow: hidden !important;
+                            display: block;
+                            width: 100%;
+                        }
+
+                        .premium-table-wrapper::before {
+                            content: '';
+                            position: absolute;
+                            top: 0;
+                            left: 0;
+                            right: 0;
+                            bottom: 25px;
+                            z-index: 1;
+                            pointer-events: none;
+                            background-image: url('data:image/svg+xml;charset=utf-8,%3Csvg xmlns="http://www.w3.org/2000/svg" width="250" height="250" viewBox="0 0 250 250"%3E%3Cg transform="translate(125,125)"%3E%3Ctext x="0" y="0" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="%23808080" fill-opacity="0.35" text-anchor="middle" dominant-baseline="middle" transform="rotate(-45)">ON%20%7C%20THIS%20%7C%20DAY%3C/text%3E%3C/g%3E%3C/svg%3E');
+                            background-repeat: repeat;
+                            background-size: 50px 50px;
+                            background-position: 0 0;
+                            opacity: 1;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
+
+                        .premium-table-wrapper table {
+                            position: relative;
+                            z-index: 2;
+                            background-color: transparent;
+                        }
+
+
+                        /* ---------- section สะสม / ลายเซ็น ---------- */
+                        .mt16 {
+                            margin-top: 16px;
+                        }
+
+                        .signature-text {
+                            margin-top: 36px;
+                            text-align: left;
+                            font-size: 12px;
+                            color: #555555;
+                        }
+                    </style>
+
+                    <!-- company object -->
+                    <t t-set="company" t-value="o.company_id or company_id or res_company"/>
+
+                    <!-- HEADER -->
+                    <div class="payroll-header-wrapper">
+                        <table class="payroll-header-table">
+                            <tr>
+                                <td class="header-logo-cell">
+                                    <div class="header-logo-box">
+                                        <img t-if="company and company.logo"
+                                             t-att-src="image_data_uri(company.logo)"
+                                             alt="Company Logo"/>
+                                    </div>
+                                </td>
+                                <td class="header-title-cell">
+                                    <div class="header-title-eyebrow">PAYROLL STATEMENT</div>
+                                    <div class="header-title-main">Pay Slip</div>
+                                    <p class="header-title-sub" t-field="o.name"/>
+                                </td>
+                                <td class="header-meta-cell">
+                                    <div class="meta-card">
+                                        <span class="meta-card-label">Reference</span>
+                                        <span class="meta-card-value" t-esc="o.number or '-'"/>
+                                    </div>
+                                    <div class="meta-card">
+                                        <span class="meta-card-label">วันที่จ่าย</span>
+                                        <span class="meta-card-value">
+                                            <t t-set="pay_date_base" t-value="o.date_to or o.date_from"/>
+                                            <t t-if="pay_date_base">
+                                                <t t-set="pay_year" t-value="pay_date_base.year"/>
+                                                <t t-set="pay_month" t-value="pay_date_base.month"/>
+                                                <t t-set="pay_day" t-value="pay_month == 2 and 28 or 30"/>
+                                                <t t-esc="('%s-%02d-%02d' % (pay_year, pay_month, pay_day))"/>
+                                            </t>
+                                            <t t-if="not pay_date_base">-</t>
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- ตารางข้อมูลพนักงาน -->
+                    <table class="table table-sm table-bordered">
+                        <tr>
+                            <td><strong>Name</strong></td>
+                            <td><span t-field="o.employee_id"/></td>
+                            <td><strong>Designation</strong></td>
+                            <td><span t-field="o.employee_id.job_id"/></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Email</strong></td>
+                            <td><span t-field="o.employee_id.work_email"/></td>
+                            <td><strong>Identification No</strong></td>
+                            <td><span t-field="o.employee_id.identification_id"/></td>
+                        </tr>
+                        <t t-set="has_private_bank" t-value="o.employee_id._fields.get('private_bank_account_id')"/>
+                        <t t-set="has_bank" t-value="o.employee_id._fields.get('bank_account_id')"/>
+                        <t t-set="emp_bank_account"
+                           t-value="(has_private_bank and o.employee_id.private_bank_account_id) or
+                                    (has_bank and o.employee_id.bank_account_id) or
+                                    (o.employee_id.bank_account_ids and o.employee_id.bank_account_ids.filtered('acc_type')[:1])"/>
+                        <tr>
+                            <td><strong>Bank Account</strong></td>
+                            <td colspan="3">
+                                <span t-esc="emp_bank_account and emp_bank_account.display_name or ''"/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Date From</strong></td>
+                            <td><span t-field="o.date_from"/></td>
+                            <td><strong>Date To</strong></td>
+                            <td><span t-field="o.date_to"/></td>
+                        </tr>
+                    </table>
+
+                    <!-- คำนวณตัวเลข -->
+                    <t t-set="income_lines"
+                       t-value="o.line_ids.filtered(lambda line: line.total &gt;= 0 and line.code not in ('GROSS','NET','YTD'))"/>
+                    <t t-set="deduction_lines"
+                       t-value="o.line_ids.filtered(lambda line: line.total &lt; 0)"/>
+                    <t t-set="gross_line"
+                       t-value="o.line_ids.filtered(lambda line: line.code == 'GROSS')"/>
+                    <t t-set="net_salary_line"
+                       t-value="o.line_ids.filtered(lambda line: line.code == 'NET')"/>
+                    <t t-set="gross_total"
+                       t-value="gross_line and gross_line[0].total or 0.0"/>
+                    <t t-set="net_salary_total"
+                       t-value="net_salary_line and net_salary_line[0].total or 0.0"/>
+                    <t t-set="ytd_line"
+                       t-value="o.line_ids.filtered(lambda line: line.code == 'YTD')"/>
+                    <t t-set="ytd_total"
+                       t-value="ytd_line and ytd_line[0].total or 0.0"/>
+
+                    <!-- การ์ดสรุป -->
+                    <div class="summary-cards">
+                        <div class="summary-card">
+                            <span class="label">TOTAL EARNINGS</span>
+                            <span class="value">
+                                <t t-esc="gross_total"
+                                   t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
+                            </span>
+                            <span class="hint">ยอดรวมเงินได้</span>
+                        </div>
+                        <div class="summary-card">
+                            <span class="label">TOTAL DEDUCTIONS</span>
+                            <span class="value">
+                                <t t-esc="sum(deduction_lines.mapped('total'))"
+                                   t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
+                            </span>
+                            <span class="hint">ยอดรวมเงินหัก</span>
+                        </div>
+                        <div class="summary-card">
+                            <span class="label">NET PAY</span>
+                            <span class="value">
+                                <t t-esc="net_salary_total"
+                                   t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
+                            </span>
+                            <span class="hint">เงินได้สุทธิ</span>
+                        </div>
+                    </div>
+
+                    <!-- รายละเอียดรายได้ / รายการหัก -->
+                    <t t-set="income_list" t-value="list(income_lines)"/>
+                    <t t-set="deduction_list" t-value="list(deduction_lines)"/>
+                    <t t-set="rows_padding" t-value="8"/>
+                    <t t-set="rows_count"
+                       t-value="max(len(income_list), len(deduction_list), rows_padding)"/>
+
+                    <h3>รายละเอียดรายได้ / รายการหัก</h3>
+                    <div class="premium-table-wrapper">
+                    <table class="table table-sm premium-table">
+                        <thead>
+                            <tr>
+                                <th class="text-center" colspan="2">รายการเงินได้</th>
+                                <th class="text-center" colspan="2">รายการเงินหัก</th>
+                            </tr>
+                            <tr>
+                                <th>รายละเอียด</th>
+                                <th class="text-right">จำนวนเงิน</th>
+                                <th>รายละเอียด</th>
+                                <th class="text-right">จำนวนเงิน</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="range(rows_count)" t-as="idx">
+                                <t t-set="income_line"
+                                   t-value="idx &lt; len(income_list) and income_list[idx] or False"/>
+                                <t t-set="deduction_line"
+                                   t-value="idx &lt; len(deduction_list) and deduction_list[idx] or False"/>
+                                <td>
+                                    <span t-esc="income_line and income_line.name or ''"/>
+                                </td>
+                                <td class="text-right" style="min-width: 120px;">
+                                    <span t-if="income_line"
+                                          t-esc="round(income_line.total or 0.0, 2)"
+                                          t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
+                                </td>
+                                <td>
+                                    <span t-esc="deduction_line and deduction_line.name or ''"/>
+                                </td>
+                                <td class="text-right" style="min-width: 120px;">
+                                    <span t-if="deduction_line"
+                                          t-esc="round(((-deduction_line.total) or 0.0), 2)"
+                                          t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="premium-footer-row">
+                                <th>ยอดรวมเงินได้</th>
+                                <th class="text-right">
+                                    <span t-esc="gross_total"
+                                          t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
+                                </th>
+                                <th>ยอดรวมเงินหัก</th>
+                                <th class="text-right">
+                                    <span t-esc="sum(deduction_lines.mapped('total'))"
+                                          t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
+                                </th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                    </div>
+
+                    <!-- เงินได้สะสม / ภาษีสะสม -->
+                    <t t-set="tax_lines"
+                       t-value="deduction_lines.filtered(lambda l: (l.code and l.code.upper() in ('TAX', 'PIT')) or (l.name and 'ภาษี' in l.name))"/>
+                    <t t-set="tax_total"
+                       t-value="-sum(tax_lines.mapped('total')) if tax_lines else 0.0"/>
+
+                    <table class="table table-sm table-bordered mt16">
+                        <thead>
+                            <tr>
+                                <th class="text-center">เงินได้สะสม</th>
+                                <th class="text-center">ภาษีสะสม</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-right">
+                                    <span t-esc="ytd_total"
+                                          t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
+                                </td>
+                                <td class="text-right">
+                                    <span t-esc="tax_total"
+                                          t-options='{"widget": "monetary", "display_currency": o.company_id.currency_id}'/>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+            </t>
+        </t>
+    </template>
+</odoo>
