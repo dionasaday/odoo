@@ -184,3 +184,46 @@ class KnowledgeArticle(models.Model):
             }
         }
 
+    # Trash/restore helpers
+    def action_move_to_trash(self):
+        """Soft delete: mark inactive so it appears in Trash."""
+        self.write({'active': False})
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Moved to Trash',
+                'message': f'Article \"{self.name}\" was moved to Trash. You can restore it later.',
+                'type': 'warning',
+                'sticky': False,
+            }
+        }
+
+    def action_restore_from_trash(self):
+        """Restore from trash (reactivate)."""
+        self.write({'active': True})
+        # After restore, send user back to the normal form of this record
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'knowledge.article',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'views': [[False, 'form']],
+            'target': 'current',
+            'context': {},
+        }
+
+    def action_delete_permanently(self):
+        """Permanently delete article (use carefully)."""
+        name = self.name
+        self.unlink()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Article Deleted',
+                'message': f'Article \"{name}\" was permanently deleted.',
+                'type': 'danger',
+                'sticky': False,
+            }
+        }

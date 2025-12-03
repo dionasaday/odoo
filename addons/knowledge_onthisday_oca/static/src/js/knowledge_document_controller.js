@@ -16,6 +16,7 @@ export class KnowledgeDocumentController extends Component {
         this.orm = useService("orm");
         this.action = useService("action");
         this.contentRef = useRef("content");
+        this._userHistoryKeyPrefix = "knowledge_onthisday_history";
         
         this.state = useState({
             selectedArticleId: null,
@@ -382,6 +383,10 @@ export class KnowledgeDocumentController extends Component {
                         if (article.share_token) {
                             article.share_link = `${baseUrl}/knowledge/article/${article.share_token}`;
                         }
+                        // Normalize responsible_name for display if available
+                        if (article.responsible_id && Array.isArray(article.responsible_id) && article.responsible_id.length > 1) {
+                            article.responsible_name = article.responsible_id[1];
+                        }
                         return article;
                     });
                 }
@@ -442,8 +447,42 @@ export class KnowledgeDocumentController extends Component {
                 }
             }
             
-            // Add category info to articles and ensure category exists
+            // Load responsible avatars (unique user ids)
+            const responsibleIds = Array.from(
+                new Set(
+                    (articles || [])
+                        .map(a => (Array.isArray(a.responsible_id) ? a.responsible_id[0] : null))
+                        .filter(id => !!id)
+                )
+            );
+            let responsibleMap = new Map();
+            if (responsibleIds.length) {
+                try {
+                    const users = await this.orm.read(
+                        "res.users",
+                        responsibleIds,
+                        ["id", "name", "image_128"]
+                    );
+                    responsibleMap = new Map(users.map(u => [u.id, u]));
+                } catch (e) {
+                    console.error("Error loading responsible avatars:", e);
+                }
+            }
+            
+            // Add category info and responsible info
             articles.forEach(article => {
+                // Normalize responsible name/avatar
+                if (article.responsible_id && Array.isArray(article.responsible_id) && article.responsible_id.length > 0) {
+                    const respId = article.responsible_id[0];
+                    const resp = responsibleMap.get(respId);
+                    if (resp) {
+                        article.responsible_name = resp.name;
+                        article.responsible_avatar = resp.image_128;
+                    } else if (article.responsible_id.length > 1) {
+                        article.responsible_name = article.responsible_id[1];
+                    }
+                }
+
                 if (article.category_id && article.category_id.length > 0) {
                     const categoryId = article.category_id[0];
                     const category = categoryMap.get(categoryId);
@@ -938,7 +977,69 @@ export class KnowledgeDocumentController extends Component {
             }
         } finally {
             this.state.loading = false;
+            // Track view for current user
+            if (this.state.currentArticle && this.state.currentArticle.id) {
+                this._trackArticleView(this.state.currentArticle.id);
+            }
         }
+    }
+
+    // Helpers for empty state lists
+    getAllArticlesFlat() {
+        // When in workspace, state.articles is array of categories; in other sections it is flat already
+        if (!this.state.articles) {
+            return [];
+        }
+        // If first element has articles property -> categories
+        if (this.state.articles.length > 0 && Object.prototype.hasOwnProperty.call(this.state.articles[0], "articles")) {
+            const flat = [];
+            this.state.articles.forEach(cat => {
+                if (cat.articles && Array.isArray(cat.articles)) {
+                    flat.push(...cat.articles);
+                }
+            });
+            return flat;
+        }
+        return this.state.articles;
+    }
+
+    getRecentArticles(limit = 5) {
+        const all = this.getAllArticlesFlat();
+        const history = this._loadUserHistory();
+        const recentOrder = history.recent || [];
+        const byId = new Map(all.map(a => [a.id, a]));
+        const result = [];
+        recentOrder.forEach(id => {
+            if (result.length >= limit) {
+                return;
+            }
+            if (byId.has(id)) {
+                result.push(byId.get(id));
+            }
+        });
+        return result;
+    }
+
+    getPopularArticles(limit = 5) {
+        const all = this.getAllArticlesFlat();
+        const history = this._loadUserHistory();
+        const counts = history.counts || {};
+        const withCounts = all.map(a => ({
+            article: a,
+            count: counts[a.id] || 0,
+        }));
+        return withCounts
+            .sort((a, b) => b.count - a.count)
+            .filter(item => item.count > 0)
+            .slice(0, limit)
+            .map(item => item.article);
+    }
+
+    getTrashArticles() {
+        if (this.state.activeSection !== "trash") {
+            return [];
+        }
+        return Array.isArray(this.state.articles) ? this.state.articles : [];
     }
 
     async onEditArticle() {
@@ -962,7 +1063,7 @@ export class KnowledgeDocumentController extends Component {
             res_model: "knowledge.article",
             view_mode: "form",
             views: [[false, "form"]],
-            target: "new",
+            target: "current",
             context: {
                 default_parent_id: this.state.selectedArticleId,
             },
@@ -996,8 +1097,21 @@ export class KnowledgeDocumentController extends Component {
         
         // Debounce search to avoid too many API calls while typing
         this._searchTimeout = setTimeout(() => {
-            this.loadArticles();
+            if (this.state.activeSection === "trash") {
+                this.loadTrashArticles();
+            } else {
+                this.loadArticles();
+            }
         }, 300); // Wait 300ms after user stops typing
+    }
+
+    async onOpenTrash() {
+        this.state.activeSection = "trash";
+        this.state.selectedArticleId = null;
+        this.state.currentArticle = null;
+        this.state.expandedArticles = new Set();
+        this.state.expandedCategories = new Set();
+        await this.loadTrashArticles();
     }
 
     onTagClick(tagId) {
@@ -1009,6 +1123,107 @@ export class KnowledgeDocumentController extends Component {
             this.state.selectedTagId = tagId;
         }
         this.loadArticles();
+    }
+
+    async loadTrashArticles() {
+        this.state.loading = true;
+        try {
+            const articles = await this.orm.searchRead(
+                "knowledge.article",
+                [["active", "=", false]],
+                ["id", "name", "content", "category_id", "parent_id", "responsible_id", "active", "favorite_user_ids", "shared_user_ids", "write_date"],
+                { context: { active_test: false }, limit: 1000 }
+            );
+
+            // Normalize category_name for display
+            const normalized = (articles || []).map((a) => {
+                const catName = Array.isArray(a.category_id) && a.category_id.length > 1 ? a.category_id[1] : "";
+                const respName = Array.isArray(a.responsible_id) && a.responsible_id.length > 1 ? a.responsible_id[1] : "";
+                return { ...a, category_name: catName, responsible_name: respName };
+            });
+
+            // Load responsible avatars
+            const responsibleIds = Array.from(
+                new Set(
+                    (normalized || [])
+                        .map(a => (Array.isArray(a.responsible_id) ? a.responsible_id[0] : null))
+                        .filter(id => !!id)
+                )
+            );
+            let responsibleMap = new Map();
+            if (responsibleIds.length) {
+                try {
+                    const users = await this.orm.read(
+                        "res.users",
+                        responsibleIds,
+                        ["id", "name", "image_128"]
+                    );
+                    responsibleMap = new Map(users.map(u => [u.id, u]));
+                } catch (e) {
+                    console.error("Error loading responsible avatars (trash):", e);
+                }
+            }
+
+            this.state.articles = normalized.map(a => {
+                const respId = Array.isArray(a.responsible_id) ? a.responsible_id[0] : null;
+                const resp = respId ? responsibleMap.get(respId) : null;
+                return {
+                    ...a,
+                    responsible_name: resp ? resp.name : a.responsible_name,
+                    responsible_avatar: resp ? resp.image_128 : null,
+                };
+            });
+        } catch (error) {
+            console.error("Error loading trash articles:", error);
+            this.state.articles = [];
+        } finally {
+            this.state.loading = false;
+            // Track view set not needed in trash
+        }
+    }
+
+    // ----------------------------
+    // User history helpers (per user)
+    // ----------------------------
+    _getUserHistoryKey() {
+        const uid = this.state.currentUserId || "guest";
+        return `${this._userHistoryKeyPrefix}:${uid}`;
+    }
+
+    _loadUserHistory() {
+        try {
+            const key = this._getUserHistoryKey();
+            const raw = window.localStorage.getItem(key);
+            if (raw) {
+                return JSON.parse(raw);
+            }
+        } catch (e) {
+            console.warn("Cannot load user history:", e);
+        }
+        return { recent: [], counts: {} };
+    }
+
+    _saveUserHistory(history) {
+        try {
+            const key = this._getUserHistoryKey();
+            window.localStorage.setItem(key, JSON.stringify(history));
+        } catch (e) {
+            console.warn("Cannot save user history:", e);
+        }
+    }
+
+    _trackArticleView(articleId) {
+        if (!articleId) {
+            return;
+        }
+        const history = this._loadUserHistory();
+        // Update counts
+        history.counts = history.counts || {};
+        history.counts[articleId] = (history.counts[articleId] || 0) + 1;
+        // Update recent (unique, most recent first)
+        history.recent = history.recent || [];
+        history.recent = [articleId, ...history.recent.filter(id => id !== articleId)].slice(0, 50);
+        this._saveUserHistory(history);
     }
 
     clearTagFilter() {
@@ -1143,6 +1358,10 @@ export class KnowledgeDocumentController extends Component {
             
             // Reload articles to reflect changes in the sidebar
             await this.loadArticles();
+            // Reload current article content to avoid blank body after favorite toggle
+            if (this.state.currentArticle && this.state.currentArticle.id === articleId) {
+                await this.openArticle(articleId);
+            }
         } catch (error) {
             console.error("Error toggling favorite:", error);
         }
@@ -1476,4 +1695,3 @@ try {
 } catch (error) {
     console.error("Error registering KnowledgeDocumentController:", error);
 }
-

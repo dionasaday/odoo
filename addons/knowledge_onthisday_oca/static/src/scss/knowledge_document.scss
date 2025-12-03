@@ -1298,32 +1298,29 @@ html {
         .o_knowledge_empty_state {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            gap: var(--knowledge-spacing-lg);
             height: 100%;
             padding: var(--knowledge-spacing-xl);
-            text-align: center;
+            text-align: left;
             animation: fadeIn 0.5s ease-in;
 
-            .o_knowledge_empty_state_icon {
-                font-size: 64px;
-                margin-bottom: var(--knowledge-spacing-md);
-                opacity: 0.6;
+            .o_knowledge_empty_state_header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: var(--knowledge-spacing-md);
             }
 
             .o_knowledge_empty_state_title {
-                font-size: 24px;
-                font-weight: 600;
+                font-size: 20px;
+                font-weight: 700;
                 color: var(--knowledge-text);
-                margin-bottom: var(--knowledge-spacing-sm);
             }
 
             .o_knowledge_empty_state_text {
                 font-size: 14px;
                 color: var(--knowledge-text-secondary);
-                margin-bottom: var(--knowledge-spacing-lg);
-                max-width: 400px;
-                line-height: 1.6;
+                margin-top: 4px;
             }
 
             .o_knowledge_create_button {
@@ -1331,6 +1328,96 @@ html {
                 font-size: 14px;
                 font-weight: 600;
                 border-radius: var(--knowledge-radius);
+            }
+
+            .o_knowledge_empty_cards {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+                gap: var(--knowledge-spacing-md);
+            }
+
+            .o_knowledge_empty_card {
+                border: 1px solid var(--knowledge-border);
+                border-radius: var(--knowledge-radius-lg);
+                padding: var(--knowledge-spacing-md);
+                background: var(--knowledge-bg);
+                box-shadow: 0 2px 8px var(--knowledge-shadow);
+
+                .o_knowledge_empty_card_header {
+                    font-weight: 600;
+                    margin-bottom: var(--knowledge-spacing-sm);
+                    color: var(--knowledge-text);
+                }
+
+                .o_knowledge_empty_list {
+                    list-style: none;
+                    padding: 0;
+                    margin: 0;
+
+                    li {
+                        padding: 8px 6px;
+                        border-bottom: 1px solid var(--knowledge-border);
+                        cursor: pointer;
+                        transition: var(--knowledge-transition);
+
+                        &:hover {
+                            background-color: var(--knowledge-primary-bg, var(--knowledge-primary-bg-fallback));
+                        }
+                    }
+
+                    li:last-child {
+                        border-bottom: none;
+                    }
+
+                    .o_knowledge_empty_list_title {
+                        font-size: 14px;
+                        color: var(--knowledge-text);
+                        font-weight: 600;
+                    }
+
+                    .o_knowledge_empty_list_meta {
+                        font-size: 12px;
+                        color: var(--knowledge-text-secondary);
+                        margin-top: 2px;
+                        display: flex;
+                        gap: 8px;
+                        align-items: center;
+
+                        .o_knowledge_author_badge {
+                            display: inline-flex;
+                            align-items: center;
+                            gap: 4px;
+                            padding: 2px 6px;
+                            border-radius: 12px;
+                            background-color: var(--knowledge-bg-secondary);
+                            color: var(--knowledge-text);
+                            border: 1px solid var(--knowledge-border);
+                            font-size: 11px;
+
+                            .o_knowledge_author_avatar {
+                                font-size: 12px;
+                            }
+
+                            .o_knowledge_author_avatar_img {
+                                width: 18px;
+                                height: 18px;
+                                border-radius: 50%;
+                                object-fit: cover;
+                                display: inline-block;
+                            }
+                        }
+                    }
+                }
+
+                .o_knowledge_empty_list_placeholder {
+                    color: var(--knowledge-text-secondary);
+                    font-size: 13px;
+                    padding: 6px 0;
+                }
+
+                &.o_knowledge_empty_card_full {
+                    grid-column: 1 / -1;
+                }
             }
         }
     }
@@ -1651,4 +1738,3 @@ html {
         scroll-behavior: auto !important;
     }
 }
-

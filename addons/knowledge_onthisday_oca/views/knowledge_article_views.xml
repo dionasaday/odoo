@@ -22,6 +22,25 @@
             <field name="model">knowledge.article</field>
             <field name="arch" type="xml">
                 <form string="Knowledge Article">
+                    <header>
+                        <button name="action_move_to_trash"
+                                string="Move to Trash"
+                                type="object"
+                                class="btn-secondary"
+                                invisible="active == False"
+                                confirm="Move this article to Trash? You can restore it later."/>
+                        <button name="action_restore_from_trash"
+                                string="Restore from Trash"
+                                type="object"
+                                class="btn-primary"
+                                invisible="active == True"/>
+                        <button name="action_delete_permanently"
+                                string="Delete Permanently"
+                                type="object"
+                                class="btn-danger"
+                                invisible="active == True"
+                                confirm="This will permanently delete the article. Continue?"/>
+                    </header>
                     <sheet>
                         <group>
                             <field name="name"/>
@@ -41,7 +60,10 @@
                             <button name="action_generate_share_link" string="Generate Share Link" type="object" class="btn-primary"/>
                         </group>
                         <group>
-                            <field name="content"/>
+                            <field name="content"
+                                   widget="html"
+                                   style="min-height: 700px;"
+                                   options="{'height': 700}"/>
                         </group>
                     </sheet>
                     <chatter/>
@@ -137,4 +159,3 @@
         </record>
     </data>
 </odoo>
-
