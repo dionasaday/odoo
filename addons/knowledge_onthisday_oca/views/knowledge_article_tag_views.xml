@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!-- List View -->
+        <record id="view_knowledge_article_tag_list" model="ir.ui.view">
+            <field name="name">knowledge.article.tag.list</field>
+            <field name="model">knowledge.article.tag</field>
+            <field name="arch" type="xml">
+                <list string="Knowledge Article Tags" decoration-muted="active == False">
+                    <field name="name"/>
+                    <field name="color" widget="color_picker"/>
+                    <field name="article_count"/>
+                    <field name="active"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Form View -->
+        <record id="view_knowledge_article_tag_form" model="ir.ui.view">
+            <field name="name">knowledge.article.tag.form</field>
+            <field name="model">knowledge.article.tag</field>
+            <field name="arch" type="xml">
+                <form string="Knowledge Article Tag">
+                    <sheet>
+                        <group>
+                            <field name="name"/>
+                            <field name="color" widget="color_picker"/>
+                            <field name="active"/>
+                        </group>
+                        <group>
+                            <field name="article_count" readonly="1"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Search View -->
+        <record id="view_knowledge_article_tag_search" model="ir.ui.view">
+            <field name="name">knowledge.article.tag.search</field>
+            <field name="model">knowledge.article.tag</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="name"/>
+                    <filter string="Active" name="filter_active" domain="[('active', '=', True)]"/>
+                    <filter string="Archived" name="filter_archived" domain="[('active', '=', False)]"/>
+                </search>
+            </field>
+        </record>
+
+        <!-- Action: All Tags -->
+        <record id="action_knowledge_article_tag" model="ir.actions.act_window">
+            <field name="name">Tags</field>
+            <field name="res_model">knowledge.article.tag</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="knowledge_onthisday_oca.view_knowledge_article_tag_search"/>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Create your first tag!
+                </p>
+                <p>
+                    Tags help organize and categorize your knowledge articles.
+                </p>
+            </field>
+        </record>
+    </data>
+</odoo>
+

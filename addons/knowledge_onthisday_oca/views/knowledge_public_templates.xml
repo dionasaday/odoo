@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!-- Public View Template for Shared Article -->
+        <template id="article_public_view" name="Knowledge Article - Public View">
+            <t t-call="website.layout">
+                <t t-set="title" t-value="article.name"/>
+                <div id="wrap" class="oe_structure oe_empty">
+                    <div class="container mt-4">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card shadow-sm">
+                                    <div class="card-header bg-light">
+                                        <h1 class="card-title mb-2">
+                                            <span t-esc="category_icon"/> 
+                                            <span t-esc="article.name"/>
+                                        </h1>
+                                        <p class="text-muted mb-0">
+                                            <small>Shared Knowledge Article</small>
+                                        </p>
+                                    </div>
+                                    <div class="card-body" style="min-height: 300px;">
+                                        <div class="article-content" t-raw="article.content"/>
+                                    </div>
+                                    <div class="card-footer text-muted bg-light">
+                                        <small>
+                                            Last updated: <span t-esc="article.write_date"/>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </template>
+
+        <!-- Not Found Template -->
+        <template id="article_not_found" name="Knowledge Article - Not Found">
+            <t t-call="website.layout">
+                <t t-set="title" t-value="'Article Not Found'"/>
+                <div id="wrap" class="oe_structure oe_empty">
+                    <div class="container mt-4">
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-danger" role="alert">
+                                    <h4 class="alert-heading">Article Not Found</h4>
+                                    <p t-esc="error_message"/>
+                                    <hr/>
+                                    <p class="mb-0">
+                                        The article you are looking for may have been removed, 
+                                        the link may have expired, or the link may be incorrect.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </template>
+    </data>
+</odoo>
+
