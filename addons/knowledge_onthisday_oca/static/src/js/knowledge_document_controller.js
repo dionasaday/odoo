@@ -986,21 +986,31 @@ export class KnowledgeDocumentController extends Component {
 
     // Helpers for empty state lists
     getAllArticlesFlat() {
-        // When in workspace, state.articles is array of categories; in other sections it is flat already
+        const flattenWithChildren = (items = []) => {
+            const acc = [];
+            items.forEach((item) => {
+                acc.push(item);
+                if (item.children && Array.isArray(item.children) && item.children.length) {
+                    acc.push(...flattenWithChildren(item.children));
+                }
+            });
+            return acc;
+        };
+
         if (!this.state.articles) {
             return [];
         }
-        // If first element has articles property -> categories
+        // Workspace stores categories with nested children
         if (this.state.articles.length > 0 && Object.prototype.hasOwnProperty.call(this.state.articles[0], "articles")) {
             const flat = [];
             this.state.articles.forEach(cat => {
                 if (cat.articles && Array.isArray(cat.articles)) {
-                    flat.push(...cat.articles);
+                    flat.push(...flattenWithChildren(cat.articles));
                 }
             });
             return flat;
         }
-        return this.state.articles;
+        return flattenWithChildren(this.state.articles);
     }
 
     getRecentArticles(limit = 5) {
