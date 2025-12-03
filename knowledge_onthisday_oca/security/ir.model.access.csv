@@ -1,8 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_knowledge_article_user,knowledge.article.user,model_knowledge_article,base.group_user,1,1,1,0
-access_knowledge_article_system,knowledge.article.system,model_knowledge_article,base.group_system,1,1,1,1
-access_knowledge_article_category_user,knowledge.article.category.user,model_knowledge_article_category,base.group_user,1,1,1,0
-access_knowledge_article_category_system,knowledge.article.category.system,model_knowledge_article_category,base.group_system,1,1,1,1
-access_knowledge_article_tag_user,knowledge.article.tag.user,model_knowledge_article_tag,base.group_user,1,1,1,0
-access_knowledge_article_tag_system,knowledge.article.tag.system,model_knowledge_article_tag,base.group_system,1,1,1,1
-

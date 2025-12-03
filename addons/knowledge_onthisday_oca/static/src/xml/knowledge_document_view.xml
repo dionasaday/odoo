@@ -311,7 +311,7 @@
                         <span class="o_knowledge_action_icon">📄</span>
                         <span class="o_knowledge_action_label">Browse Templates</span>
                     </div>
-                    <div class="o_knowledge_action_item">
+                    <div class="o_knowledge_action_item" t-on-click="() => this.onOpenTrash()">
                         <span class="o_knowledge_action_icon">🗑️</span>
                         <span class="o_knowledge_action_label">Open the Trash</span>
                     </div>
@@ -388,54 +388,96 @@
                 </t>
                 <t t-else="">
                     <div class="o_knowledge_empty_state">
-                        <div class="o_knowledge_empty_state_header">
-                            <div>
-                                <div class="o_knowledge_empty_state_title">Welcome to Knowledge Base</div>
-                                <div class="o_knowledge_empty_state_text">
-                                    เลือกบทความจากด้านซ้าย หรือสร้างบทความใหม่ได้ทันที
+                        <t t-if="state.activeSection === 'trash'">
+                            <div class="o_knowledge_empty_state_header">
+                                <div>
+                                    <div class="o_knowledge_empty_state_title">Trash</div>
+                                    <div class="o_knowledge_empty_state_text">
+                                        บทความที่ถูกย้ายมา Trash (Archive) สามารถกู้คืนหรือกดเข้าไปแล้วกู้คืน/ลบถาวรได้
+                                    </div>
                                 </div>
                             </div>
-                            <div>
-                                <button 
-                                    class="btn btn-primary o_knowledge_create_button"
-                                    t-on-click="() => this.onCreateArticle()">
-                                    ➕ New Article
-                                </button>
-                            </div>
-                        </div>
-                        <div class="o_knowledge_empty_cards">
-                            <div class="o_knowledge_empty_card">
-                                <div class="o_knowledge_empty_card_header">
-                                    <span>บทความที่ดูบ่อย</span>
+                            <div class="o_knowledge_empty_cards">
+                                <div class="o_knowledge_empty_card o_knowledge_empty_card_full">
+                                    <t t-set="trashArticles" t-value="this.getTrashArticles()"/>
+                                    <t t-if="trashArticles.length">
+                                        <ul class="o_knowledge_empty_list">
+                                            <t t-foreach="trashArticles" t-as="article" t-key="article.id">
+                                                <li t-on-click="() => this.onArticleClick(article.id)">
+                                                   <div class="o_knowledge_empty_list_title" t-esc="article.name"/>
+                                                   <div class="o_knowledge_empty_list_meta">
+                                                       <t t-if="article.category_name">
+                                                           <span t-esc="article.category_name"/>
+                                                       </t>
+                                                       <t t-if="article.write_date">
+                                                           <span t-esc="article.write_date"/>
+                                                       </t>
+                                                        <t t-if="article.responsible_name">
+                                                            <span t-esc="article.responsible_name"/>
+                                                        </t>
+                                                   </div>
+                                               </li>
+                                           </t>
+                                       </ul>
+                                    </t>
+                                    <t t-else="">
+                                        <div class="o_knowledge_empty_list_placeholder">ยังไม่มีบทความใน Trash</div>
+                                    </t>
                                 </div>
-                                <t t-set="popularArticles" t-value="this.getPopularArticles(5)"/>
-                                <t t-if="popularArticles.length">
-                                    <ul class="o_knowledge_empty_list">
-                                        <t t-foreach="popularArticles" t-as="article" t-key="article.id">
-                                            <li t-on-click="() => this.onArticleClick(article.id)">
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <div class="o_knowledge_empty_state_header">
+                                <div>
+                                    <div class="o_knowledge_empty_state_title">Welcome to Knowledge Base</div>
+                                    <div class="o_knowledge_empty_state_text">
+                                        เลือกบทความจากด้านซ้าย หรือสร้างบทความใหม่ได้ทันที
+                                    </div>
+                                </div>
+                                <div>
+                                    <button 
+                                        class="btn btn-primary o_knowledge_create_button"
+                                        t-on-click="() => this.onCreateArticle()">
+                                        ➕ New Article
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="o_knowledge_empty_cards">
+                                <div class="o_knowledge_empty_card">
+                                    <div class="o_knowledge_empty_card_header">
+                                        <span>บทความที่ดูบ่อย</span>
+                                    </div>
+                                    <t t-set="popularArticles" t-value="this.getPopularArticles(5)"/>
+                                    <t t-if="popularArticles.length">
+                                        <ul class="o_knowledge_empty_list">
+                                            <t t-foreach="popularArticles" t-as="article" t-key="article.id">
+                                                <li t-on-click="() => this.onArticleClick(article.id)">
                                                 <div class="o_knowledge_empty_list_title" t-esc="article.name"/>
                                                 <div class="o_knowledge_empty_list_meta">
                                                     <t t-if="article.category_name">
                                                         <span t-esc="article.category_name"/>
                                                     </t>
+                                                    <t t-if="article.responsible_name">
+                                                        <span t-esc="article.responsible_name"/>
+                                                    </t>
                                                 </div>
                                             </li>
                                         </t>
                                     </ul>
-                                </t>
-                                <t t-else="">
-                                    <div class="o_knowledge_empty_list_placeholder">ยังไม่มีข้อมูล</div>
-                                </t>
-                            </div>
-                            <div class="o_knowledge_empty_card">
-                                <div class="o_knowledge_empty_card_header">
-                                    <span>บทความล่าสุด</span>
+                                    </t>
+                                    <t t-else="">
+                                        <div class="o_knowledge_empty_list_placeholder">ยังไม่มีข้อมูล</div>
+                                    </t>
                                 </div>
-                                <t t-set="recentArticles" t-value="this.getRecentArticles(5)"/>
-                                <t t-if="recentArticles.length">
-                                    <ul class="o_knowledge_empty_list">
-                                        <t t-foreach="recentArticles" t-as="article" t-key="article.id">
-                                            <li t-on-click="() => this.onArticleClick(article.id)">
+                                <div class="o_knowledge_empty_card">
+                                    <div class="o_knowledge_empty_card_header">
+                                        <span>บทความล่าสุด</span>
+                                    </div>
+                                    <t t-set="recentArticles" t-value="this.getRecentArticles(5)"/>
+                                    <t t-if="recentArticles.length">
+                                        <ul class="o_knowledge_empty_list">
+                                            <t t-foreach="recentArticles" t-as="article" t-key="article.id">
+                                                <li t-on-click="() => this.onArticleClick(article.id)">
                                                 <div class="o_knowledge_empty_list_title" t-esc="article.name"/>
                                                 <div class="o_knowledge_empty_list_meta">
                                                     <t t-if="article.category_name">
@@ -444,16 +486,20 @@
                                                     <t t-if="article.write_date">
                                                         <span t-esc="article.write_date"/>
                                                     </t>
+                                                    <t t-if="article.responsible_name">
+                                                        <span t-esc="article.responsible_name"/>
+                                                    </t>
                                                 </div>
                                             </li>
                                         </t>
                                     </ul>
-                                </t>
-                                <t t-else="">
-                                    <div class="o_knowledge_empty_list_placeholder">ยังไม่มีข้อมูล</div>
-                                </t>
+                                    </t>
+                                    <t t-else="">
+                                        <div class="o_knowledge_empty_list_placeholder">ยังไม่มีข้อมูล</div>
+                                    </t>
+                                </div>
                             </div>
-                        </div>
+                        </t>
                     </div>
                 </t>
             </div>

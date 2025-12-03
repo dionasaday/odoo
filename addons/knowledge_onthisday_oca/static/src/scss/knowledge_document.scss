@@ -1389,6 +1389,10 @@ html {
                     font-size: 13px;
                     padding: 6px 0;
                 }
+
+                &.o_knowledge_empty_card_full {
+                    grid-column: 1 / -1;
+                }
             }
         }
     }

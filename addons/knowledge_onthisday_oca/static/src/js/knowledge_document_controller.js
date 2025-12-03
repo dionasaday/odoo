@@ -382,6 +382,10 @@ export class KnowledgeDocumentController extends Component {
                         if (article.share_token) {
                             article.share_link = `${baseUrl}/knowledge/article/${article.share_token}`;
                         }
+                        // Normalize responsible_name for display if available
+                        if (article.responsible_id && Array.isArray(article.responsible_id) && article.responsible_id.length > 1) {
+                            article.responsible_name = article.responsible_id[1];
+                        }
                         return article;
                     });
                 }
@@ -444,6 +448,11 @@ export class KnowledgeDocumentController extends Component {
             
             // Add category info to articles and ensure category exists
             articles.forEach(article => {
+                // Normalize responsible name
+                if (article.responsible_id && Array.isArray(article.responsible_id) && article.responsible_id.length > 1) {
+                    article.responsible_name = article.responsible_id[1];
+                }
+
                 if (article.category_id && article.category_id.length > 0) {
                     const categoryId = article.category_id[0];
                     const category = categoryMap.get(categoryId);
@@ -984,6 +993,13 @@ export class KnowledgeDocumentController extends Component {
             .slice(0, limit);
     }
 
+    getTrashArticles() {
+        if (this.state.activeSection !== "trash") {
+            return [];
+        }
+        return Array.isArray(this.state.articles) ? this.state.articles : [];
+    }
+
     async onEditArticle() {
         if (!this.state.currentArticle || !this.state.currentArticle.id) {
             return;
@@ -1039,8 +1055,21 @@ export class KnowledgeDocumentController extends Component {
         
         // Debounce search to avoid too many API calls while typing
         this._searchTimeout = setTimeout(() => {
-            this.loadArticles();
+            if (this.state.activeSection === "trash") {
+                this.loadTrashArticles();
+            } else {
+                this.loadArticles();
+            }
         }, 300); // Wait 300ms after user stops typing
+    }
+
+    async onOpenTrash() {
+        this.state.activeSection = "trash";
+        this.state.selectedArticleId = null;
+        this.state.currentArticle = null;
+        this.state.expandedArticles = new Set();
+        this.state.expandedCategories = new Set();
+        await this.loadTrashArticles();
     }
 
     onTagClick(tagId) {
@@ -1052,6 +1081,32 @@ export class KnowledgeDocumentController extends Component {
             this.state.selectedTagId = tagId;
         }
         this.loadArticles();
+    }
+
+    async loadTrashArticles() {
+        this.state.loading = true;
+        try {
+            const articles = await this.orm.searchRead(
+                "knowledge.article",
+                [["active", "=", false]],
+                ["id", "name", "content", "category_id", "parent_id", "responsible_id", "active", "favorite_user_ids", "shared_user_ids", "write_date"],
+                { context: { active_test: false }, limit: 1000 }
+            );
+
+            // Normalize category_name for display
+            const normalized = (articles || []).map((a) => {
+                const catName = Array.isArray(a.category_id) && a.category_id.length > 1 ? a.category_id[1] : "";
+                const respName = Array.isArray(a.responsible_id) && a.responsible_id.length > 1 ? a.responsible_id[1] : "";
+                return { ...a, category_name: catName, responsible_name: respName };
+            });
+
+            this.state.articles = normalized;
+        } catch (error) {
+            console.error("Error loading trash articles:", error);
+            this.state.articles = [];
+        } finally {
+            this.state.loading = false;
+        }
     }
 
     clearTagFilter() {
@@ -1186,6 +1241,10 @@ export class KnowledgeDocumentController extends Component {
             
             // Reload articles to reflect changes in the sidebar
             await this.loadArticles();
+            // Reload current article content to avoid blank body after favorite toggle
+            if (this.state.currentArticle && this.state.currentArticle.id === articleId) {
+                await this.openArticle(articleId);
+            }
         } catch (error) {
             console.error("Error toggling favorite:", error);
         }
