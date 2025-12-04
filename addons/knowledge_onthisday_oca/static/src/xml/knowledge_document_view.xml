@@ -323,6 +323,48 @@
                 <t t-if="state.loading">
                     <div class="o_knowledge_loading">Loading article...</div>
                 </t>
+                <t t-elif="state.searchQuery">
+                    <t t-set="searchArticles" t-value="this.getSearchResults(10)"/>
+                    <div class="o_knowledge_search_results">
+                        <div class="o_knowledge_search_header">
+                            <div class="o_knowledge_search_title">ผลการค้นหา</div>
+                            <div class="o_knowledge_search_subtitle">
+                                ค้นหาจากหัวข้อหรือเนื้อหา: "<t t-esc="state.searchQuery"/>"
+                            </div>
+                        </div>
+                        <t t-if="searchArticles.length">
+                            <div class="o_knowledge_search_cards">
+                                <t t-foreach="searchArticles" t-as="article" t-key="article.id">
+                                    <div class="o_knowledge_search_card" t-on-click="() => this.onArticleClick(article.id)">
+                                        <div class="o_knowledge_search_card_header">
+                                            <div class="o_knowledge_search_card_title" t-esc="article.name"/>
+                                            <t t-if="article.responsible_name">
+                                                <span class="o_knowledge_author_badge">
+                                                    <t t-if="article.responsible_avatar">
+                                                        <img t-att-src="'data:image/png;base64,' + article.responsible_avatar" class="o_knowledge_author_avatar_img"/>
+                                                    </t>
+                                                    <t t-else="">
+                                                        <span class="o_knowledge_author_avatar">👤</span>
+                                                    </t>
+                                                    <span t-esc="article.responsible_name"/>
+                                                </span>
+                                            </t>
+                                        </div>
+                                        <t t-if="article.search_meta">
+                                            <div class="o_knowledge_search_card_meta" t-esc="article.search_meta"/>
+                                        </t>
+                                        <t t-if="article.search_snippet">
+                                            <div class="o_knowledge_search_card_snippet" t-esc="article.search_snippet"/>
+                                        </t>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <div class="o_knowledge_empty_list_placeholder">ไม่พบบทความที่ตรงกับคำค้นหา</div>
+                        </t>
+                    </div>
+                </t>
                 <t t-elif="state.currentArticle">
                     <!-- Article Header -->
                     <div class="o_knowledge_article_header">

@@ -346,7 +346,7 @@ export class KnowledgeDocumentController extends Component {
             // According to Odoo 19 docs, start with minimal fields to avoid RPC errors
             // Then add more fields if successful
             const basicFields = ["id", "name", "active"];
-            const extendedFields = ["category_id", "parent_id", "responsible_id", "write_date", "create_date"];
+            const extendedFields = ["category_id", "parent_id", "responsible_id", "write_date", "create_date", "content"];
             const relationFields = ["favorite_user_ids", "shared_user_ids", "share_token", "tag_ids"];
             
             try {
@@ -604,7 +604,9 @@ export class KnowledgeDocumentController extends Component {
         }
         
         if (this.state.searchQuery) {
+            domain.push("|");
             domain.push(["name", "ilike", this.state.searchQuery]);
+            domain.push(["content", "ilike", this.state.searchQuery]);
         }
         
         // Filter by selected tag
@@ -779,6 +781,10 @@ export class KnowledgeDocumentController extends Component {
     }
 
     async onArticleClick(articleId, event) {
+        // If coming from search results, clear search to show article view
+        if (this.state.searchQuery) {
+            this.state.searchQuery = "";
+        }
         // If clicking on expand icon, toggle expand/collapse
         if (event && event.target) {
             const isExpandIcon = event.target.classList.contains('o_knowledge_expand_icon') ||
@@ -1055,6 +1061,38 @@ export class KnowledgeDocumentController extends Component {
                 return bDate.localeCompare(aDate);
             })
             .slice(0, limit);
+    }
+
+    getSearchResults(limit = 10) {
+        const query = (this.state.searchQuery || "").trim().toLowerCase();
+        if (!query) {
+            return [];
+        }
+        const all = this.getAllArticlesFlat();
+        const stripHtml = (html) => {
+            if (!html) return "";
+            const tmp = document.createElement("div");
+            tmp.innerHTML = html;
+            return (tmp.textContent || tmp.innerText || "").trim();
+        };
+        const matches = all.filter((a) => {
+            const name = (a.name || "").toLowerCase();
+            const contentText = stripHtml(a.content).toLowerCase();
+            return name.includes(query) || contentText.includes(query);
+        }).map((a) => {
+            const cleanText = stripHtml(a.content);
+            const snippet = cleanText ? cleanText.substring(0, 140) + (cleanText.length > 140 ? "…" : "") : "";
+            // Build a small meta string for display (category + date)
+            const metaParts = [];
+            if (a.category_name) {
+                metaParts.push(a.category_name);
+            }
+            if (a.write_date) {
+                metaParts.push(a.write_date);
+            }
+            return { ...a, search_snippet: snippet, search_meta: metaParts.join(" · ") };
+        });
+        return matches.slice(0, limit);
     }
 
     getTrashArticles() {
