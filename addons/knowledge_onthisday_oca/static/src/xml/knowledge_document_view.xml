@@ -354,7 +354,7 @@
                                             <div class="o_knowledge_search_card_meta" t-esc="article.search_meta"/>
                                         </t>
                                         <t t-if="article.search_snippet">
-                                            <div class="o_knowledge_search_card_snippet" t-esc="article.search_snippet"/>
+                                            <div class="o_knowledge_search_card_snippet" t-raw="article.search_snippet"/>
                                         </t>
                                     </div>
                                 </t>

@@ -2,7 +2,7 @@
 
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { Component, useState, onWillStart, useRef, useEffect, onMounted, onWillUpdateProps, onRendered } from "@odoo/owl";
+import { Component, useState, onWillStart, useRef, useEffect, onMounted, onWillUpdateProps, onRendered, markup } from "@odoo/owl";
 
 export class KnowledgeDocumentController extends Component {
     static props = {
@@ -33,6 +33,13 @@ export class KnowledgeDocumentController extends Component {
             selectedTagId: null, // Selected tag for filtering
             availableTags: [], // List of all available tags
         });
+        this._floatingTOCHeadings = [];
+        this._onScrollFloatingTOC = () => {
+            if (this._floatingTOCHeadings.length === 0 || !this.floatingTOCContainer) {
+                return;
+            }
+            window.requestAnimationFrame(() => this._updateFloatingTOCActive());
+        };
 
         onWillStart(async () => {
             // Load tags first
@@ -93,6 +100,14 @@ export class KnowledgeDocumentController extends Component {
                 }, 50);
             }
         }, () => [this.state.currentArticle?.id, this.state.currentArticle?.content]);
+
+        // Scroll listener for floating TOC highlight
+        onMounted(() => {
+            window.addEventListener('scroll', this._onScrollFloatingTOC, { passive: true });
+        });
+        this.onWillDestroy(() => {
+            window.removeEventListener('scroll', this._onScrollFloatingTOC);
+        });
     }
 
     renderContent() {
@@ -147,6 +162,10 @@ export class KnowledgeDocumentController extends Component {
                     if (areStylesheetsLoaded()) {
                         if (this.contentRef.el && this.state.currentArticle) {
                             this.contentRef.el.innerHTML = content;
+                            const activeQuery = (this.state.lastSearchQuery || "").trim();
+                            if (activeQuery) {
+                                this._highlightQueryInContent(activeQuery);
+                            }
                             this.processTOCAfterRender();
                         }
                     } else {
@@ -164,6 +183,10 @@ export class KnowledgeDocumentController extends Component {
             requestAnimationFrame(() => {
                 if (this.contentRef.el && this.state.currentArticle) {
                     this.contentRef.el.innerHTML = content;
+                    const activeQuery = (this.state.lastSearchQuery || "").trim();
+                    if (activeQuery) {
+                        this._highlightQueryInContent(activeQuery);
+                    }
                     this.processTOCAfterRender();
                 }
             });
@@ -781,8 +804,9 @@ export class KnowledgeDocumentController extends Component {
     }
 
     async onArticleClick(articleId, event) {
-        // If coming from search results, clear search to show article view
+        // If coming from search results, remember the query for highlight then clear for view
         if (this.state.searchQuery) {
+            this.state.lastSearchQuery = this.state.searchQuery;
             this.state.searchQuery = "";
         }
         // If clicking on expand icon, toggle expand/collapse
@@ -1075,13 +1099,54 @@ export class KnowledgeDocumentController extends Component {
             tmp.innerHTML = html;
             return (tmp.textContent || tmp.innerText || "").trim();
         };
+        const escapeHtml = (text) => {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        };
+        const makeSnippet = (text, q) => {
+            if (!text) return "";
+            const lower = text.toLowerCase();
+            const idx = lower.indexOf(q);
+            const radius = 80;
+            let start = 0;
+            let end = Math.min(text.length, 160);
+            if (idx !== -1) {
+                start = Math.max(0, idx - radius);
+                end = Math.min(text.length, idx + q.length + radius);
+            }
+            const prefixEllipsis = start > 0 ? "…" : "";
+            const suffixEllipsis = end < text.length ? "…" : "";
+            const raw = text.substring(start, end);
+            const regex = new RegExp(q.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&"), "ig");
+            let result = "";
+            let lastIndex = 0;
+            let match;
+            while ((match = regex.exec(raw)) !== null) {
+                const matchStart = match.index;
+                const matchEnd = matchStart + match[0].length;
+                if (matchStart > lastIndex) {
+                    result += escapeHtml(raw.substring(lastIndex, matchStart));
+                }
+                result += `<mark class="o_knowledge_highlight">${escapeHtml(match[0])}</mark>`;
+                lastIndex = matchEnd;
+            }
+            if (lastIndex < raw.length) {
+                result += escapeHtml(raw.substring(lastIndex));
+            }
+            return markup(`${prefixEllipsis}${result}${suffixEllipsis}`);
+        };
+
         const matches = all.filter((a) => {
             const name = (a.name || "").toLowerCase();
             const contentText = stripHtml(a.content).toLowerCase();
             return name.includes(query) || contentText.includes(query);
         }).map((a) => {
             const cleanText = stripHtml(a.content);
-            const snippet = cleanText ? cleanText.substring(0, 140) + (cleanText.length > 140 ? "…" : "") : "";
+            const snippetHtml = makeSnippet(cleanText, query);
             // Build a small meta string for display (category + date)
             const metaParts = [];
             if (a.category_name) {
@@ -1090,7 +1155,7 @@ export class KnowledgeDocumentController extends Component {
             if (a.write_date) {
                 metaParts.push(a.write_date);
             }
-            return { ...a, search_snippet: snippet, search_meta: metaParts.join(" · ") };
+            return { ...a, search_snippet: snippetHtml, search_meta: metaParts.join(" · ") };
         });
         return matches.slice(0, limit);
     }
@@ -1615,6 +1680,8 @@ export class KnowledgeDocumentController extends Component {
         
         // Set TOC content
         tocElement.innerHTML = tocHTML;
+        // Also render a floating TOC on the right side for quick navigation
+        this._renderFloatingTOC(tocHTML);
         
         // Store reference to contentRef for use in event listeners
         const contentRefEl = this.contentRef.el;
@@ -1744,6 +1811,118 @@ export class KnowledgeDocumentController extends Component {
                 });
             });
         }, 100);
+    }
+
+    /**
+     * Mirror the TOC into a floating panel on the right so users can jump to other headings quickly.
+     */
+    _renderFloatingTOC(tocHTML) {
+        if (!tocHTML) {
+            return;
+        }
+
+        // Create container once
+        if (!this.floatingTOCContainer) {
+            this.floatingTOCContainer = document.createElement('div');
+            this.floatingTOCContainer.className = 'o_knowledge_floating_toc';
+
+            // Append inside the main view if possible; fallback to body
+            const host = this.el || document.body;
+            host.appendChild(this.floatingTOCContainer);
+        }
+
+        this.floatingTOCContainer.innerHTML = tocHTML;
+
+        // Delegate clicks to reuse smooth scroll behaviour
+        this.floatingTOCContainer.onclick = (e) => {
+            const link = e.target.closest('.o_toc_link');
+            if (!link) return;
+            e.preventDefault();
+            const headingId = link.getAttribute('data-heading-id');
+            if (!headingId) return;
+
+            const targetHeading = document.getElementById(headingId);
+            if (!targetHeading) return;
+            const offset = 100;
+            const rect = targetHeading.getBoundingClientRect();
+            const currentScroll = window.pageYOffset ||
+                document.documentElement.scrollTop ||
+                document.body.scrollTop ||
+                0;
+            const targetPosition = rect.top + currentScroll - offset;
+            window.scrollTo({ top: Math.max(0, targetPosition), behavior: 'smooth' });
+        };
+    }
+
+    /**
+     * Highlight query occurrences inside article content and scroll to the first match.
+     */
+    _highlightQueryInContent(query) {
+        if (!query || !this.contentRef || !this.contentRef.el) {
+            return;
+        }
+        const safeQuery = query.trim();
+        if (!safeQuery) return;
+
+        // Remove previous highlights
+        const removeMarks = () => {
+            this.contentRef.el.querySelectorAll('.o_knowledge_highlight').forEach((mark) => {
+                const parent = mark.parentNode;
+                if (parent) {
+                    parent.replaceChild(document.createTextNode(mark.textContent), mark);
+                    parent.normalize();
+                }
+            });
+        };
+        removeMarks();
+
+        const regex = new RegExp(safeQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+        const walker = document.createTreeWalker(this.contentRef.el, NodeFilter.SHOW_TEXT, null);
+        const textNodes = [];
+        while (walker.nextNode()) {
+            textNodes.push(walker.currentNode);
+        }
+
+        textNodes.forEach((node) => {
+            if (!node.nodeValue) return;
+            if (!regex.test(node.nodeValue)) {
+                // reset lastIndex for next node
+                regex.lastIndex = 0;
+                return;
+            }
+            const frag = document.createDocumentFragment();
+            let lastIndex = 0;
+            let match;
+            regex.lastIndex = 0;
+            while ((match = regex.exec(node.nodeValue)) !== null) {
+                const start = match.index;
+                const end = start + match[0].length;
+                if (start > lastIndex) {
+                    frag.appendChild(document.createTextNode(node.nodeValue.substring(lastIndex, start)));
+                }
+                const mark = document.createElement("mark");
+                mark.className = "o_knowledge_highlight";
+                mark.textContent = node.nodeValue.substring(start, end);
+                frag.appendChild(mark);
+                lastIndex = end;
+            }
+            if (lastIndex < node.nodeValue.length) {
+                frag.appendChild(document.createTextNode(node.nodeValue.substring(lastIndex)));
+            }
+            node.parentNode.replaceChild(frag, node);
+        });
+
+        // Scroll to first highlight
+        const first = this.contentRef.el.querySelector('.o_knowledge_highlight');
+        if (first) {
+            const rect = first.getBoundingClientRect();
+            const currentScroll = window.pageYOffset ||
+                document.documentElement.scrollTop ||
+                document.body.scrollTop || 0;
+            const offset = 120;
+            const targetPos = rect.top + currentScroll - offset;
+            window.scrollTo({ top: Math.max(0, targetPos), behavior: 'smooth' });
+        }
     }
 }
 
