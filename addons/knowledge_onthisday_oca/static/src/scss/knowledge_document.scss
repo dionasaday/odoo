@@ -142,6 +142,62 @@ html {
             background-color: var(--knowledge-bg-secondary);
             z-index: 10;
             
+            .o_searchview {
+                background: #fff;
+                border: 1px solid #d9dde3;
+                border-radius: 6px;
+                box-shadow: none;
+                transition: var(--knowledge-transition);
+                padding: 0 8px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                min-height: 34px;
+
+                &::before {
+                    content: "🔍";
+                    font-size: 14px;
+                    opacity: 0.7;
+                }
+                
+                .o_searchview_input_container {
+                    padding: 6px 0;
+                }
+                
+                input {
+                    border: none !important;
+                    background: transparent !important;
+                    font-size: 14px;
+                    color: var(--knowledge-text);
+                }
+                
+                &:focus-within {
+                    border-color: var(--knowledge-primary-border, var(--knowledge-primary-border-fallback));
+                    box-shadow: 0 0 0 2px rgba(0,0,0,0.04);
+                }
+            }
+            /* Fallback styling for plain input (current DOM) */
+            .o_knowledge_search_input {
+                width: 100%;
+                height: 34px;
+                border: 1px solid #d9dde3;
+                border-radius: 6px;
+                padding: 6px 10px 6px 30px;
+                font-size: 14px;
+                background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='none' stroke='%239aa0a6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='6' cy='6' r='4.5'/%3E%3Cline x1='10' y1='10' x2='13' y2='13'/%3E%3C/svg%3E") no-repeat 10px center;
+                transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+                &:focus {
+                    outline: none;
+                    border-color: var(--knowledge-primary-border, #a5b4cc);
+                    box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.04);
+                }
+
+                &::placeholder {
+                    color: #9aa0a6;
+                }
+            }
+            
             .o_knowledge_tag_filter {
                 margin-top: var(--knowledge-spacing-sm);
                 display: flex;
@@ -1814,8 +1870,8 @@ html {
 .o_knowledge_floating_toc {
     position: fixed;
     right: 24px;
-    top: 150px; /* lowered to avoid covering top content */
-    width: 280px;
+    top: 180px; /* lowered to avoid header/toolbar */
+    width: 260px;
     max-height: 70vh;
     overflow: auto;
     background: #fff;
@@ -1873,6 +1929,14 @@ html {
 @media (max-width: 1200px) {
     .o_knowledge_floating_toc {
         display: none !important;
+    }
+}
+
+@media (min-width: 1200px) {
+    .o_knowledge_document_view {
+        .o_knowledge_main_content {
+            padding-right: 320px; /* make room for floating TOC */
+        }
     }
 }
 

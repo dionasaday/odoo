@@ -332,6 +332,9 @@
                                 ค้นหาจากหัวข้อหรือเนื้อหา: "<t t-esc="state.searchQuery"/>"
                             </div>
                         </div>
+                        <t t-if="state.searchLoading">
+                            <div class="o_knowledge_empty_list_placeholder">กำลังค้นหา...</div>
+                        </t>
                         <t t-if="searchArticles.length">
                             <div class="o_knowledge_search_cards">
                                 <t t-foreach="searchArticles" t-as="article" t-key="article.id">

@@ -21,6 +21,7 @@ export class KnowledgeDocumentController extends Component {
         this.state = useState({
             selectedArticleId: null,
             searchQuery: "",
+            searchLoading: false,
             activeSection: "workspace", // workspace, favorites, shared, private
             articles: [],
             currentArticle: null,
@@ -1121,6 +1122,7 @@ export class KnowledgeDocumentController extends Component {
         if (!query) {
             return [];
         }
+        const terms = query.split(/\s+/).filter(Boolean);
         const all = this.getAllArticlesFlat();
         const stripHtml = (html) => {
             if (!html) return "";
@@ -1136,10 +1138,13 @@ export class KnowledgeDocumentController extends Component {
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#39;");
         };
-        const makeSnippet = (text, q) => {
+        const makeSnippet = (text, q, highlightRegex) => {
             if (!text) return "";
             const lower = text.toLowerCase();
-            const idx = lower.indexOf(q);
+            const idx = terms
+                .map((t) => lower.indexOf(t))
+                .filter((i) => i >= 0)
+                .reduce((a, b) => (a === -1 ? b : Math.min(a, b)), -1);
             const radius = 80;
             let start = 0;
             let end = Math.min(text.length, 160);
@@ -1150,7 +1155,7 @@ export class KnowledgeDocumentController extends Component {
             const prefixEllipsis = start > 0 ? "…" : "";
             const suffixEllipsis = end < text.length ? "…" : "";
             const raw = text.substring(start, end);
-            const regex = new RegExp(q.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&"), "ig");
+            const regex = highlightRegex;
             let result = "";
             let lastIndex = 0;
             let match;
@@ -1172,10 +1177,11 @@ export class KnowledgeDocumentController extends Component {
         const matches = all.filter((a) => {
             const name = (a.name || "").toLowerCase();
             const contentText = stripHtml(a.content).toLowerCase();
-            return name.includes(query) || contentText.includes(query);
+            return terms.some((t) => name.includes(t) || contentText.includes(t));
         }).map((a) => {
             const cleanText = stripHtml(a.content);
-            const snippetHtml = makeSnippet(cleanText, query);
+            const highlightRegex = new RegExp(terms.map((t) => t.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")).join("|"), "ig");
+            const snippetHtml = makeSnippet(cleanText, query, highlightRegex);
             // Build a small meta string for display (category + date)
             const metaParts = [];
             if (a.category_name) {
@@ -1184,9 +1190,31 @@ export class KnowledgeDocumentController extends Component {
             if (a.write_date) {
                 metaParts.push(a.write_date);
             }
-            return { ...a, search_snippet: snippetHtml, search_meta: metaParts.join(" · ") };
+            // Relevance score
+            let score = 0;
+            const nameLower = (a.name || "").toLowerCase();
+            const contentLower = cleanText.toLowerCase();
+            // headings weight (h1-h3) if present
+            const headingMatches = (a.content || "").match(/<h[1-3][^>]*>(.*?)<\/h[1-3]>/gi) || [];
+            const headingText = headingMatches.map(h => stripHtml(h).toLowerCase());
+            terms.forEach((t) => {
+                if (nameLower.includes(t)) score += 50;
+                if (headingText.some(ht => ht.includes(t))) score += 30;
+                if (contentLower.includes(t)) score += 10;
+            });
+            // recency bonus
+            const d = a.write_date || a.create_date;
+            if (d) {
+                const ageDays = (Date.now() - Date.parse(d)) / (1000 * 60 * 60 * 24);
+                if (!isNaN(ageDays)) {
+                    score += Math.max(0, 20 - Math.min(ageDays / 30, 20)); // decay by month
+                }
+            }
+            return { ...a, search_snippet: snippetHtml, search_meta: metaParts.join(" · "), _score: score };
         });
-        return matches.slice(0, limit);
+        return matches
+            .sort((a, b) => (b._score || 0) - (a._score || 0) || (b.write_date || "").localeCompare(a.write_date || ""))
+            .slice(0, limit);
     }
 
     getTrashArticles() {
@@ -1243,6 +1271,7 @@ export class KnowledgeDocumentController extends Component {
 
     onSearchChange(query) {
         this.state.searchQuery = query;
+        this.state.searchLoading = true;
         
         // Clear previous debounce timer if exists
         if (this._searchTimeout) {
@@ -1252,9 +1281,13 @@ export class KnowledgeDocumentController extends Component {
         // Debounce search to avoid too many API calls while typing
         this._searchTimeout = setTimeout(() => {
             if (this.state.activeSection === "trash") {
-                this.loadTrashArticles();
+                this.loadTrashArticles().finally(() => {
+                    this.state.searchLoading = false;
+                });
             } else {
-                this.loadArticles();
+                this.loadArticles().finally(() => {
+                    this.state.searchLoading = false;
+                });
             }
         }, 300); // Wait 300ms after user stops typing
     }
@@ -1889,8 +1922,8 @@ export class KnowledgeDocumentController extends Component {
         if (!query || !this.contentRef || !this.contentRef.el) {
             return;
         }
-        const safeQuery = query.trim();
-        if (!safeQuery) return;
+        const terms = query.split(/\s+/).filter(Boolean);
+        if (!terms.length) return;
 
         // Remove previous highlights
         const removeMarks = () => {
@@ -1904,7 +1937,7 @@ export class KnowledgeDocumentController extends Component {
         };
         removeMarks();
 
-        const regex = new RegExp(safeQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+        const regex = new RegExp(terms.map((t) => t.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")).join("|"), "gi");
         const walker = document.createTreeWalker(this.contentRef.el, NodeFilter.SHOW_TEXT, null);
         const textNodes = [];
         while (walker.nextNode()) {
