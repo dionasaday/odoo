@@ -2,7 +2,7 @@
 
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { Component, useState, onWillStart, useRef, useEffect, onMounted, onWillUpdateProps, onRendered, markup } from "@odoo/owl";
+import { Component, useState, onWillStart, useRef, useEffect, onMounted, onWillUpdateProps, onRendered, onWillUnmount, markup } from "@odoo/owl";
 
 export class KnowledgeDocumentController extends Component {
     static props = {
@@ -34,6 +34,8 @@ export class KnowledgeDocumentController extends Component {
             availableTags: [], // List of all available tags
         });
         this._floatingTOCHeadings = [];
+        this.inlineTOCElement = null;
+        this._tocObserver = null;
         this._onScrollFloatingTOC = () => {
             if (this._floatingTOCHeadings.length === 0 || !this.floatingTOCContainer) {
                 return;
@@ -105,8 +107,16 @@ export class KnowledgeDocumentController extends Component {
         onMounted(() => {
             window.addEventListener('scroll', this._onScrollFloatingTOC, { passive: true });
         });
-        this.onWillDestroy(() => {
+        onWillUnmount(() => {
             window.removeEventListener('scroll', this._onScrollFloatingTOC);
+            if (this._tocObserver) {
+                this._tocObserver.disconnect();
+                this._tocObserver = null;
+            }
+            if (this.floatingTOCContainer && this.floatingTOCContainer.parentNode) {
+                this.floatingTOCContainer.parentNode.removeChild(this.floatingTOCContainer);
+            }
+            this.floatingTOCContainer = null;
         });
     }
 
@@ -250,6 +260,7 @@ export class KnowledgeDocumentController extends Component {
         const tocElement = tocByDataAttr || tocByClass || tocById || (tocDivs.length > 0 ? tocDivs[0] : null);
         
         if (tocElement) {
+            this.inlineTOCElement = tocElement;
             // Check if TOC is empty and needs to be generated
             const tocInnerHTML = tocElement.innerHTML || '';
             const tocInnerHTMLTrimmed = tocInnerHTML.trim();
@@ -257,6 +268,17 @@ export class KnowledgeDocumentController extends Component {
             
             if (tocIsEmpty) {
                 this.generateTOCContent(tocElement);
+            } else {
+                this.generateTOCContent(tocElement);
+            }
+            this._setupFloatingTOCObserver(allHeadings);
+        } else {
+            // No inline TOC found; still expose floating TOC for headings
+            if (allHeadings.length) {
+                const tocHtml = this._buildTOCHTMLFromHeadings(allHeadings);
+                this._renderFloatingTOC(tocHtml, allHeadings);
+            } else {
+                this._toggleFloatingTOC(false);
             }
         }
         
@@ -295,6 +317,7 @@ export class KnowledgeDocumentController extends Component {
                 const tocElementDelayed = tocByDataAttrDelayed || tocByClassDelayed || tocByIdDelayed || (tocDivsDelayed.length > 0 ? tocDivsDelayed[0] : null);
                 
                 if (tocElementDelayed) {
+                    this.inlineTOCElement = tocElementDelayed;
                     // Check if TOC is empty and needs to be generated (delayed check)
                     const tocInnerHTMLDelayed = tocElementDelayed.innerHTML || '';
                     const tocInnerHTMLTrimmedDelayed = tocInnerHTMLDelayed.trim();
@@ -303,6 +326,12 @@ export class KnowledgeDocumentController extends Component {
                     if (tocIsEmptyDelayed) {
                         this.generateTOCContent(tocElementDelayed);
                     }
+                    this._setupFloatingTOCObserver(allHeadingsDelayed);
+                } else if (allHeadingsDelayed.length) {
+                    const tocHtmlDelayed = this._buildTOCHTMLFromHeadings(allHeadingsDelayed);
+                    this._renderFloatingTOC(tocHtmlDelayed, allHeadingsDelayed);
+                } else {
+                    this._toggleFloatingTOC(false);
                 }
             }
         }, 200);
@@ -1681,7 +1710,8 @@ export class KnowledgeDocumentController extends Component {
         // Set TOC content
         tocElement.innerHTML = tocHTML;
         // Also render a floating TOC on the right side for quick navigation
-        this._renderFloatingTOC(tocHTML);
+        const tocHeadings = Array.from(headings);
+        this._renderFloatingTOC(tocHTML, tocHeadings);
         
         // Store reference to contentRef for use in event listeners
         const contentRefEl = this.contentRef.el;
@@ -1816,10 +1846,11 @@ export class KnowledgeDocumentController extends Component {
     /**
      * Mirror the TOC into a floating panel on the right so users can jump to other headings quickly.
      */
-    _renderFloatingTOC(tocHTML) {
+    _renderFloatingTOC(tocHTML, headings = []) {
         if (!tocHTML) {
             return;
         }
+        this._floatingTOCHeadings = Array.from(headings || []);
 
         // Create container once
         if (!this.floatingTOCContainer) {
@@ -1840,18 +1871,15 @@ export class KnowledgeDocumentController extends Component {
             e.preventDefault();
             const headingId = link.getAttribute('data-heading-id');
             if (!headingId) return;
-
-            const targetHeading = document.getElementById(headingId);
-            if (!targetHeading) return;
-            const offset = 100;
-            const rect = targetHeading.getBoundingClientRect();
-            const currentScroll = window.pageYOffset ||
-                document.documentElement.scrollTop ||
-                document.body.scrollTop ||
-                0;
-            const targetPosition = rect.top + currentScroll - offset;
-            window.scrollTo({ top: Math.max(0, targetPosition), behavior: 'smooth' });
+            this._scrollToHeading(headingId);
         };
+        this._updateFloatingTOCActive();
+        // หากมี inline TOC จะให้ observer เป็นตัวตัดสินใจเปิด/ปิด
+        if (!this.inlineTOCElement) {
+            this._toggleFloatingTOC(true);
+        } else {
+            this._toggleFloatingTOC(false);
+        }
     }
 
     /**
@@ -1923,6 +1951,116 @@ export class KnowledgeDocumentController extends Component {
             const targetPos = rect.top + currentScroll - offset;
             window.scrollTo({ top: Math.max(0, targetPos), behavior: 'smooth' });
         }
+    }
+
+    _scrollToHeading(headingId) {
+        if (!headingId) return;
+        let targetHeading = document.getElementById(headingId);
+        if (!targetHeading && this.contentRef && this.contentRef.el) {
+            targetHeading = this.contentRef.el.querySelector(`#${headingId}`);
+        }
+        if (!targetHeading) return;
+
+        const offset = 110;
+        // ใช้ scrollIntoView เพื่อเลื่อนไปก่อน แล้วชดเชย offset
+        targetHeading.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+        // ชดเชย header หลัง scrollIntoView
+        requestAnimationFrame(() => {
+            const rect = targetHeading.getBoundingClientRect();
+            const currentScroll = window.pageYOffset ||
+                document.documentElement.scrollTop ||
+                document.body.scrollTop || 0;
+            const targetPosition = rect.top + currentScroll - offset;
+            window.scrollTo({ top: Math.max(0, targetPosition), behavior: 'smooth' });
+        });
+    }
+
+    _setupFloatingTOCObserver(headings = []) {
+        if (!this.inlineTOCElement) {
+            this._toggleFloatingTOC(false);
+            return;
+        }
+        // ใช้ IntersectionObserver เพื่อแสดง TOC ลอยเมื่อ inline TOC หลุดจอ
+        if (this._tocObserver) {
+            this._tocObserver.disconnect();
+        }
+        if ('IntersectionObserver' in window) {
+            this._tocObserver = new IntersectionObserver((entries) => {
+                const entry = entries[0];
+                if (entry && entry.isIntersecting) {
+                    this._toggleFloatingTOC(false);
+                } else if (this._floatingTOCHeadings.length || headings.length) {
+                    if (!this._floatingTOCHeadings.length) {
+                        this._floatingTOCHeadings = Array.from(headings || []);
+                    }
+                    this._toggleFloatingTOC(true);
+                    this._updateFloatingTOCActive();
+                }
+            }, { threshold: 0 });
+            this._tocObserver.observe(this.inlineTOCElement);
+        } else {
+            // fallback: check on scroll
+            const check = () => {
+                if (!this.inlineTOCElement) return;
+                const rect = this.inlineTOCElement.getBoundingClientRect();
+                if (rect.bottom < 0) {
+                    this._toggleFloatingTOC(true);
+                    this._updateFloatingTOCActive();
+                } else {
+                    this._toggleFloatingTOC(false);
+                }
+            };
+            window.addEventListener('scroll', check, { passive: true });
+        }
+    }
+
+    _toggleFloatingTOC(show) {
+        if (!this.floatingTOCContainer) return;
+        this.floatingTOCContainer.style.display = show ? 'block' : 'none';
+    }
+
+    _buildTOCHTMLFromHeadings(headings) {
+        let tocHTML = '<div class="o_toc_header"><h3>Table of Contents</h3></div><ul class="o_toc_list">';
+        headings.forEach((heading, index) => {
+            const level = parseInt(heading.tagName.charAt(1));
+            const indentClass = `o_toc_level_${level}`;
+            const text = heading.textContent.trim();
+            if (!heading.id) {
+                const slug = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50);
+                heading.id = `toc-heading-${index}-${slug}`;
+            }
+            tocHTML += `
+                <li class="o_toc_item ${indentClass}">
+                    <a href="#${heading.id}" class="o_toc_link" data-heading-id="${heading.id}">
+                        ${text}
+                    </a>
+                </li>`;
+        });
+        tocHTML += '</ul>';
+        return tocHTML;
+    }
+
+    _updateFloatingTOCActive() {
+        if (!this.floatingTOCContainer || !this._floatingTOCHeadings.length) return;
+        const scrollPos = window.scrollY || document.documentElement.scrollTop || 0;
+        const offset = 140;
+        let activeId = null;
+        this._floatingTOCHeadings.forEach((h) => {
+            const rect = h.getBoundingClientRect();
+            const top = rect.top + scrollPos - offset;
+            if (scrollPos >= top) {
+                activeId = h.id;
+            }
+        });
+        const links = this.floatingTOCContainer.querySelectorAll('.o_toc_link');
+        links.forEach((link) => {
+            const id = link.getAttribute('data-heading-id');
+            if (id === activeId) {
+                link.classList.add('o_toc_active');
+            } else {
+                link.classList.remove('o_toc_active');
+            }
+        });
     }
 }
 

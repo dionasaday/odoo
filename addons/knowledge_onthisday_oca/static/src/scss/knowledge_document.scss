@@ -1814,7 +1814,7 @@ html {
 .o_knowledge_floating_toc {
     position: fixed;
     right: 24px;
-    top: 110px;
+    top: 150px; /* lowered to avoid covering top content */
     width: 280px;
     max-height: 70vh;
     overflow: auto;
@@ -1824,6 +1824,7 @@ html {
     box-shadow: 0 6px 18px var(--knowledge-shadow-lg);
     padding: var(--knowledge-spacing-md);
     z-index: 1040;
+    display: none; /* hidden until toc is ready */
 
     .o_toc_header {
         margin-bottom: 8px;
@@ -1856,11 +1857,66 @@ html {
             &:hover {
                 background: var(--knowledge-primary-bg, var(--knowledge-primary-bg-fallback));
             }
+            &.o_toc_active {
+                background: var(--knowledge-primary-bg, var(--knowledge-primary-bg-fallback));
+                color: var(--knowledge-primary);
+                font-weight: 600;
+            }
         }
 
         &.o_toc_level_2 .o_toc_link { padding-left: 12px; }
         &.o_toc_level_3 .o_toc_link { padding-left: 20px; }
         &.o_toc_level_4 .o_toc_link { padding-left: 28px; }
+    }
+}
+
+@media (max-width: 1200px) {
+    .o_knowledge_floating_toc {
+        display: none !important;
+    }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .o_knowledge_document_view {
+        .o_knowledge_main_content {
+            padding: var(--knowledge-spacing-md);
+
+            .o_knowledge_article_header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: var(--knowledge-spacing-sm);
+
+                .o_knowledge_article_title {
+                    font-size: 22px;
+                }
+
+                .o_knowledge_article_header_right {
+                    width: 100%;
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: var(--knowledge-spacing-sm);
+
+                    .btn {
+                        flex: 1 1 48%;
+                        min-width: 140px;
+                        justify-content: center;
+                    }
+                }
+            }
+
+            .o_knowledge_search_results {
+                padding: var(--knowledge-spacing-md);
+
+                .o_knowledge_search_cards {
+                    grid-template-columns: 1fr;
+                }
+            }
+        }
+    }
+
+    .o_knowledge_floating_toc {
+        display: none !important;
     }
 }
 
