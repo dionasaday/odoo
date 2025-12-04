@@ -495,14 +495,14 @@
                                             <t t-foreach="recentArticles" t-as="article" t-key="article.id">
                                                 <li t-on-click="() => this.onArticleClick(article.id)">
                                                 <div class="o_knowledge_empty_list_title" t-esc="article.name"/>
-                                               <div class="o_knowledge_empty_list_meta">
-                                                   <t t-if="article.category_name">
-                                                       <span t-esc="article.category_name"/>
-                                                   </t>
-                                                   <t t-if="article.write_date">
-                                                       <span t-esc="article.write_date"/>
-                                                   </t>
-                                                   <t t-if="article.responsible_name">
+                                                <div class="o_knowledge_empty_list_meta">
+                                                    <t t-if="article.category_name">
+                                                        <span t-esc="article.category_name"/>
+                                                    </t>
+                                                    <t t-if="article.write_date">
+                                                        <span t-esc="article.write_date"/>
+                                                    </t>
+                                                    <t t-if="article.responsible_name">
                                                         <span class="o_knowledge_author_badge">
                                                             <t t-if="article.responsible_avatar">
                                                                 <img t-att-src="'data:image/png;base64,' + article.responsible_avatar" class="o_knowledge_author_avatar_img"/>
@@ -512,11 +512,48 @@
                                                             </t>
                                                             <span t-esc="article.responsible_name"/>
                                                         </span>
-                                                   </t>
-                                               </div>
-                                           </li>
-                                       </t>
+                                                    </t>
+                                                </div>
+                                            </li>
+                                        </t>
                                     </ul>
+                                    </t>
+                                    <t t-else="">
+                                        <div class="o_knowledge_empty_list_placeholder">ยังไม่มีข้อมูล</div>
+                                    </t>
+                                </div>
+                                <div class="o_knowledge_empty_card">
+                                    <div class="o_knowledge_empty_card_header">
+                                        <span>บทความมาใหม่</span>
+                                    </div>
+                                    <t t-set="newestArticles" t-value="this.getNewestArticles(5)"/>
+                                    <t t-if="newestArticles.length">
+                                        <ul class="o_knowledge_empty_list">
+                                            <t t-foreach="newestArticles" t-as="article" t-key="article.id">
+                                                <li t-on-click="() => this.onArticleClick(article.id)">
+                                                    <div class="o_knowledge_empty_list_title" t-esc="article.name"/>
+                                                    <div class="o_knowledge_empty_list_meta">
+                                                        <t t-if="article.category_name">
+                                                            <span t-esc="article.category_name"/>
+                                                        </t>
+                                                        <t t-if="article.write_date">
+                                                            <span t-esc="article.write_date"/>
+                                                        </t>
+                                                        <t t-if="article.responsible_name">
+                                                            <span class="o_knowledge_author_badge">
+                                                                <t t-if="article.responsible_avatar">
+                                                                    <img t-att-src="'data:image/png;base64,' + article.responsible_avatar" class="o_knowledge_author_avatar_img"/>
+                                                                </t>
+                                                                <t t-else="">
+                                                                    <span class="o_knowledge_author_avatar">👤</span>
+                                                                </t>
+                                                                <span t-esc="article.responsible_name"/>
+                                                            </span>
+                                                        </t>
+                                                    </div>
+                                                </li>
+                                            </t>
+                                        </ul>
                                     </t>
                                     <t t-else="">
                                         <div class="o_knowledge_empty_list_placeholder">ยังไม่มีข้อมูล</div>

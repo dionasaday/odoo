@@ -288,11 +288,11 @@ export class KnowledgeDocumentController extends Component {
     async loadArticles() {
         this.state.loading = true;
         try {
-            // Load ALL categories first (ordered by sequence, then name)
-            const allCategories = await this.orm.searchRead(
-                "knowledge.article.category",
-                [],
-                ["id", "name", "icon", "code", "sequence"],
+        // Load ALL categories first (ordered by sequence, then name)
+        const allCategories = await this.orm.searchRead(
+            "knowledge.article.category",
+            [],
+            ["id", "name", "icon", "code", "sequence"],
                 { limit: 1000, order: "sequence, name" }
             );
             
@@ -346,7 +346,7 @@ export class KnowledgeDocumentController extends Component {
             // According to Odoo 19 docs, start with minimal fields to avoid RPC errors
             // Then add more fields if successful
             const basicFields = ["id", "name", "active"];
-            const extendedFields = ["category_id", "parent_id", "responsible_id"];
+            const extendedFields = ["category_id", "parent_id", "responsible_id", "write_date", "create_date"];
             const relationFields = ["favorite_user_ids", "shared_user_ids", "share_token", "tag_ids"];
             
             try {
@@ -1043,6 +1043,18 @@ export class KnowledgeDocumentController extends Component {
             .filter(item => item.count > 0)
             .slice(0, limit)
             .map(item => item.article);
+    }
+
+    getNewestArticles(limit = 5) {
+        const all = this.getAllArticlesFlat();
+        return all
+            .slice()
+            .sort((a, b) => {
+                const aDate = a.write_date || a.create_date || "";
+                const bDate = b.write_date || b.create_date || "";
+                return bDate.localeCompare(aDate);
+            })
+            .slice(0, limit);
     }
 
     getTrashArticles() {
