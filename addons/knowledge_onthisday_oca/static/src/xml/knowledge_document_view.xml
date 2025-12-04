@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="knowledge_onthisday_oca.KnowledgeDocumentView" owl="1">
-        <div class="o_knowledge_document_view">
+        <div class="o_knowledge_document_view" t-att-class="{'o_sidebar_mobile_open': state.sidebarOpenMobile}">
             <!-- Left Sidebar -->
             <div class="o_knowledge_sidebar">
                 <!-- Search Bar -->
@@ -320,6 +320,12 @@
 
             <!-- Main Content Area -->
             <div class="o_knowledge_main_content">
+                <!-- Mobile menu toggle -->
+                <t t-if="!state.sidebarOpenMobile">
+                    <button class="o_knowledge_menu_toggle" t-on-click="() => this.toggleSidebarMobile()">
+                        ☰ Menu
+                    </button>
+                </t>
                 <t t-if="state.loading">
                     <div class="o_knowledge_loading">Loading article...</div>
                 </t>
@@ -661,6 +667,10 @@
                     </div>
                 </t>
             </div>
+            <!-- Overlay for mobile -->
+            <t t-if="state.sidebarOpenMobile">
+                <div class="o_knowledge_sidebar_overlay" t-on-click="() => this.closeSidebarMobile()"></div>
+            </t>
         </div>
 
         <!-- Share Link Dialog -->

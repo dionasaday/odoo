@@ -49,6 +49,7 @@ export class KnowledgeDocumentController extends Component {
             shareLink: null, // Generated share link
             selectedTagId: null, // Selected tag for filtering
             availableTags: [], // List of all available tags
+            sidebarOpenMobile: false, // Mobile drawer state
         });
         this._floatingTOCHeadings = [];
         this.inlineTOCElement = null;
@@ -136,6 +137,17 @@ export class KnowledgeDocumentController extends Component {
             }
             this.floatingTOCContainer = null;
         });
+    }
+
+    // Mobile drawer helpers
+    toggleSidebarMobile() {
+        this.state.sidebarOpenMobile = !this.state.sidebarOpenMobile;
+    }
+
+    closeSidebarMobile() {
+        if (this.state.sidebarOpenMobile) {
+            this.state.sidebarOpenMobile = false;
+        }
     }
 
     renderContent() {
@@ -855,6 +867,10 @@ export class KnowledgeDocumentController extends Component {
         if (this.state.searchQuery) {
             this.state.lastSearchQuery = this.state.searchQuery;
             this.state.searchQuery = "";
+        }
+        // Close mobile drawer when an article is selected
+        if (this.state.sidebarOpenMobile) {
+            this.state.sidebarOpenMobile = false;
         }
         // If clicking on expand icon, toggle expand/collapse
         if (event && event.target) {
