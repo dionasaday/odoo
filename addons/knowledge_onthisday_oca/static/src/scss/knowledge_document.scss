@@ -1384,11 +1384,84 @@ html {
                     color: var(--knowledge-text-secondary);
                     margin-top: 2px;
                 }
-            }
+                
+                .o_knowledge_search_bar {
+                    display: flex;
+                    flex-direction: column;
+                    gap: var(--knowledge-spacing-sm);
+                    margin-top: var(--knowledge-spacing-sm);
 
-            .o_knowledge_search_cards {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+                    .o_knowledge_search_filters {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 16px;
+                        padding: 12px 16px;
+                        background: #f8f8fb;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 8px;
+                        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+
+                        label {
+                            font-size: 13px;
+                            font-weight: 400;
+                            color: #212529;
+                            display: flex;
+                            align-items: center;
+                            gap: 8px;
+                            white-space: nowrap;
+                            margin: 0;
+
+                            select {
+                                min-width: 120px;
+                                font-size: 13px;
+                                height: 32px;
+                                padding: 6px 28px 6px 12px;
+                                border: 1px solid #ced4da;
+                                border-radius: 4px;
+                                background: #ffffff;
+                                color: #212529;
+                                cursor: pointer;
+                                appearance: none;
+                                background-image: url("data:image/svg+xml,%3Csvg width='7' height='4' viewBox='0 0 7 4' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon fill='%23212529' points='3.5,4 7,0 0,0'/%3E%3C/svg%3E");
+                                background-repeat: no-repeat;
+                                background-position: right 10px center;
+                                background-size: 7px 4px;
+                                transition: all 0.2s ease;
+
+                                &:hover {
+                                    border-color: #adb5bd;
+                                }
+
+                                &:focus {
+                                    outline: none;
+                                    border-color: #8d7bd1;
+                                    box-shadow: 0 0 0 3px rgba(141, 123, 209, 0.12);
+                                }
+
+                                &:disabled {
+                                    opacity: 0.6;
+                                    cursor: not-allowed;
+                                }
+
+                                option {
+                                    padding: 6px 12px;
+                                    background: #ffffff;
+                                    color: #212529;
+                                }
+                            }
+                        }
+                    }
+                    
+                    .o_knowledge_search_meta {
+                        font-size: 12px;
+                        color: var(--knowledge-text-secondary);
+                    }
+                }
+    }
+
+    .o_knowledge_search_cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
                 gap: var(--knowledge-spacing-md);
             }
 
@@ -1448,7 +1521,7 @@ html {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-                    padding: 2px 8px;
+            padding: 2px 8px;
                     border-radius: 16px;
                     background-color: var(--knowledge-bg-secondary);
                     color: var(--knowledge-text);
@@ -1864,6 +1937,7 @@ html {
             }
         }
     }
+
 }
 
 /* Floating TOC on the right for quick navigation */

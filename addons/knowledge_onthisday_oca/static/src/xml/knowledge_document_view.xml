@@ -324,18 +324,54 @@
                     <div class="o_knowledge_loading">Loading article...</div>
                 </t>
                 <t t-elif="state.searchQuery">
-                    <t t-set="searchArticles" t-value="this.getSearchResults(10)"/>
+                    <t t-set="searchArticles" t-value="this.getSearchResults()"/>
                     <div class="o_knowledge_search_results">
                         <div class="o_knowledge_search_header">
                             <div class="o_knowledge_search_title">ผลการค้นหา</div>
                             <div class="o_knowledge_search_subtitle">
                                 ค้นหาจากหัวข้อหรือเนื้อหา: "<t t-esc="state.searchQuery"/>"
                             </div>
+                            <div class="o_knowledge_search_bar">
+                                <div class="o_knowledge_search_filters">
+                                    <label>
+                                        Sort:
+                                        <select t-model="state.searchSort" t-on-change="() => this.fetchSearchResults(1)">
+                                            <option value="recent">ล่าสุด</option>
+                                            <option value="name">ชื่อ</option>
+                                            <option value="views">ยอดวิว</option>
+                                        </select>
+                                    </label>
+                                    <label>
+                                        Category:
+                                        <select t-on-change="(ev) => this.onCategoryChange(ev.target.value)">
+                                            <option value="">ทั้งหมด</option>
+                                            <t t-foreach="state.filterOptions.categories" t-as="cat" t-key="cat.id">
+                                                <option t-att-value="cat.id" t-att-selected="state.searchFilters.category_id === cat.id"><t t-esc="cat.name"/></option>
+                                            </t>
+                                        </select>
+                                    </label>
+                                    <label>
+                                        Responsible:
+                                        <select t-on-change="(ev) => this.onResponsibleChange(ev.target.value)">
+                                            <option value="">ทั้งหมด</option>
+                                            <t t-foreach="state.filterOptions.users" t-as="user" t-key="user.id">
+                                                <option t-att-value="user.id" t-att-selected="state.searchFilters.responsible_id === user.id"><t t-esc="user.name"/></option>
+                                            </t>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div class="o_knowledge_search_meta">
+                                    <span t-if="state.searchLoading">กำลังค้นหา...</span>
+                                    <span t-elif="state.searchTotal">พบ <t t-esc="state.searchTotal"/> รายการ</span>
+                                </div>
+                            </div>
                         </div>
                         <t t-if="state.searchLoading">
-                            <div class="o_knowledge_empty_list_placeholder">กำลังค้นหา...</div>
+                            <div class="o_knowledge_search_skeletons">
+                                <div class="o_knowledge_search_skeleton" t-foreach="[1,2,3]" t-as="i" t-key="i"></div>
+                            </div>
                         </t>
-                        <t t-if="searchArticles.length">
+                        <t t-if="searchArticles.length &amp;&amp; !state.searchLoading">
                             <div class="o_knowledge_search_cards">
                                 <t t-foreach="searchArticles" t-as="article" t-key="article.id">
                                     <div class="o_knowledge_search_card" t-on-click="() => this.onArticleClick(article.id)">
@@ -362,9 +398,19 @@
                                     </div>
                                 </t>
                             </div>
+                            <div class="o_knowledge_search_pager" t-if="state.searchTotal &gt; state.searchPageSize">
+                                <button class="btn btn-secondary" t-att-disabled="state.searchPage &lt;= 1"
+                                        t-on-click="() => this.fetchSearchResults(state.searchPage - 1)">‹ Prev</button>
+                                <span>Page <t t-esc="state.searchPage"/> / <t t-esc="Math.ceil(state.searchTotal / state.searchPageSize)"/></span>
+                                <button class="btn btn-secondary" t-att-disabled="state.searchPage * state.searchPageSize &gt;= state.searchTotal"
+                                        t-on-click="() => this.fetchSearchResults(state.searchPage + 1)">Next ›</button>
+                            </div>
                         </t>
                         <t t-else="">
-                            <div class="o_knowledge_empty_list_placeholder">ไม่พบบทความที่ตรงกับคำค้นหา</div>
+                            <div class="o_knowledge_empty_list_placeholder">
+                                ไม่พบบทความที่ตรงกับคำค้นหา
+                                <button class="btn btn-primary btn-sm" t-on-click="() => this.onCreateArticle()">สร้างบทความใหม่</button>
+                            </div>
                         </t>
                     </div>
                 </t>
@@ -418,6 +464,12 @@
                                       class="o_share_count" 
                                       t-esc="`(${this.getSharedCount(state.currentArticle)})`"/>
                             </button>
+                            <t t-if="state.lastSearchQuery">
+                                <div class="o_knowledge_highlight_nav">
+                                    <button class="btn btn-secondary btn-sm" t-on-click="() => this.prevHighlight()">‹ Prev</button>
+                                    <button class="btn btn-secondary btn-sm" t-on-click="() => this.nextHighlight()">Next ›</button>
+                                </div>
+                            </t>
                             <button class="btn btn-link" title="Comments">💬</button>
                         </div>
                     </div>

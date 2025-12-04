@@ -22,6 +22,22 @@ export class KnowledgeDocumentController extends Component {
             selectedArticleId: null,
             searchQuery: "",
             searchLoading: false,
+            searchResults: [],
+            searchTotal: 0,
+            searchPage: 1,
+            searchPageSize: 10,
+            searchSort: "recent", // recent, name, views
+            searchFilters: {
+                category_id: null,
+                tag_ids: [],
+                responsible_id: null,
+                date_from: null,
+                date_to: null,
+            },
+            filterOptions: {
+                categories: [],
+                users: [],
+            },
             activeSection: "workspace", // workspace, favorites, shared, private
             articles: [],
             currentArticle: null,
@@ -47,6 +63,7 @@ export class KnowledgeDocumentController extends Component {
         onWillStart(async () => {
             // Load tags first
             await this.loadTags();
+            await this.loadFilterOptions();
             
             // Get current user ID - try multiple methods
             // Note: User ID is optional for this component to work
@@ -1117,104 +1134,104 @@ export class KnowledgeDocumentController extends Component {
             .slice(0, limit);
     }
 
-    getSearchResults(limit = 10) {
-        const query = (this.state.searchQuery || "").trim().toLowerCase();
-        if (!query) {
-            return [];
-        }
-        const terms = query.split(/\s+/).filter(Boolean);
-        const all = this.getAllArticlesFlat();
-        const stripHtml = (html) => {
-            if (!html) return "";
-            const tmp = document.createElement("div");
-            tmp.innerHTML = html;
-            return (tmp.textContent || tmp.innerText || "").trim();
-        };
-        const escapeHtml = (text) => {
-            return text
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;")
-                .replace(/'/g, "&#39;");
-        };
-        const makeSnippet = (text, q, highlightRegex) => {
-            if (!text) return "";
-            const lower = text.toLowerCase();
-            const idx = terms
-                .map((t) => lower.indexOf(t))
-                .filter((i) => i >= 0)
-                .reduce((a, b) => (a === -1 ? b : Math.min(a, b)), -1);
-            const radius = 80;
-            let start = 0;
-            let end = Math.min(text.length, 160);
-            if (idx !== -1) {
-                start = Math.max(0, idx - radius);
-                end = Math.min(text.length, idx + q.length + radius);
-            }
-            const prefixEllipsis = start > 0 ? "…" : "";
-            const suffixEllipsis = end < text.length ? "…" : "";
-            const raw = text.substring(start, end);
-            const regex = highlightRegex;
-            let result = "";
-            let lastIndex = 0;
-            let match;
-            while ((match = regex.exec(raw)) !== null) {
-                const matchStart = match.index;
-                const matchEnd = matchStart + match[0].length;
-                if (matchStart > lastIndex) {
-                    result += escapeHtml(raw.substring(lastIndex, matchStart));
-                }
-                result += `<mark class="o_knowledge_highlight">${escapeHtml(match[0])}</mark>`;
-                lastIndex = matchEnd;
-            }
-            if (lastIndex < raw.length) {
-                result += escapeHtml(raw.substring(lastIndex));
-            }
-            return markup(`${prefixEllipsis}${result}${suffixEllipsis}`);
-        };
+    getSearchResults() {
+        return this.state.searchResults || [];
+    }
 
-        const matches = all.filter((a) => {
-            const name = (a.name || "").toLowerCase();
-            const contentText = stripHtml(a.content).toLowerCase();
-            return terms.some((t) => name.includes(t) || contentText.includes(t));
-        }).map((a) => {
-            const cleanText = stripHtml(a.content);
-            const highlightRegex = new RegExp(terms.map((t) => t.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")).join("|"), "ig");
-            const snippetHtml = makeSnippet(cleanText, query, highlightRegex);
-            // Build a small meta string for display (category + date)
-            const metaParts = [];
-            if (a.category_name) {
-                metaParts.push(a.category_name);
-            }
-            if (a.write_date) {
-                metaParts.push(a.write_date);
-            }
-            // Relevance score
-            let score = 0;
-            const nameLower = (a.name || "").toLowerCase();
-            const contentLower = cleanText.toLowerCase();
-            // headings weight (h1-h3) if present
-            const headingMatches = (a.content || "").match(/<h[1-3][^>]*>(.*?)<\/h[1-3]>/gi) || [];
-            const headingText = headingMatches.map(h => stripHtml(h).toLowerCase());
-            terms.forEach((t) => {
-                if (nameLower.includes(t)) score += 50;
-                if (headingText.some(ht => ht.includes(t))) score += 30;
-                if (contentLower.includes(t)) score += 10;
-            });
-            // recency bonus
-            const d = a.write_date || a.create_date;
-            if (d) {
-                const ageDays = (Date.now() - Date.parse(d)) / (1000 * 60 * 60 * 24);
-                if (!isNaN(ageDays)) {
-                    score += Math.max(0, 20 - Math.min(ageDays / 30, 20)); // decay by month
+    async fetchSearchResults(page = 1) {
+        const query = (this.state.searchQuery || "").trim();
+        if (!query) {
+            this.state.searchResults = [];
+            this.state.searchTotal = 0;
+            return;
+        }
+        this.state.searchLoading = true;
+        const limit = this.state.searchPageSize;
+        const offset = (page - 1) * limit;
+        try {
+            const payload = await this.orm.call(
+                "knowledge.article",
+                "search_articles_server",
+                [],
+                {
+                    query,
+                    filters: this.state.searchFilters,
+                    sort: this.state.searchSort,
+                    limit,
+                    offset,
                 }
-            }
-            return { ...a, search_snippet: snippetHtml, search_meta: metaParts.join(" · "), _score: score };
-        });
-        return matches
-            .sort((a, b) => (b._score || 0) - (a._score || 0) || (b.write_date || "").localeCompare(a.write_date || ""))
-            .slice(0, limit);
+            );
+            const results = (payload.results || []).map((a) => {
+                // reuse snippet/highlight on client for safety
+                const stripHtml = (html) => {
+                    if (!html) return "";
+                    const tmp = document.createElement("div");
+                    tmp.innerHTML = html;
+                    return (tmp.textContent || tmp.innerText || "").trim();
+                };
+                const cleanText = stripHtml(a.content);
+                const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+                const regex = new RegExp(terms.map((t) => t.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")).join("|"), "ig");
+                const makeSnippet = (text) => {
+                    if (!text) return "";
+                    const lower = text.toLowerCase();
+                    const idx = terms
+                        .map((t) => lower.indexOf(t))
+                        .filter((i) => i >= 0)
+                        .reduce((a, b) => (a === -1 ? b : Math.min(a, b)), -1);
+                    const radius = 80;
+                    let start = 0;
+                    let end = Math.min(text.length, 160);
+                    if (idx !== -1) {
+                        start = Math.max(0, idx - radius);
+                        end = Math.min(text.length, idx + terms[0].length + radius);
+                    }
+                    const prefixEllipsis = start > 0 ? "…" : "";
+                    const suffixEllipsis = end < text.length ? "…" : "";
+                    const raw = text.substring(start, end);
+                    let result = "";
+                    let lastIndex = 0;
+                    let match;
+                    regex.lastIndex = 0;
+                    while ((match = regex.exec(raw)) !== null) {
+                        const matchStart = match.index;
+                        const matchEnd = matchStart + match[0].length;
+                        if (matchStart > lastIndex) {
+                            result += this._escapeHtml(raw.substring(lastIndex, matchStart));
+                        }
+                        result += `<mark class="o_knowledge_highlight">${this._escapeHtml(match[0])}</mark>`;
+                        lastIndex = matchEnd;
+                    }
+                    if (lastIndex < raw.length) {
+                        result += this._escapeHtml(raw.substring(lastIndex));
+                    }
+                    return markup(`${prefixEllipsis}${result}${suffixEllipsis}`);
+                };
+                return {
+                    ...a,
+                    search_snippet: makeSnippet(cleanText),
+                    search_meta: [a.category_name, a.write_date].filter(Boolean).join(" · "),
+                };
+            });
+            this.state.searchResults = results;
+            this.state.searchTotal = payload.total || 0;
+            this.state.searchPage = page;
+        } catch (error) {
+            console.error("Server search failed:", error);
+            this.state.searchResults = [];
+            this.state.searchTotal = 0;
+        } finally {
+            this.state.searchLoading = false;
+        }
+    }
+
+    _escapeHtml(text) {
+        return (text || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
     }
 
     getTrashArticles() {
@@ -1269,6 +1286,27 @@ export class KnowledgeDocumentController extends Component {
         }
     }
 
+    async loadFilterOptions() {
+        try {
+            const categories = await this.orm.searchRead(
+                "knowledge.article.category",
+                [],
+                ["id", "name"],
+                { limit: 200, order: "name" }
+            );
+            const users = await this.orm.searchRead(
+                "res.users",
+                [],
+                ["id", "name", "image_128"],
+                { limit: 200, order: "name" }
+            );
+            this.state.filterOptions = { categories, users };
+        } catch (error) {
+            console.error("Error loading filter options:", error);
+            this.state.filterOptions = { categories: [], users: [] };
+        }
+    }
+
     onSearchChange(query) {
         this.state.searchQuery = query;
         this.state.searchLoading = true;
@@ -1280,16 +1318,20 @@ export class KnowledgeDocumentController extends Component {
         
         // Debounce search to avoid too many API calls while typing
         this._searchTimeout = setTimeout(() => {
-            if (this.state.activeSection === "trash") {
-                this.loadTrashArticles().finally(() => {
-                    this.state.searchLoading = false;
-                });
-            } else {
-                this.loadArticles().finally(() => {
-                    this.state.searchLoading = false;
-                });
-            }
+            this.fetchSearchResults();
         }, 300); // Wait 300ms after user stops typing
+    }
+
+    onCategoryChange(value) {
+        const id = Number(value);
+        this.state.searchFilters.category_id = isNaN(id) ? null : id;
+        this.fetchSearchResults(1);
+    }
+
+    onResponsibleChange(value) {
+        const id = Number(value);
+        this.state.searchFilters.responsible_id = isNaN(id) ? null : id;
+        this.fetchSearchResults(1);
     }
 
     async onOpenTrash() {
@@ -1973,17 +2015,10 @@ export class KnowledgeDocumentController extends Component {
             node.parentNode.replaceChild(frag, node);
         });
 
-        // Scroll to first highlight
-        const first = this.contentRef.el.querySelector('.o_knowledge_highlight');
-        if (first) {
-            const rect = first.getBoundingClientRect();
-            const currentScroll = window.pageYOffset ||
-                document.documentElement.scrollTop ||
-                document.body.scrollTop || 0;
-            const offset = 120;
-            const targetPos = rect.top + currentScroll - offset;
-            window.scrollTo({ top: Math.max(0, targetPos), behavior: 'smooth' });
-        }
+        // cache highlights
+        this._highlightNodes = Array.from(this.contentRef.el.querySelectorAll('.o_knowledge_highlight'));
+        this._highlightIndex = 0;
+        this._scrollToHighlightIndex();
     }
 
     _scrollToHeading(headingId) {
@@ -2006,6 +2041,30 @@ export class KnowledgeDocumentController extends Component {
             const targetPosition = rect.top + currentScroll - offset;
             window.scrollTo({ top: Math.max(0, targetPosition), behavior: 'smooth' });
         });
+    }
+
+    nextHighlight() {
+        if (!this._highlightNodes || !this._highlightNodes.length) return;
+        this._highlightIndex = (this._highlightIndex + 1) % this._highlightNodes.length;
+        this._scrollToHighlightIndex();
+    }
+
+    prevHighlight() {
+        if (!this._highlightNodes || !this._highlightNodes.length) return;
+        this._highlightIndex = (this._highlightIndex - 1 + this._highlightNodes.length) % this._highlightNodes.length;
+        this._scrollToHighlightIndex();
+    }
+
+    _scrollToHighlightIndex() {
+        if (!this._highlightNodes || !this._highlightNodes.length) return;
+        const node = this._highlightNodes[this._highlightIndex];
+        const rect = node.getBoundingClientRect();
+        const currentScroll = window.pageYOffset ||
+            document.documentElement.scrollTop ||
+            document.body.scrollTop || 0;
+        const offset = 120;
+        const targetPos = rect.top + currentScroll - offset;
+        window.scrollTo({ top: Math.max(0, targetPos), behavior: 'smooth' });
     }
 
     _setupFloatingTOCObserver(headings = []) {
