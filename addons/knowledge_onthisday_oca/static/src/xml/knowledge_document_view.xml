@@ -470,12 +470,6 @@
                                       class="o_share_count" 
                                       t-esc="`(${this.getSharedCount(state.currentArticle)})`"/>
                             </button>
-                            <t t-if="state.lastSearchQuery">
-                                <div class="o_knowledge_highlight_nav">
-                                    <button class="btn btn-secondary btn-sm" t-on-click="() => this.prevHighlight()">‹ Prev</button>
-                                    <button class="btn btn-secondary btn-sm" t-on-click="() => this.nextHighlight()">Next ›</button>
-                                </div>
-                            </t>
                             <button class="btn btn-link" title="Comments">💬</button>
                         </div>
                     </div>

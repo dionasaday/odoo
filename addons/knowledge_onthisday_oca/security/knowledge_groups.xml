@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Privilege Category for Knowledge Base -->
+        <!-- This creates a section in User Settings > Access Rights -->
+        <record model="res.groups.privilege" id="res_groups_privilege_knowledge">
+            <field name="name">Knowledge Base</field>
+            <field name="sequence">30</field>
+            <field name="category_id" ref="base.module_category_productivity"/>
+        </record>
+        
+        <!-- User Group: Basic access to Knowledge Base -->
+        <record id="group_knowledge_user" model="res.groups">
+            <field name="name">User</field>
+            <field name="comment">สามารถอ่านและสร้างบทความได้ แต่ไม่สามารถลบถาวร</field>
+            <field name="privilege_id" ref="res_groups_privilege_knowledge"/>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        
+        <!-- Manager Group: Full access to Knowledge Base -->
+        <record id="group_knowledge_manager" model="res.groups">
+            <field name="name">Manager</field>
+            <field name="comment">สามารถจัดการ Knowledge Base ได้ทั้งหมด รวมถึงลบบทความถาวรและจัดการ Trash</field>
+            <field name="privilege_id" ref="res_groups_privilege_knowledge"/>
+            <field name="implied_ids" eval="[(4, ref('group_knowledge_user'))]"/>
+        </record>
+        
+    </data>
+</odoo>
+

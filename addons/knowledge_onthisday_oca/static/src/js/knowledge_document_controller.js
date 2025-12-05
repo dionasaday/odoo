@@ -4,6 +4,35 @@ import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { Component, useState, onWillStart, useRef, useEffect, onMounted, onWillUpdateProps, onRendered, onWillUnmount, markup } from "@odoo/owl";
 
+/**
+ * Logging utility for production-ready error handling
+ * Only logs in development mode, silent in production
+ */
+const isDevelopment = typeof window !== 'undefined' && window.location.hostname === 'localhost';
+const logger = {
+    error: (message, error) => {
+        if (isDevelopment) {
+            console.error(message, error);
+        }
+        // In production: errors are silently handled, could integrate with error tracking service
+    },
+    warn: (message, data) => {
+        if (isDevelopment) {
+            console.warn(message, data);
+        }
+    },
+    log: (message, data) => {
+        if (isDevelopment) {
+            console.log(message, data);
+        }
+    },
+    debug: (message, data) => {
+        if (isDevelopment) {
+            console.debug(message, data);
+        }
+    }
+};
+
 export class KnowledgeDocumentController extends Component {
     static props = {
         action: { type: Object, optional: true },
@@ -84,7 +113,7 @@ export class KnowledgeDocumentController extends Component {
             } catch (error) {
                 // User ID not available, continuing without user filtering
                 // Continue without user ID - component will work but won't filter by user
-                console.error("Error getting user ID:", error);
+                logger.error("Error getting user ID:", error);
                 this.state.currentUserId = null;
             }
             await this.loadArticles();
@@ -407,7 +436,7 @@ export class KnowledgeDocumentController extends Component {
                         }
                     } catch (e) {
                         // If parsing fails, use original name
-                        console.warn("Failed to parse category name as JSON:", e);
+                        logger.warn("Failed to parse category name as JSON:", e);
                         categoryName = cat.name || '';
                     }
                 }
@@ -473,7 +502,7 @@ export class KnowledgeDocumentController extends Component {
                     });
                 }
             } catch (searchReadError) {
-                console.error("Error loading articles:", searchReadError);
+                logger.error("Error loading articles:", searchReadError);
                 // Fallback: try search() only (no read)
                 try {
                     const articleIds = await this.orm.search(
@@ -520,11 +549,11 @@ export class KnowledgeDocumentController extends Component {
                                     articles = articles.filter(a => a.active !== false);
                                 }
                             } catch (readError2) {
-                                console.error("Error reading articles:", readError2);
+                                logger.error("Error reading articles:", readError2);
                             }
                         }
                     } catch (fallbackError) {
-                        console.error("Error in fallback search:", fallbackError);
+                        logger.error("Error in fallback search:", fallbackError);
                     }
                 }
             }
@@ -547,7 +576,7 @@ export class KnowledgeDocumentController extends Component {
                     );
                     responsibleMap = new Map(users.map(u => [u.id, u]));
                 } catch (e) {
-                    console.error("Error loading responsible avatars:", e);
+                    logger.error("Error loading responsible avatars:", e);
                 }
             }
             
@@ -658,8 +687,8 @@ export class KnowledgeDocumentController extends Component {
             }
         } catch (error) {
             // Error loading articles - will be handled by UI showing empty state
-            console.error("Error loading articles:", error);
-            console.error("Error details:", {
+            logger.error("Error loading articles:", error);
+            logger.error("Error details:", {
                 message: error.message,
                 stack: error.stack,
                 domain: this.getDomain(),
@@ -951,7 +980,7 @@ export class KnowledgeDocumentController extends Component {
                     articles[0].share_link = `${baseUrl}/knowledge/article/${articles[0].share_token}`;
                 }
             } catch (error) {
-                console.error("Error loading article:", error);
+                logger.error("Error loading article:", error);
                 // Fallback: try with basic fields only
                 try {
                     articles = await this.orm.searchRead(
@@ -961,7 +990,7 @@ export class KnowledgeDocumentController extends Component {
                         { limit: 1 }
                     );
                 } catch (fallbackError) {
-                    console.error("Error in fallback:", fallbackError);
+                    logger.error("Error in fallback:", fallbackError);
                 }
             }
             
@@ -1011,7 +1040,7 @@ export class KnowledgeDocumentController extends Component {
                         }
                     } catch (tagError) {
                         // If tag loading fails, keep tag_ids as is (just IDs)
-                        console.error("Error loading tags:", tagError);
+                        logger.error("Error loading tags:", tagError);
                     }
                 }
                 
@@ -1056,7 +1085,7 @@ export class KnowledgeDocumentController extends Component {
                 }
             }
         } catch (error) {
-            console.error("Error loading article:", error);
+            logger.error("Error loading article:", error);
             // Error loading article - show user-friendly error message
             if (this.contentRef.el) {
                 this.contentRef.el.innerHTML = `
@@ -1233,7 +1262,7 @@ export class KnowledgeDocumentController extends Component {
             this.state.searchTotal = payload.total || 0;
             this.state.searchPage = page;
         } catch (error) {
-            console.error("Server search failed:", error);
+            logger.error("Server search failed:", error);
             this.state.searchResults = [];
             this.state.searchTotal = 0;
         } finally {
@@ -1295,9 +1324,9 @@ export class KnowledgeDocumentController extends Component {
                 { limit: 100, order: "name" }
             );
             this.state.availableTags = tags || [];
-            console.log("Loaded tags:", this.state.availableTags.length, "tags");
+            logger.log("Loaded tags:", this.state.availableTags.length, "tags");
         } catch (error) {
-            console.error("Error loading tags:", error);
+            logger.error("Error loading tags:", error);
             this.state.availableTags = [];
         }
     }
@@ -1318,7 +1347,7 @@ export class KnowledgeDocumentController extends Component {
             );
             this.state.filterOptions = { categories, users };
         } catch (error) {
-            console.error("Error loading filter options:", error);
+            logger.error("Error loading filter options:", error);
             this.state.filterOptions = { categories: [], users: [] };
         }
     }
@@ -1405,7 +1434,7 @@ export class KnowledgeDocumentController extends Component {
                     );
                     responsibleMap = new Map(users.map(u => [u.id, u]));
                 } catch (e) {
-                    console.error("Error loading responsible avatars (trash):", e);
+                    logger.error("Error loading responsible avatars (trash):", e);
                 }
             }
 
@@ -1419,7 +1448,7 @@ export class KnowledgeDocumentController extends Component {
                 };
             });
         } catch (error) {
-            console.error("Error loading trash articles:", error);
+            logger.error("Error loading trash articles:", error);
             this.state.articles = [];
         } finally {
             this.state.loading = false;
@@ -1443,7 +1472,7 @@ export class KnowledgeDocumentController extends Component {
                 return JSON.parse(raw);
             }
         } catch (e) {
-            console.warn("Cannot load user history:", e);
+            logger.warn("Cannot load user history:", e);
         }
         return { recent: [], counts: {} };
     }
@@ -1453,7 +1482,7 @@ export class KnowledgeDocumentController extends Component {
             const key = this._getUserHistoryKey();
             window.localStorage.setItem(key, JSON.stringify(history));
         } catch (e) {
-            console.warn("Cannot save user history:", e);
+            logger.warn("Cannot save user history:", e);
         }
     }
 
@@ -1608,7 +1637,7 @@ export class KnowledgeDocumentController extends Component {
                 await this.openArticle(articleId);
             }
         } catch (error) {
-            console.error("Error toggling favorite:", error);
+            logger.error("Error toggling favorite:", error);
         }
     }
 
@@ -1621,7 +1650,7 @@ export class KnowledgeDocumentController extends Component {
             // Open share link dialog
             await this.showShareLinkDialog(articleId);
         } catch (error) {
-            console.error("Error toggling share:", error);
+            logger.error("Error toggling share:", error);
         }
     }
 
@@ -1679,7 +1708,7 @@ export class KnowledgeDocumentController extends Component {
                 this.state.currentArticle = { ...this.state.currentArticle };
             }
         } catch (error) {
-            console.error("Error showing share dialog:", error);
+            logger.error("Error showing share dialog:", error);
         }
     }
 
@@ -1707,7 +1736,7 @@ export class KnowledgeDocumentController extends Component {
                 this.showNotification("Share link copied to clipboard!", "success");
             }
         } catch (error) {
-            console.error("Error copying share link:", error);
+            logger.error("Error copying share link:", error);
             this.showNotification("Failed to copy link. Please copy manually.", "danger");
         }
     }
@@ -2059,18 +2088,6 @@ export class KnowledgeDocumentController extends Component {
         });
     }
 
-    nextHighlight() {
-        if (!this._highlightNodes || !this._highlightNodes.length) return;
-        this._highlightIndex = (this._highlightIndex + 1) % this._highlightNodes.length;
-        this._scrollToHighlightIndex();
-    }
-
-    prevHighlight() {
-        if (!this._highlightNodes || !this._highlightNodes.length) return;
-        this._highlightIndex = (this._highlightIndex - 1 + this._highlightNodes.length) % this._highlightNodes.length;
-        this._scrollToHighlightIndex();
-    }
-
     _scrollToHighlightIndex() {
         if (!this._highlightNodes || !this._highlightNodes.length) return;
         const node = this._highlightNodes[this._highlightIndex];
@@ -2178,5 +2195,5 @@ KnowledgeDocumentController.template = "knowledge_onthisday_oca.KnowledgeDocumen
 try {
     registry.category("actions").add("knowledge_document_view", KnowledgeDocumentController);
 } catch (error) {
-    console.error("Error registering KnowledgeDocumentController:", error);
+    logger.error("Error registering KnowledgeDocumentController:", error);
 }

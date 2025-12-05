@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- Rule: Regular users can only see active articles -->
+        <!-- This ensures deleted/archived articles are hidden from normal users -->
+        <record id="knowledge_article_user_rule" model="ir.rule">
+            <field name="name">Knowledge Article: User Access - Active Only</field>
+            <field name="model_id" ref="model_knowledge_article"/>
+            <field name="domain_force">[('active', '=', True)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        
+        <!-- Rule: System users can see all articles (including inactive/trashed) -->
+        <!-- System administrators need full access to manage and restore articles -->
+        <record id="knowledge_article_system_rule" model="ir.rule">
+            <field name="name">Knowledge Article: System Access - All Articles</field>
+            <field name="model_id" ref="model_knowledge_article"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+        </record>
+        
+        <!-- Rule: Users can see all categories -->
+        <!-- Categories are organizational tools, no need to restrict access -->
+        <record id="knowledge_article_category_user_rule" model="ir.rule">
+            <field name="name">Knowledge Article Category: User Access</field>
+            <field name="model_id" ref="model_knowledge_article_category"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        
+        <!-- Rule: System users have full access to categories -->
+        <record id="knowledge_article_category_system_rule" model="ir.rule">
+            <field name="name">Knowledge Article Category: System Access</field>
+            <field name="model_id" ref="model_knowledge_article_category"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+        </record>
+        
+        <!-- Rule: Users can see all tags -->
+        <!-- Tags are organizational tools, no need to restrict access -->
+        <record id="knowledge_article_tag_user_rule" model="ir.rule">
+            <field name="name">Knowledge Article Tag: User Access</field>
+            <field name="model_id" ref="model_knowledge_article_tag"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+        
+        <!-- Rule: System users have full access to tags -->
+        <record id="knowledge_article_tag_system_rule" model="ir.rule">
+            <field name="name">Knowledge Article Tag: System Access</field>
+            <field name="model_id" ref="model_knowledge_article_tag"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+        </record>
+        
+        <!-- Rule: Knowledge Managers can see all articles (including inactive/trashed) -->
+        <record id="knowledge_article_manager_rule" model="ir.rule">
+            <field name="name">Knowledge Article: Manager Access - All Articles</field>
+            <field name="model_id" ref="model_knowledge_article"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_knowledge_manager'))]"/>
+        </record>
+        
+    </data>
+</odoo>
+

@@ -40,7 +40,9 @@ Categories:
         'website',
     ],
     'data': [
+        'security/knowledge_groups.xml',
         'security/ir.model.access.csv',
+        'security/ir_rule.xml',
         'data/knowledge_article_category_data.xml',
         'views/knowledge_article_category_views.xml',
         'views/knowledge_article_tag_views.xml',

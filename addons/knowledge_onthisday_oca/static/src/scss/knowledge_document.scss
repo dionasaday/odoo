@@ -1,6 +1,6 @@
 // CSS Variables for consistent theming
 // ใช้สีจาก Corporate Identity (CI) ของบริษัท On This Day
-// สีจะใช้จาก custom_theme_onthisday module ถ้ามี หรือใช้ค่า default
+// ใช้ค่า default colors หรือสามารถกำหนดผ่าน Odoo theme settings
 :root {
     /* สีหลัก - ใช้จาก company theme หรือค่า default */
     --knowledge-primary: var(--o-brand-primary, #232222); /* Dark Gray - สีหลักของบริษัท */
