@@ -2,7 +2,7 @@
 
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { Component, useState, onWillStart, useRef, useEffect, onMounted, onWillUpdateProps, onRendered } from "@odoo/owl";
+import { Component, useState, onWillStart, useRef, useEffect, onMounted, onWillUpdateProps, onRendered, onWillUnmount, markup } from "@odoo/owl";
 
 export class KnowledgeDocumentController extends Component {
     static props = {
@@ -21,6 +21,23 @@ export class KnowledgeDocumentController extends Component {
         this.state = useState({
             selectedArticleId: null,
             searchQuery: "",
+            searchLoading: false,
+            searchResults: [],
+            searchTotal: 0,
+            searchPage: 1,
+            searchPageSize: 10,
+            searchSort: "recent", // recent, name, views
+            searchFilters: {
+                category_id: null,
+                tag_ids: [],
+                responsible_id: null,
+                date_from: null,
+                date_to: null,
+            },
+            filterOptions: {
+                categories: [],
+                users: [],
+            },
             activeSection: "workspace", // workspace, favorites, shared, private
             articles: [],
             currentArticle: null,
@@ -32,11 +49,22 @@ export class KnowledgeDocumentController extends Component {
             shareLink: null, // Generated share link
             selectedTagId: null, // Selected tag for filtering
             availableTags: [], // List of all available tags
+            sidebarOpenMobile: false, // Mobile drawer state
         });
+        this._floatingTOCHeadings = [];
+        this.inlineTOCElement = null;
+        this._tocObserver = null;
+        this._onScrollFloatingTOC = () => {
+            if (this._floatingTOCHeadings.length === 0 || !this.floatingTOCContainer) {
+                return;
+            }
+            window.requestAnimationFrame(() => this._updateFloatingTOCActive());
+        };
 
         onWillStart(async () => {
             // Load tags first
             await this.loadTags();
+            await this.loadFilterOptions();
             
             // Get current user ID - try multiple methods
             // Note: User ID is optional for this component to work
@@ -93,6 +121,33 @@ export class KnowledgeDocumentController extends Component {
                 }, 50);
             }
         }, () => [this.state.currentArticle?.id, this.state.currentArticle?.content]);
+
+        // Scroll listener for floating TOC highlight
+        onMounted(() => {
+            window.addEventListener('scroll', this._onScrollFloatingTOC, { passive: true });
+        });
+        onWillUnmount(() => {
+            window.removeEventListener('scroll', this._onScrollFloatingTOC);
+            if (this._tocObserver) {
+                this._tocObserver.disconnect();
+                this._tocObserver = null;
+            }
+            if (this.floatingTOCContainer && this.floatingTOCContainer.parentNode) {
+                this.floatingTOCContainer.parentNode.removeChild(this.floatingTOCContainer);
+            }
+            this.floatingTOCContainer = null;
+        });
+    }
+
+    // Mobile drawer helpers
+    toggleSidebarMobile() {
+        this.state.sidebarOpenMobile = !this.state.sidebarOpenMobile;
+    }
+
+    closeSidebarMobile() {
+        if (this.state.sidebarOpenMobile) {
+            this.state.sidebarOpenMobile = false;
+        }
     }
 
     renderContent() {
@@ -147,6 +202,10 @@ export class KnowledgeDocumentController extends Component {
                     if (areStylesheetsLoaded()) {
                         if (this.contentRef.el && this.state.currentArticle) {
                             this.contentRef.el.innerHTML = content;
+                            const activeQuery = (this.state.lastSearchQuery || "").trim();
+                            if (activeQuery) {
+                                this._highlightQueryInContent(activeQuery);
+                            }
                             this.processTOCAfterRender();
                         }
                     } else {
@@ -164,6 +223,10 @@ export class KnowledgeDocumentController extends Component {
             requestAnimationFrame(() => {
                 if (this.contentRef.el && this.state.currentArticle) {
                     this.contentRef.el.innerHTML = content;
+                    const activeQuery = (this.state.lastSearchQuery || "").trim();
+                    if (activeQuery) {
+                        this._highlightQueryInContent(activeQuery);
+                    }
                     this.processTOCAfterRender();
                 }
             });
@@ -227,6 +290,7 @@ export class KnowledgeDocumentController extends Component {
         const tocElement = tocByDataAttr || tocByClass || tocById || (tocDivs.length > 0 ? tocDivs[0] : null);
         
         if (tocElement) {
+            this.inlineTOCElement = tocElement;
             // Check if TOC is empty and needs to be generated
             const tocInnerHTML = tocElement.innerHTML || '';
             const tocInnerHTMLTrimmed = tocInnerHTML.trim();
@@ -234,6 +298,17 @@ export class KnowledgeDocumentController extends Component {
             
             if (tocIsEmpty) {
                 this.generateTOCContent(tocElement);
+            } else {
+                this.generateTOCContent(tocElement);
+            }
+            this._setupFloatingTOCObserver(allHeadings);
+        } else {
+            // No inline TOC found; still expose floating TOC for headings
+            if (allHeadings.length) {
+                const tocHtml = this._buildTOCHTMLFromHeadings(allHeadings);
+                this._renderFloatingTOC(tocHtml, allHeadings);
+            } else {
+                this._toggleFloatingTOC(false);
             }
         }
         
@@ -272,6 +347,7 @@ export class KnowledgeDocumentController extends Component {
                 const tocElementDelayed = tocByDataAttrDelayed || tocByClassDelayed || tocByIdDelayed || (tocDivsDelayed.length > 0 ? tocDivsDelayed[0] : null);
                 
                 if (tocElementDelayed) {
+                    this.inlineTOCElement = tocElementDelayed;
                     // Check if TOC is empty and needs to be generated (delayed check)
                     const tocInnerHTMLDelayed = tocElementDelayed.innerHTML || '';
                     const tocInnerHTMLTrimmedDelayed = tocInnerHTMLDelayed.trim();
@@ -280,6 +356,12 @@ export class KnowledgeDocumentController extends Component {
                     if (tocIsEmptyDelayed) {
                         this.generateTOCContent(tocElementDelayed);
                     }
+                    this._setupFloatingTOCObserver(allHeadingsDelayed);
+                } else if (allHeadingsDelayed.length) {
+                    const tocHtmlDelayed = this._buildTOCHTMLFromHeadings(allHeadingsDelayed);
+                    this._renderFloatingTOC(tocHtmlDelayed, allHeadingsDelayed);
+                } else {
+                    this._toggleFloatingTOC(false);
                 }
             }
         }, 200);
@@ -288,11 +370,11 @@ export class KnowledgeDocumentController extends Component {
     async loadArticles() {
         this.state.loading = true;
         try {
-            // Load ALL categories first (ordered by sequence, then name)
-            const allCategories = await this.orm.searchRead(
-                "knowledge.article.category",
-                [],
-                ["id", "name", "icon", "code", "sequence"],
+        // Load ALL categories first (ordered by sequence, then name)
+        const allCategories = await this.orm.searchRead(
+            "knowledge.article.category",
+            [],
+            ["id", "name", "icon", "code", "sequence"],
                 { limit: 1000, order: "sequence, name" }
             );
             
@@ -346,7 +428,7 @@ export class KnowledgeDocumentController extends Component {
             // According to Odoo 19 docs, start with minimal fields to avoid RPC errors
             // Then add more fields if successful
             const basicFields = ["id", "name", "active"];
-            const extendedFields = ["category_id", "parent_id", "responsible_id"];
+            const extendedFields = ["category_id", "parent_id", "responsible_id", "write_date", "create_date", "content"];
             const relationFields = ["favorite_user_ids", "shared_user_ids", "share_token", "tag_ids"];
             
             try {
@@ -604,7 +686,9 @@ export class KnowledgeDocumentController extends Component {
         }
         
         if (this.state.searchQuery) {
+            domain.push("|");
             domain.push(["name", "ilike", this.state.searchQuery]);
+            domain.push(["content", "ilike", this.state.searchQuery]);
         }
         
         // Filter by selected tag
@@ -779,6 +863,15 @@ export class KnowledgeDocumentController extends Component {
     }
 
     async onArticleClick(articleId, event) {
+        // If coming from search results, remember the query for highlight then clear for view
+        if (this.state.searchQuery) {
+            this.state.lastSearchQuery = this.state.searchQuery;
+            this.state.searchQuery = "";
+        }
+        // Close mobile drawer when an article is selected
+        if (this.state.sidebarOpenMobile) {
+            this.state.sidebarOpenMobile = false;
+        }
         // If clicking on expand icon, toggle expand/collapse
         if (event && event.target) {
             const isExpandIcon = event.target.classList.contains('o_knowledge_expand_icon') ||
@@ -986,21 +1079,31 @@ export class KnowledgeDocumentController extends Component {
 
     // Helpers for empty state lists
     getAllArticlesFlat() {
-        // When in workspace, state.articles is array of categories; in other sections it is flat already
+        const flattenWithChildren = (items = []) => {
+            const acc = [];
+            items.forEach((item) => {
+                acc.push(item);
+                if (item.children && Array.isArray(item.children) && item.children.length) {
+                    acc.push(...flattenWithChildren(item.children));
+                }
+            });
+            return acc;
+        };
+
         if (!this.state.articles) {
             return [];
         }
-        // If first element has articles property -> categories
+        // Workspace stores categories with nested children
         if (this.state.articles.length > 0 && Object.prototype.hasOwnProperty.call(this.state.articles[0], "articles")) {
             const flat = [];
             this.state.articles.forEach(cat => {
                 if (cat.articles && Array.isArray(cat.articles)) {
-                    flat.push(...cat.articles);
+                    flat.push(...flattenWithChildren(cat.articles));
                 }
             });
             return flat;
         }
-        return this.state.articles;
+        return flattenWithChildren(this.state.articles);
     }
 
     getRecentArticles(limit = 5) {
@@ -1033,6 +1136,118 @@ export class KnowledgeDocumentController extends Component {
             .filter(item => item.count > 0)
             .slice(0, limit)
             .map(item => item.article);
+    }
+
+    getNewestArticles(limit = 5) {
+        const all = this.getAllArticlesFlat();
+        return all
+            .slice()
+            .sort((a, b) => {
+                const aDate = a.write_date || a.create_date || "";
+                const bDate = b.write_date || b.create_date || "";
+                return bDate.localeCompare(aDate);
+            })
+            .slice(0, limit);
+    }
+
+    getSearchResults() {
+        return this.state.searchResults || [];
+    }
+
+    async fetchSearchResults(page = 1) {
+        const query = (this.state.searchQuery || "").trim();
+        if (!query) {
+            this.state.searchResults = [];
+            this.state.searchTotal = 0;
+            return;
+        }
+        this.state.searchLoading = true;
+        const limit = this.state.searchPageSize;
+        const offset = (page - 1) * limit;
+        try {
+            const payload = await this.orm.call(
+                "knowledge.article",
+                "search_articles_server",
+                [],
+                {
+                    query,
+                    filters: this.state.searchFilters,
+                    sort: this.state.searchSort,
+                    limit,
+                    offset,
+                }
+            );
+            const results = (payload.results || []).map((a) => {
+                // reuse snippet/highlight on client for safety
+                const stripHtml = (html) => {
+                    if (!html) return "";
+                    const tmp = document.createElement("div");
+                    tmp.innerHTML = html;
+                    return (tmp.textContent || tmp.innerText || "").trim();
+                };
+                const cleanText = stripHtml(a.content);
+                const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
+                const regex = new RegExp(terms.map((t) => t.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")).join("|"), "ig");
+                const makeSnippet = (text) => {
+                    if (!text) return "";
+                    const lower = text.toLowerCase();
+                    const idx = terms
+                        .map((t) => lower.indexOf(t))
+                        .filter((i) => i >= 0)
+                        .reduce((a, b) => (a === -1 ? b : Math.min(a, b)), -1);
+                    const radius = 80;
+                    let start = 0;
+                    let end = Math.min(text.length, 160);
+                    if (idx !== -1) {
+                        start = Math.max(0, idx - radius);
+                        end = Math.min(text.length, idx + terms[0].length + radius);
+                    }
+                    const prefixEllipsis = start > 0 ? "…" : "";
+                    const suffixEllipsis = end < text.length ? "…" : "";
+                    const raw = text.substring(start, end);
+                    let result = "";
+                    let lastIndex = 0;
+                    let match;
+                    regex.lastIndex = 0;
+                    while ((match = regex.exec(raw)) !== null) {
+                        const matchStart = match.index;
+                        const matchEnd = matchStart + match[0].length;
+                        if (matchStart > lastIndex) {
+                            result += this._escapeHtml(raw.substring(lastIndex, matchStart));
+                        }
+                        result += `<mark class="o_knowledge_highlight">${this._escapeHtml(match[0])}</mark>`;
+                        lastIndex = matchEnd;
+                    }
+                    if (lastIndex < raw.length) {
+                        result += this._escapeHtml(raw.substring(lastIndex));
+                    }
+                    return markup(`${prefixEllipsis}${result}${suffixEllipsis}`);
+                };
+                return {
+                    ...a,
+                    search_snippet: makeSnippet(cleanText),
+                    search_meta: [a.category_name, a.write_date].filter(Boolean).join(" · "),
+                };
+            });
+            this.state.searchResults = results;
+            this.state.searchTotal = payload.total || 0;
+            this.state.searchPage = page;
+        } catch (error) {
+            console.error("Server search failed:", error);
+            this.state.searchResults = [];
+            this.state.searchTotal = 0;
+        } finally {
+            this.state.searchLoading = false;
+        }
+    }
+
+    _escapeHtml(text) {
+        return (text || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
     }
 
     getTrashArticles() {
@@ -1087,8 +1302,30 @@ export class KnowledgeDocumentController extends Component {
         }
     }
 
+    async loadFilterOptions() {
+        try {
+            const categories = await this.orm.searchRead(
+                "knowledge.article.category",
+                [],
+                ["id", "name"],
+                { limit: 200, order: "name" }
+            );
+            const users = await this.orm.searchRead(
+                "res.users",
+                [],
+                ["id", "name", "image_128"],
+                { limit: 200, order: "name" }
+            );
+            this.state.filterOptions = { categories, users };
+        } catch (error) {
+            console.error("Error loading filter options:", error);
+            this.state.filterOptions = { categories: [], users: [] };
+        }
+    }
+
     onSearchChange(query) {
         this.state.searchQuery = query;
+        this.state.searchLoading = true;
         
         // Clear previous debounce timer if exists
         if (this._searchTimeout) {
@@ -1097,12 +1334,20 @@ export class KnowledgeDocumentController extends Component {
         
         // Debounce search to avoid too many API calls while typing
         this._searchTimeout = setTimeout(() => {
-            if (this.state.activeSection === "trash") {
-                this.loadTrashArticles();
-            } else {
-                this.loadArticles();
-            }
+            this.fetchSearchResults();
         }, 300); // Wait 300ms after user stops typing
+    }
+
+    onCategoryChange(value) {
+        const id = Number(value);
+        this.state.searchFilters.category_id = isNaN(id) ? null : id;
+        this.fetchSearchResults(1);
+    }
+
+    onResponsibleChange(value) {
+        const id = Number(value);
+        this.state.searchFilters.responsible_id = isNaN(id) ? null : id;
+        this.fetchSearchResults(1);
     }
 
     async onOpenTrash() {
@@ -1555,6 +1800,9 @@ export class KnowledgeDocumentController extends Component {
         
         // Set TOC content
         tocElement.innerHTML = tocHTML;
+        // Also render a floating TOC on the right side for quick navigation
+        const tocHeadings = Array.from(headings);
+        this._renderFloatingTOC(tocHTML, tocHeadings);
         
         // Store reference to contentRef for use in event listeners
         const contentRefEl = this.contentRef.el;
@@ -1684,6 +1932,243 @@ export class KnowledgeDocumentController extends Component {
                 });
             });
         }, 100);
+    }
+
+    /**
+     * Mirror the TOC into a floating panel on the right so users can jump to other headings quickly.
+     */
+    _renderFloatingTOC(tocHTML, headings = []) {
+        if (!tocHTML) {
+            return;
+        }
+        this._floatingTOCHeadings = Array.from(headings || []);
+
+        // Create container once
+        if (!this.floatingTOCContainer) {
+            this.floatingTOCContainer = document.createElement('div');
+            this.floatingTOCContainer.className = 'o_knowledge_floating_toc';
+
+            // Append inside the main view if possible; fallback to body
+            const host = this.el || document.body;
+            host.appendChild(this.floatingTOCContainer);
+        }
+
+        this.floatingTOCContainer.innerHTML = tocHTML;
+
+        // Delegate clicks to reuse smooth scroll behaviour
+        this.floatingTOCContainer.onclick = (e) => {
+            const link = e.target.closest('.o_toc_link');
+            if (!link) return;
+            e.preventDefault();
+            const headingId = link.getAttribute('data-heading-id');
+            if (!headingId) return;
+            this._scrollToHeading(headingId);
+        };
+        this._updateFloatingTOCActive();
+        // หากมี inline TOC จะให้ observer เป็นตัวตัดสินใจเปิด/ปิด
+        if (!this.inlineTOCElement) {
+            this._toggleFloatingTOC(true);
+        } else {
+            this._toggleFloatingTOC(false);
+        }
+    }
+
+    /**
+     * Highlight query occurrences inside article content and scroll to the first match.
+     */
+    _highlightQueryInContent(query) {
+        if (!query || !this.contentRef || !this.contentRef.el) {
+            return;
+        }
+        const terms = query.split(/\s+/).filter(Boolean);
+        if (!terms.length) return;
+
+        // Remove previous highlights
+        const removeMarks = () => {
+            this.contentRef.el.querySelectorAll('.o_knowledge_highlight').forEach((mark) => {
+                const parent = mark.parentNode;
+                if (parent) {
+                    parent.replaceChild(document.createTextNode(mark.textContent), mark);
+                    parent.normalize();
+                }
+            });
+        };
+        removeMarks();
+
+        const regex = new RegExp(terms.map((t) => t.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")).join("|"), "gi");
+        const walker = document.createTreeWalker(this.contentRef.el, NodeFilter.SHOW_TEXT, null);
+        const textNodes = [];
+        while (walker.nextNode()) {
+            textNodes.push(walker.currentNode);
+        }
+
+        textNodes.forEach((node) => {
+            if (!node.nodeValue) return;
+            if (!regex.test(node.nodeValue)) {
+                // reset lastIndex for next node
+                regex.lastIndex = 0;
+                return;
+            }
+            const frag = document.createDocumentFragment();
+            let lastIndex = 0;
+            let match;
+            regex.lastIndex = 0;
+            while ((match = regex.exec(node.nodeValue)) !== null) {
+                const start = match.index;
+                const end = start + match[0].length;
+                if (start > lastIndex) {
+                    frag.appendChild(document.createTextNode(node.nodeValue.substring(lastIndex, start)));
+                }
+                const mark = document.createElement("mark");
+                mark.className = "o_knowledge_highlight";
+                mark.textContent = node.nodeValue.substring(start, end);
+                frag.appendChild(mark);
+                lastIndex = end;
+            }
+            if (lastIndex < node.nodeValue.length) {
+                frag.appendChild(document.createTextNode(node.nodeValue.substring(lastIndex)));
+            }
+            node.parentNode.replaceChild(frag, node);
+        });
+
+        // cache highlights
+        this._highlightNodes = Array.from(this.contentRef.el.querySelectorAll('.o_knowledge_highlight'));
+        this._highlightIndex = 0;
+        this._scrollToHighlightIndex();
+    }
+
+    _scrollToHeading(headingId) {
+        if (!headingId) return;
+        let targetHeading = document.getElementById(headingId);
+        if (!targetHeading && this.contentRef && this.contentRef.el) {
+            targetHeading = this.contentRef.el.querySelector(`#${headingId}`);
+        }
+        if (!targetHeading) return;
+
+        const offset = 110;
+        // ใช้ scrollIntoView เพื่อเลื่อนไปก่อน แล้วชดเชย offset
+        targetHeading.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+        // ชดเชย header หลัง scrollIntoView
+        requestAnimationFrame(() => {
+            const rect = targetHeading.getBoundingClientRect();
+            const currentScroll = window.pageYOffset ||
+                document.documentElement.scrollTop ||
+                document.body.scrollTop || 0;
+            const targetPosition = rect.top + currentScroll - offset;
+            window.scrollTo({ top: Math.max(0, targetPosition), behavior: 'smooth' });
+        });
+    }
+
+    nextHighlight() {
+        if (!this._highlightNodes || !this._highlightNodes.length) return;
+        this._highlightIndex = (this._highlightIndex + 1) % this._highlightNodes.length;
+        this._scrollToHighlightIndex();
+    }
+
+    prevHighlight() {
+        if (!this._highlightNodes || !this._highlightNodes.length) return;
+        this._highlightIndex = (this._highlightIndex - 1 + this._highlightNodes.length) % this._highlightNodes.length;
+        this._scrollToHighlightIndex();
+    }
+
+    _scrollToHighlightIndex() {
+        if (!this._highlightNodes || !this._highlightNodes.length) return;
+        const node = this._highlightNodes[this._highlightIndex];
+        const rect = node.getBoundingClientRect();
+        const currentScroll = window.pageYOffset ||
+            document.documentElement.scrollTop ||
+            document.body.scrollTop || 0;
+        const offset = 120;
+        const targetPos = rect.top + currentScroll - offset;
+        window.scrollTo({ top: Math.max(0, targetPos), behavior: 'smooth' });
+    }
+
+    _setupFloatingTOCObserver(headings = []) {
+        if (!this.inlineTOCElement) {
+            this._toggleFloatingTOC(false);
+            return;
+        }
+        // ใช้ IntersectionObserver เพื่อแสดง TOC ลอยเมื่อ inline TOC หลุดจอ
+        if (this._tocObserver) {
+            this._tocObserver.disconnect();
+        }
+        if ('IntersectionObserver' in window) {
+            this._tocObserver = new IntersectionObserver((entries) => {
+                const entry = entries[0];
+                if (entry && entry.isIntersecting) {
+                    this._toggleFloatingTOC(false);
+                } else if (this._floatingTOCHeadings.length || headings.length) {
+                    if (!this._floatingTOCHeadings.length) {
+                        this._floatingTOCHeadings = Array.from(headings || []);
+                    }
+                    this._toggleFloatingTOC(true);
+                    this._updateFloatingTOCActive();
+                }
+            }, { threshold: 0 });
+            this._tocObserver.observe(this.inlineTOCElement);
+        } else {
+            // fallback: check on scroll
+            const check = () => {
+                if (!this.inlineTOCElement) return;
+                const rect = this.inlineTOCElement.getBoundingClientRect();
+                if (rect.bottom < 0) {
+                    this._toggleFloatingTOC(true);
+                    this._updateFloatingTOCActive();
+                } else {
+                    this._toggleFloatingTOC(false);
+                }
+            };
+            window.addEventListener('scroll', check, { passive: true });
+        }
+    }
+
+    _toggleFloatingTOC(show) {
+        if (!this.floatingTOCContainer) return;
+        this.floatingTOCContainer.style.display = show ? 'block' : 'none';
+    }
+
+    _buildTOCHTMLFromHeadings(headings) {
+        let tocHTML = '<div class="o_toc_header"><h3>Table of Contents</h3></div><ul class="o_toc_list">';
+        headings.forEach((heading, index) => {
+            const level = parseInt(heading.tagName.charAt(1));
+            const indentClass = `o_toc_level_${level}`;
+            const text = heading.textContent.trim();
+            if (!heading.id) {
+                const slug = text.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 50);
+                heading.id = `toc-heading-${index}-${slug}`;
+            }
+            tocHTML += `
+                <li class="o_toc_item ${indentClass}">
+                    <a href="#${heading.id}" class="o_toc_link" data-heading-id="${heading.id}">
+                        ${text}
+                    </a>
+                </li>`;
+        });
+        tocHTML += '</ul>';
+        return tocHTML;
+    }
+
+    _updateFloatingTOCActive() {
+        if (!this.floatingTOCContainer || !this._floatingTOCHeadings.length) return;
+        const scrollPos = window.scrollY || document.documentElement.scrollTop || 0;
+        const offset = 140;
+        let activeId = null;
+        this._floatingTOCHeadings.forEach((h) => {
+            const rect = h.getBoundingClientRect();
+            const top = rect.top + scrollPos - offset;
+            if (scrollPos >= top) {
+                activeId = h.id;
+            }
+        });
+        const links = this.floatingTOCContainer.querySelectorAll('.o_toc_link');
+        links.forEach((link) => {
+            const id = link.getAttribute('data-heading-id');
+            if (id === activeId) {
+                link.classList.add('o_toc_active');
+            } else {
+                link.classList.remove('o_toc_active');
+            }
+        });
     }
 }
 

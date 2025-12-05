@@ -2,7 +2,7 @@
 
 {
     'name': 'Knowledge Base OCA',
-    'version': '19.0.1.0.1',
+    'version': '19.0.1.0.2',
     'category': 'Knowledge',
     'summary': 'Internal Knowledge Base based on OCA patterns',
     'description': """
@@ -51,12 +51,12 @@ Categories:
     'assets': {
         'web.assets_backend': [
             'knowledge_onthisday_oca/static/src/js/knowledge_document_controller.js',
-            'knowledge_onthisday_oca/static/src/xml/knowledge_document_view.xml',
-            'knowledge_onthisday_oca/static/src/scss/knowledge_document.scss',
-        ],
-    },
-    'installable': True,
-    'application': True,
-    'auto_install': False,
+        'knowledge_onthisday_oca/static/src/xml/knowledge_document_view.xml',
+        'knowledge_onthisday_oca/static/src/scss/knowledge_document.scss',
+    ],
+},
+'demo': [],
+'installable': True,
+'application': True,
+'auto_install': False,
 }
-
