@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    
+    <!-- Comment Overlay Template -->
+    <t t-name="knowledge_onthisday_oca.CommentOverlay">
+        <div class="o_knowledge_comment_overlay_wrapper" t-att-class="{'o_knowledge_comment_overlay_hidden': !this.getShowCommentPanel()}">
+            <!-- Floating button for selection -->
+            <div t-ref="overlay" class="o_knowledge_comment_selection_overlay" style="display:none;">
+                <button class="o_knowledge_comment_add_button" t-on-click.stop="() => this.onCreateComment()" title="เพิ่ม Comment">
+                    <i class="fa fa-commenting"/>
+                </button>
+            </div>
+
+            <!-- Comment Creation Form -->
+            <t t-if="state.isCreating">
+                <div class="o_knowledge_comment_form" t-key="'comment-form-' + (currentSelection ? currentSelection.text : 'new') + '-' + (state.isCreating ? 'creating' : 'closed')">
+                    <div class="o_knowledge_comment_form_header">
+                        <span class="o_knowledge_comment_form_title">สร้าง Comment ใหม่</span>
+                        <button 
+                            class="btn btn-link btn-sm"
+                            t-on-click="() => this.onCancelCreate()">
+                            <i class="fa fa-times"/>
+                        </button>
+                    </div>
+                    <div class="o_knowledge_comment_form_body">
+                        <div class="o_knowledge_comment_selected_text">
+                            <strong>ข้อความที่เลือก:</strong>
+                            <span t-esc="currentSelection ? currentSelection.text : ''"/>
+                        </div>
+                        <div class="o_knowledge_comment_input">
+                            <textarea 
+                                class="form-control"
+                                rows="4"
+                                placeholder="พิมพ์ comment ของคุณ..."
+                                t-ref="newCommentInput"
+                                t-key="'textarea-' + (state.isCreating ? 'creating' : 'hidden')"
+                                t-on-input="(ev) => this.onCommentInputChange(ev)"
+                                t-on-focus="(ev) => this.onTextareaFocus(ev)"
+                                t-on-blur="(ev) => this.onTextareaBlur(ev)"/>
+                        </div>
+                        <div class="o_knowledge_comment_form_actions">
+                            <button 
+                                class="btn btn-secondary btn-sm"
+                                t-on-click="() => this.onCancelCreate()">
+                                ยกเลิก
+                            </button>
+                            <button 
+                                class="btn btn-primary btn-sm"
+                                t-on-click="() => this.onSaveComment()">
+                                <i class="fa fa-check"/> บันทึก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </t>
+
+            <!-- Comment List/Thread -->
+            <div class="o_knowledge_comment_list_wrapper">
+                <div class="o_knowledge_comment_list_header">
+                    <div class="o_knowledge_comment_header_left">
+                        <h4>
+                            <i class="fa fa-comments"/> 
+                            Comments 
+                            <span class="badge badge-secondary" t-esc="state.comments.length"/>
+                        </h4>
+                        <label class="form-check">
+                            <input 
+                                type="checkbox"
+                                class="form-check-input"
+                                t-model="state.showResolved"/>
+                            <span class="form-check-label">แสดง Resolved</span>
+                        </label>
+                    </div>
+                    <button 
+                        class="btn btn-link btn-sm o_knowledge_comment_close_btn"
+                        t-on-click="() => this.onCloseCommentPanel()"
+                        title="ปิด Comment Panel">
+                        <i class="fa fa-times"/>
+                    </button>
+                </div>
+                
+                <div t-ref="commentList" class="o_knowledge_comment_list">
+                    <t t-foreach="getDisplayComments()" t-as="comment" t-key="comment.id">
+                        <div 
+                            class="o_knowledge_comment_item"
+                            t-att-data-comment-id="comment.id"
+                            t-att-class="{'o_knowledge_comment_resolved': comment.resolved, 'o_knowledge_comment_selected': state.selectedComment === comment.id}"
+                            t-on-click="() => this.onCommentItemClick(comment.id)">
+                            
+                            <!-- Comment Header -->
+                            <div class="o_knowledge_comment_header">
+                                <div class="o_knowledge_comment_author">
+                                    <img 
+                                        class="o_knowledge_comment_author_avatar"
+                                        t-att-src="getAvatarUrl(comment)"
+                                        t-att-alt="comment.author_id[1]"
+                                        t-att-title="comment.author_id[1]"
+                                        width="32"
+                                        height="32"/>
+                                    <span class="o_knowledge_comment_author_name" t-esc="comment.author_id[1]"/>
+                                    <span class="o_knowledge_comment_date" t-esc="formatDate(comment.create_date)"/>
+                                </div>
+                                <div class="o_knowledge_comment_actions">
+                                    <button 
+                                        t-if="!comment.resolved"
+                                        class="btn btn-link btn-sm"
+                                        t-on-click.stop="() => this.onToggleResolve(comment.id)"
+                                        title="Resolve">
+                                        <i class="fa fa-check-circle"/>
+                                    </button>
+                                    <button 
+                                        t-if="comment.resolved"
+                                        class="btn btn-link btn-sm"
+                                        t-on-click.stop="() => this.onToggleResolve(comment.id)"
+                                        title="Unresolve">
+                                        <i class="fa fa-undo"/>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Selected Text -->
+                            <div class="o_knowledge_comment_selected_text_preview"
+                                 t-att-class="{'o_knowledge_comment_resolved_preview': comment.resolved}"
+                                 t-on-click.stop="() => this.onCommentItemClick(comment.id)">
+                                <i class="fa fa-quote-left"/>
+                                <span class="o_knowledge_comment_selected_text_highlight" t-esc="comment.selected_text"/>
+                            </div>
+
+                            <!-- Comment Body -->
+                            <div class="o_knowledge_comment_body" t-on-click.stop="" t-out="markup(comment.body)"/>
+
+                            <!-- Reply Section -->
+                            <div class="o_knowledge_comment_replies" t-on-click.stop="">
+                                <t t-if="state.replyingTo === comment.id">
+                                    <div class="o_knowledge_comment_reply_form">
+                                        <textarea 
+                                            class="form-control"
+                                            rows="2"
+                                            placeholder="พิมพ์ reply..."
+                                            t-model="state.replyBody"/>
+                                        <div class="o_knowledge_comment_reply_actions">
+                                            <button 
+                                                class="btn btn-link btn-sm"
+                                                t-on-click.stop="() => this.onCancelReply()">
+                                                ยกเลิก
+                                            </button>
+                                            <button 
+                                                class="btn btn-primary btn-sm"
+                                                t-on-click.stop="() => this.onSaveReply(comment.id)">
+                                                <i class="fa fa-paper-plane"/> ส่ง
+                                            </button>
+                                        </div>
+                                    </div>
+                                </t>
+                                <t t-else="">
+                                    <button 
+                                        class="btn btn-link btn-sm"
+                                        t-on-click.stop="() => this.onStartReply(comment.id)">
+                                        <i class="fa fa-reply"/> Reply
+                                    </button>
+                                </t>
+
+                                <!-- Replies List -->
+                                <t t-if="comment.replies and comment.replies.length > 0">
+                                    <div class="o_knowledge_comment_replies_list">
+                                        <t t-foreach="comment.replies" t-as="reply" t-key="reply.id">
+                                            <div class="o_knowledge_comment_reply_item">
+                                                <div class="o_knowledge_comment_reply_header">
+                                                    <img 
+                                                        class="o_knowledge_comment_reply_avatar"
+                                                        t-att-src="getAvatarUrl(reply)"
+                                                        t-att-alt="reply.author_id[1]"
+                                                        t-att-title="reply.author_id[1]"
+                                                        width="24"
+                                                        height="24"/>
+                                                    <span class="o_knowledge_comment_author_name" t-esc="reply.author_id[1]"/>
+                                                    <span class="o_knowledge_comment_date" t-esc="formatDate(reply.create_date)"/>
+                                                </div>
+                                                <div class="o_knowledge_comment_reply_body" t-out="markup(reply.body)"/>
+                                            </div>
+                                        </t>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </t>
+
+                    <!-- Empty State -->
+                    <t t-if="getDisplayComments().length === 0">
+                        <div class="o_knowledge_comment_empty">
+                            <i class="fa fa-comments-o"/>
+                            <p>ยังไม่มี comments</p>
+                            <p class="text-muted">เลือกข้อความแล้วกดปุ่ม "เพิ่ม Comment" เพื่อสร้าง comment</p>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </div>
+    </t>
+
+    <!-- Comment Overlay Wrapper Template -->
+    <t t-name="knowledge_onthisday_oca.LazyCommentOverlayWrapper">
+        <CommentOverlay t-props="getProps()"/>
+    </t>
+
+</templates>

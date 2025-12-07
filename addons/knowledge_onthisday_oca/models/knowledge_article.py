@@ -227,3 +227,32 @@ class KnowledgeArticle(models.Model):
                 'sticky': False,
             }
         }
+    
+    # Comments relationship
+    comment_ids = fields.One2many(
+        'knowledge.article.comment',
+        'article_id',
+        string='Comments',
+        help='Comments on this article'
+    )
+    
+    comment_count = fields.Integer(
+        string='Comment Count',
+        compute='_compute_comment_count',
+        store=False,
+        help='Number of comments on this article'
+    )
+    
+    unresolved_comment_count = fields.Integer(
+        string='Unresolved Comments',
+        compute='_compute_comment_count',
+        store=False,
+        help='Number of unresolved comments on this article'
+    )
+    
+    @api.depends('comment_ids', 'comment_ids.resolved')
+    def _compute_comment_count(self):
+        """Compute comment counts"""
+        for article in self:
+            article.comment_count = len(article.comment_ids)
+            article.unresolved_comment_count = len(article.comment_ids.filtered(lambda c: not c.resolved))

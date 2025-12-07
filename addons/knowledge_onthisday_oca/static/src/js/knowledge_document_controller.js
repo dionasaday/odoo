@@ -4,6 +4,9 @@ import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { Component, useState, onWillStart, useRef, useEffect, onMounted, onWillUpdateProps, onRendered, onWillUnmount, markup } from "@odoo/owl";
 
+// Import CommentOverlay
+import { CommentOverlay } from "./comment/comment_overlay";
+
 /**
  * Logging utility for production-ready error handling
  * Only logs in development mode, silent in production
@@ -40,6 +43,7 @@ export class KnowledgeDocumentController extends Component {
         updateActionState: { type: Function, optional: true },
         className: { type: String, optional: true },
     };
+    static components = { CommentOverlay };
 
     setup() {
         this.orm = useService("orm");
@@ -79,6 +83,12 @@ export class KnowledgeDocumentController extends Component {
             selectedTagId: null, // Selected tag for filtering
             availableTags: [], // List of all available tags
             sidebarOpenMobile: false, // Mobile drawer state
+            showCommentPanel: false, // Toggle comment panel visibility
+            showCommentButton: false, // Show floating comment button when text is selected
+            commentButtonPosition: { top: 0, left: 0 }, // Position of floating comment button
+            currentTextSelection: null, // Current text selection data
+            triggerCommentCreation: false, // Trigger comment creation from floating button
+            newCommentBody: "", // Draft comment body
         });
         this._floatingTOCHeadings = [];
         this.inlineTOCElement = null;
@@ -127,19 +137,7 @@ export class KnowledgeDocumentController extends Component {
             }
         });
         
-        // onRendered: called after each render
-        onRendered(() => {
-            if (this.contentRef.el && this.state.currentArticle) {
-                // Use requestAnimationFrame to ensure DOM is fully updated
-                requestAnimationFrame(() => {
-                    if (this.contentRef.el && this.state.currentArticle) {
-                        this.renderContent();
-                    }
-                });
-            }
-        });
-        
-        // Also keep useEffect as fallback for content changes
+        // Render content when article changes (useEffect already covers this)
         useEffect(() => {
             if (this.contentRef.el && this.state.currentArticle) {
                 // Use a small delay to ensure DOM is ready
@@ -177,6 +175,10 @@ export class KnowledgeDocumentController extends Component {
         if (this.state.sidebarOpenMobile) {
             this.state.sidebarOpenMobile = false;
         }
+    }
+
+    updateNewCommentBody(value) {
+        this.state.newCommentBody = value || "";
     }
 
     renderContent() {
@@ -257,6 +259,7 @@ export class KnowledgeDocumentController extends Component {
                         this._highlightQueryInContent(activeQuery);
                     }
                     this.processTOCAfterRender();
+                    this.setupTextSelectionListener();
                 }
             });
         } else {
@@ -971,7 +974,7 @@ export class KnowledgeDocumentController extends Component {
                 articles = await this.orm.searchRead(
                     "knowledge.article",
                     [["id", "=", articleId]],
-                    ["id", "name", "content", "category_id", "parent_id", "responsible_id", "active", "favorite_user_ids", "shared_user_ids", "share_token"],
+                    ["id", "name", "content", "category_id", "parent_id", "responsible_id", "active", "favorite_user_ids", "shared_user_ids", "share_token", "comment_count", "unresolved_comment_count"],
                     { limit: 1 }
                 );
                 // Compute share_link manually
@@ -1004,7 +1007,7 @@ export class KnowledgeDocumentController extends Component {
                 article = await this.orm.read(
                     "knowledge.article",
                     [articleId],
-                    ["id", "name", "content", "category_id", "parent_id", "responsible_id", "active", "favorite_user_ids", "shared_user_ids", "share_token", "share_link", "tag_ids"],
+                    ["id", "name", "content", "category_id", "parent_id", "responsible_id", "active", "favorite_user_ids", "shared_user_ids", "share_token", "share_link", "tag_ids", "comment_count", "unresolved_comment_count"],
                     { context: { safe_eval: true } }
                 );
             }
@@ -1746,6 +1749,446 @@ export class KnowledgeDocumentController extends Component {
         this.state.shareLink = null;
     }
 
+    toggleCommentPanel() {
+        this.state.showCommentPanel = !this.state.showCommentPanel;
+        if (!this.state.showCommentPanel) {
+            this.state.showCommentButton = false;
+        }
+    }
+
+    closeCommentPanel() {
+        this.state.showCommentPanel = false;
+        this.state.showCommentButton = false;
+    }
+
+    /**
+     * Handle highlight click - open comment panel and select comment
+     */
+    onHighlightClick(commentId) {
+        logger.log('onHighlightClick called in controller:', {
+            commentId: commentId,
+            currentShowCommentPanel: this.state.showCommentPanel
+        });
+        
+        // Open comment panel if not already open
+        if (!this.state.showCommentPanel) {
+            this.state.showCommentPanel = true;
+            logger.log('Comment panel opened via highlight click');
+        }
+        
+        // Wait a bit for panel to open and comments to load, then select the comment
+        setTimeout(() => {
+            // Trigger selection in CommentOverlay by dispatching a custom event
+            // CommentOverlay will listen for this event and select the comment
+            const event = new CustomEvent('highlight-comment-clicked', {
+                detail: { commentId: commentId }
+            });
+            document.dispatchEvent(event);
+            
+            logger.log('Highlight click event dispatched:', {
+                commentId: commentId
+            });
+        }, 300); // Wait 300ms for panel to open and comments to load
+    }
+
+    /**
+     * Setup text selection listener for comment button
+     */
+    setupTextSelectionListener() {
+        if (!this.contentRef.el || !this.state.showCommentPanel) return;
+
+        // Remove existing listeners
+        if (this._onTextSelection) {
+            this.contentRef.el.removeEventListener('mouseup', this._onTextSelection);
+            this.contentRef.el.removeEventListener('keyup', this._onTextSelection);
+        }
+        if (this._onClickOutsideSelection) {
+            this.contentRef.el.removeEventListener('click', this._onClickOutsideSelection);
+        }
+
+        // Add new listeners
+        this._onTextSelection = () => {
+            setTimeout(() => this.onTextSelection(), 100);
+        };
+        this._onClickOutsideSelection = (e) => {
+            // Don't hide button or remove highlight if clicking on button or highlighted text
+            if (e.target.closest('.o_knowledge_comment_button_floating') || 
+                e.target.closest('.o_knowledge_comment_temp_highlight')) {
+                return;
+            }
+            
+            // Don't remove highlight when clicking outside
+            // Only hide the button if there's no new selection
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0 || selection.toString().trim().length === 0) {
+                // Only hide button, keep highlight visible
+                this.state.showCommentButton = false;
+            }
+        };
+
+        this.contentRef.el.addEventListener('mouseup', this._onTextSelection);
+        this.contentRef.el.addEventListener('keyup', this._onTextSelection);
+        this.contentRef.el.addEventListener('click', this._onClickOutsideSelection);
+    }
+
+    /**
+     * Handle text selection in article content
+     */
+    onTextSelection() {
+        if (!this.contentRef.el || !this.state.showCommentPanel) {
+            this.state.showCommentButton = false;
+            this.removeTemporaryHighlight();
+            return;
+        }
+
+        const selection = window.getSelection();
+        if (!selection || selection.rangeCount === 0) {
+            // Don't remove highlight - keep it visible even if selection is cleared
+            // Only hide the button
+            this.state.showCommentButton = false;
+            return;
+        }
+
+        const range = selection.getRangeAt(0);
+        if (!this.contentRef.el.contains(range.commonAncestorContainer)) {
+            // Don't remove highlight - keep it visible
+            this.state.showCommentButton = false;
+            return;
+        }
+
+        const selectedText = range.toString().trim();
+        if (selectedText.length === 0) {
+            // Don't remove highlight - keep it visible
+            this.state.showCommentButton = false;
+            return;
+        }
+
+        // Store selection info before highlighting (range may change after highlight)
+        const rect = range.getBoundingClientRect();
+        const contentRect = this.contentRef.el.getBoundingClientRect();
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+
+        // Highlight the selected text (must be done before calculating position)
+        this.highlightSelectedText(range);
+
+        // Wait for DOM update after highlighting
+        requestAnimationFrame(() => {
+            // Recalculate position after highlight is applied
+            const highlightSpan = this._tempHighlightSpan;
+            if (highlightSpan) {
+                const highlightRect = highlightSpan.getBoundingClientRect();
+                const newContentRect = this.contentRef.el.getBoundingClientRect();
+                
+                // Calculate button position - align with the top of highlighted text (same line)
+                this.state.commentButtonPosition = {
+                    top: highlightRect.top - newContentRect.top + scrollTop, // Align with top of selection (same line)
+                    left: highlightRect.right - newContentRect.left + scrollLeft + 10, // Show on the right side of selection
+                };
+            } else {
+                // Fallback to original rect if highlight failed
+                this.state.commentButtonPosition = {
+                    top: rect.top - contentRect.top + scrollTop, // Align with top of selection (same line)
+                    left: rect.right - contentRect.left + scrollLeft + 10, // Show on the right side of selection
+                };
+            }
+
+            this.state.currentTextSelection = {
+                text: selectedText,
+                range: range,
+            };
+
+            this.state.showCommentButton = true;
+        });
+    }
+
+    /**
+     * Highlight selected text
+     */
+    highlightSelectedText(range) {
+        logger.log('highlightSelectedText called', { range: range.toString() });
+        
+        // Remove existing temporary highlight only if selecting new text
+        if (this._tempHighlightSpan && this._tempHighlightSpan.parentNode) {
+            // Check if we're selecting the same text (don't remove if same)
+            const existingText = this._tempHighlightSpan.textContent || '';
+            const newText = range.toString().trim();
+            if (existingText === newText) {
+                // Same text, keep existing highlight
+                logger.log('Same text selected, keeping existing highlight');
+                return;
+            }
+            // Remove old highlight
+            logger.log('Removing old highlight');
+            this.removeTemporaryHighlight();
+        }
+
+        const selectedText = range.toString().trim();
+        if (!selectedText) {
+            logger.warn('No text selected');
+            return;
+        }
+
+        try {
+            // Use extractContents approach - more reliable and doesn't depend on browser selection
+            const clonedRange = range.cloneRange();
+            
+            // Extract the selected content first
+            const contents = clonedRange.extractContents();
+            
+            // Create a span to wrap the selected text
+            const span = document.createElement('span');
+            span.className = 'o_knowledge_comment_temp_highlight';
+            span.setAttribute('data-highlight-temp', 'true');
+            
+            // Set inline styles to ensure visibility - use multiple methods to force visibility
+            // Method 1: Background color (primary)
+            span.style.setProperty('background-color', '#ffeb3b', 'important');
+            span.style.setProperty('background', '#ffeb3b', 'important');
+            // Method 2: Box shadow (backup for WYSIWYG editor issues)
+            span.style.setProperty('box-shadow', '0 0 0 4px #ffeb3b inset', 'important');
+            // Method 3: Outline (additional backup)
+            span.style.setProperty('outline', '3px solid #ffeb3b', 'important');
+            span.style.setProperty('outline-offset', '-3px', 'important');
+            // Other styles
+            span.style.setProperty('cursor', 'pointer', 'important');
+            span.style.setProperty('display', 'inline', 'important');
+            span.style.setProperty('padding', '2px 0', 'important');
+            span.style.setProperty('border-radius', '2px', 'important');
+            span.style.setProperty('position', 'relative', 'important');
+            span.style.setProperty('z-index', '999', 'important');
+            span.style.setProperty('color', 'inherit', 'important');
+            span.style.setProperty('visibility', 'visible', 'important');
+            span.style.setProperty('opacity', '1', 'important');
+            
+            logger.log('Created span element', { className: span.className, text: selectedText });
+            
+            // Put extracted contents into span, then insert span at range position
+            span.appendChild(contents);
+            clonedRange.insertNode(span);
+            
+            logger.log('extractContents approach successful', { 
+                spanInDOM: span.parentNode !== null,
+                spanText: span.textContent,
+                hasContents: contents && contents.childNodes.length > 0
+            });
+            
+            // Store reference for later removal
+            this._tempHighlightSpan = span;
+            
+            // Force a reflow to ensure the highlight is rendered
+            void span.offsetHeight;
+            
+            // Verify highlight is in DOM
+            if (!span.parentNode) {
+                logger.error('Highlight span not in DOM after extractContents');
+                throw new Error('Highlight span not in DOM');
+            }
+            
+            // Immediately verify and force styles to ensure visibility
+            requestAnimationFrame(() => {
+                if (span && span.parentNode) {
+                    const computedStyle = window.getComputedStyle(span);
+                    const bgColor = computedStyle.backgroundColor;
+                    const rect = span.getBoundingClientRect();
+                    
+                    logger.log('Immediate highlight check', {
+                        inDOM: span.parentNode !== null,
+                        backgroundColor: bgColor,
+                        width: rect.width,
+                        height: rect.height,
+                        display: computedStyle.display,
+                        visibility: computedStyle.visibility
+                    });
+                    
+                    // Force styles immediately if not visible
+                    if (bgColor === '' || bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent' || 
+                        rect.width === 0 || rect.height === 0) {
+                        logger.warn('Highlight not visible immediately, forcing styles...');
+                        span.style.setProperty('background-color', '#ffeb3b', 'important');
+                        span.style.setProperty('background', '#ffeb3b', 'important');
+                        span.style.setProperty('box-shadow', '0 0 0 4px #ffeb3b inset', 'important');
+                        span.style.setProperty('outline', '3px solid #ffeb3b', 'important');
+                        span.style.setProperty('display', 'inline', 'important');
+                        span.style.setProperty('visibility', 'visible', 'important');
+                        span.style.setProperty('opacity', '1', 'important');
+                        void span.offsetHeight; // Force reflow
+                        
+                        // Verify again after forcing
+                        setTimeout(() => {
+                            const newBgColor = window.getComputedStyle(span).backgroundColor;
+                            const newRect = span.getBoundingClientRect();
+                            logger.log('After forcing styles', {
+                                backgroundColor: newBgColor,
+                                width: newRect.width,
+                                height: newRect.height,
+                                isVisible: newBgColor !== '' && newBgColor !== 'rgba(0, 0, 0, 0)' && newBgColor !== 'transparent'
+                            });
+                        }, 50);
+                    }
+                }
+            });
+            
+            logger.log('Highlight created successfully', { 
+                parentNode: span.parentNode.tagName,
+                computedStyle: window.getComputedStyle(span).backgroundColor 
+            });
+            
+            // Clear native selection so ::selection style won't mask our temp highlight
+            requestAnimationFrame(() => {
+                const sel = window.getSelection();
+                if (sel && sel.removeAllRanges) {
+                    sel.removeAllRanges();
+                }
+            });
+            
+            // Setup periodic check to ensure highlight stays visible
+            // Check every 100ms for 2 seconds to catch any disappearing highlights
+            let checkCount = 0;
+            const maxChecks = 20; // 2 seconds total
+            const highlightCheckInterval = setInterval(() => {
+                checkCount++;
+                if (span && span.parentNode) {
+                    const computedStyle = window.getComputedStyle(span);
+                    const bgColor = computedStyle.backgroundColor;
+                    
+                    // If highlight is still there and visible, continue checking
+                    if (bgColor !== '' && bgColor !== 'rgba(0, 0, 0, 0)' && bgColor !== 'transparent') {
+                        // Highlight is still visible, continue
+                        if (checkCount >= maxChecks) {
+                            clearInterval(highlightCheckInterval);
+                        }
+                        return;
+                    }
+                }
+                
+                // Highlight disappeared or not visible - check if it's actually removed from DOM
+                if (!span || !span.parentNode) {
+                    logger.warn('Highlight removed from DOM!');
+                    // Highlight was actually removed - we can't restore without original range
+                    clearInterval(highlightCheckInterval);
+                    this._tempHighlightSpan = null;
+                } else if (this._tempHighlightSpan && this._tempHighlightSpan === span) {
+                    // Highlight is in DOM but not visible - force styles again
+                    const computedStyle = window.getComputedStyle(span);
+                    const bgColor = computedStyle.backgroundColor;
+                    if (bgColor === '' || bgColor === 'rgba(0, 0, 0, 0)' || bgColor === 'transparent') {
+                        logger.warn('Highlight not visible, forcing styles again...');
+                        span.style.setProperty('background-color', '#ffeb3b', 'important');
+                        span.style.setProperty('background', '#ffeb3b', 'important');
+                        span.style.setProperty('box-shadow', '0 0 0 4px #ffeb3b inset', 'important');
+                        span.style.setProperty('outline', '3px solid #ffeb3b', 'important');
+                        span.style.setProperty('display', 'inline', 'important');
+                        span.style.setProperty('visibility', 'visible', 'important');
+                        span.style.setProperty('opacity', '1', 'important');
+                        void span.offsetHeight; // Force reflow
+                    }
+                    
+                    if (checkCount >= maxChecks) {
+                        clearInterval(highlightCheckInterval);
+                    }
+                } else {
+                    clearInterval(highlightCheckInterval);
+                }
+            }, 100);
+        } catch (e) {
+            logger.warn('surroundContents failed, trying extractContents', e);
+            // If surroundContents fails (e.g., selection spans multiple elements),
+            // try extractContents approach
+            try {
+                const clonedRange = range.cloneRange();
+                const contents = clonedRange.extractContents();
+                
+                const span = document.createElement('span');
+                span.className = 'o_knowledge_comment_temp_highlight';
+                span.setAttribute('data-highlight-temp', 'true');
+                
+                // Set inline styles
+                span.style.backgroundColor = '#ffeb3b';
+                span.style.cursor = 'pointer';
+                span.style.display = 'inline';
+                span.style.padding = '2px 0';
+                span.style.borderRadius = '2px';
+                span.style.position = 'relative';
+                span.style.zIndex = '1';
+                
+                span.appendChild(contents);
+                clonedRange.insertNode(span);
+                
+                logger.log('extractContents approach successful', { 
+                    spanInDOM: span.parentNode !== null,
+                    spanText: span.textContent 
+                });
+                
+                // Store reference
+                this._tempHighlightSpan = span;
+                
+                // Force a reflow
+                void span.offsetHeight;
+                
+                // Verify highlight is in DOM
+                if (!span.parentNode) {
+                    logger.error('Highlight span not in DOM after extractContents');
+                    throw new Error('Highlight span not in DOM');
+                }
+                
+                // Clear browser selection after a delay
+                setTimeout(() => {
+                    const selection = window.getSelection();
+                    if (selection && selection.rangeCount > 0) {
+                        selection.removeAllRanges();
+                        logger.log('Browser selection cleared (extractContents)');
+                    }
+                }, 300);
+            } catch (e2) {
+                logger.error('Could not highlight selected text', e2);
+                this._tempHighlightSpan = null;
+            }
+        }
+    }
+
+    /**
+     * Remove temporary highlight
+     */
+    removeTemporaryHighlight() {
+        if (this._tempHighlightSpan && this._tempHighlightSpan.parentNode) {
+            const parent = this._tempHighlightSpan.parentNode;
+            while (this._tempHighlightSpan.firstChild) {
+                parent.insertBefore(this._tempHighlightSpan.firstChild, this._tempHighlightSpan);
+            }
+            parent.removeChild(this._tempHighlightSpan);
+            this._tempHighlightSpan = null;
+        }
+    }
+
+    /**
+     * Create comment from selected text
+     */
+    async onCreateCommentFromSelection() {
+        if (!this.state.currentTextSelection || !this.state.currentArticle) {
+            this.showNotification('กรุณาเลือกข้อความก่อนสร้าง comment', 'warning');
+            return;
+        }
+
+        // Open comment panel if not already open
+        if (!this.state.showCommentPanel) {
+            this.state.showCommentPanel = true;
+        }
+
+        // Hide button
+        this.state.showCommentButton = false;
+        
+        // Trigger comment creation - will be handled by CommentOverlay via props
+        // Wait a bit for panel to open before triggering
+        await new Promise(resolve => setTimeout(resolve, 100));
+        this.state.triggerCommentCreation = true;
+        
+        // Clear trigger after component reacts
+        setTimeout(() => {
+            this.state.triggerCommentCreation = false;
+        }, 50);
+    }
+
     showNotification(message, type = "info") {
         // Simple notification - could be enhanced with Odoo's notification service
         const notification = document.createElement("div");
@@ -2192,8 +2635,4 @@ export class KnowledgeDocumentController extends Component {
 KnowledgeDocumentController.template = "knowledge_onthisday_oca.KnowledgeDocumentView";
 
 // Register as client action
-try {
-    registry.category("actions").add("knowledge_document_view", KnowledgeDocumentController);
-} catch (error) {
-    logger.error("Error registering KnowledgeDocumentController:", error);
-}
+registry.category("actions").add("knowledge_document_view", KnowledgeDocumentController);

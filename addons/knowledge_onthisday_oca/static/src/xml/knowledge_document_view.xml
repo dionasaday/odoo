@@ -470,18 +470,56 @@
                                       class="o_share_count" 
                                       t-esc="`(${this.getSharedCount(state.currentArticle)})`"/>
                             </button>
-                            <button class="btn btn-link" title="Comments">💬</button>
+                            <button 
+                                class="btn btn-link" 
+                                t-att-class="{'o_active': state.showCommentPanel}"
+                                t-on-click="() => this.toggleCommentPanel()"
+                                title="Comments">
+                                💬
+                                <t t-if="state.currentArticle and state.currentArticle.comment_count">
+                                    <span class="badge badge-secondary" t-esc="state.currentArticle.comment_count"/>
+                                </t>
+                            </button>
                         </div>
                     </div>
 
                     <!-- Article Content -->
-                    <div class="o_knowledge_article_content">
+                    <div class="o_knowledge_article_content" t-att-class="{'o_knowledge_with_comments': state.showCommentPanel}">
                         <!-- Content will be rendered via innerHTML in JavaScript -->
                         <!-- Using t-ref to get reference to the element -->
                         <div class="o_knowledge_article_body" t-ref="content">
                             <!-- Content is rendered via renderContent() method using innerHTML -->
                         </div>
+                        <!-- Floating Comment Button (shown when text is selected) -->
+                        <t t-if="state.showCommentButton">
+                            <div 
+                                class="o_knowledge_comment_button_floating"
+                                t-attf-style="top: #{state.commentButtonPosition.top}px; left: #{state.commentButtonPosition.left}px;">
+                                <button 
+                                    class="btn btn-primary btn-sm"
+                                    t-on-click="() => this.onCreateCommentFromSelection()">
+                                    <i class="fa fa-comment"/> เพิ่ม Comment
+                                </button>
+                            </div>
+                        </t>
                     </div>
+
+                    <!-- Comment Panel - Temporarily disabled to allow module to load -->
+                    <!-- Will be re-enabled after fixing CommentOverlay import issues -->
+                    <!--
+                    <t t-if="state.currentArticle and state.showCommentPanel">
+                        <div class="o_knowledge_comment_panel">
+                            <CommentOverlay 
+                                t-props="{
+                                    articleId: state.currentArticle.id,
+                                    contentElement: contentRef.el,
+                                    selectionData: state.currentTextSelection,
+                                    triggerCreation: state.triggerCommentCreation,
+                                    onCreateCommentFromSelection: () => this.onCreateCommentFromSelection(),
+                                }"/>
+                        </div>
+                    </t>
+                    -->
                 </t>
                 <t t-else="">
                     <div class="o_knowledge_empty_state">
@@ -661,6 +699,25 @@
                     </div>
                 </t>
             </div>
+            
+            <!-- Comment Overlay - Always render when article is loaded to show highlights -->
+            <!-- Render CommentOverlay separately from panel to ensure it's always mounted -->
+            <t t-if="state.currentArticle">
+                <!-- CommentOverlay component (always mounted for highlights) -->
+                <CommentOverlay 
+                    t-key="'comment-overlay-' + (state.currentArticle.id || 'no-article')"
+                    t-props="{
+                        articleId: state.currentArticle.id,
+                        contentElement: contentRef.el,
+                        selectionData: state.currentTextSelection,
+                        triggerCreation: state.triggerCommentCreation,
+                        showCommentPanel: state.showCommentPanel,
+                        onCreateCommentFromSelection: () => this.onCreateCommentFromSelection(),
+                        onClose: () => this.closeCommentPanel(),
+                        onHighlightClick: (commentId) => this.onHighlightClick(commentId)
+                    }"/>
+            </t>
+            
             <!-- Overlay for mobile -->
             <t t-if="state.sidebarOpenMobile">
                 <div class="o_knowledge_sidebar_overlay" t-on-click="() => this.closeSidebarMobile()"></div>

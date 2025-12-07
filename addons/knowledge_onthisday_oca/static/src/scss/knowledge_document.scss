@@ -1814,8 +1814,29 @@ html {
 .o_knowledge_document_view {
     // Improve text selection
     ::selection {
-        background-color: var(--knowledge-primary-light);
+        background-color: #ffeb3b;
         color: var(--knowledge-text);
+    }
+    
+    // Selection inside article should remain visible (native highlight)
+    .o_knowledge_article_body ::selection {
+        background-color: #ffeb3b !important;
+        color: inherit !important;
+    }
+    
+    // Ensure custom temp highlight is not hidden by ::selection
+    .o_knowledge_comment_temp_highlight::selection,
+    .o_knowledge_comment_temp_highlight *::selection {
+        background-color: #ffeb3b !important;
+        color: inherit !important;
+    }
+
+    // Temporary highlight while creating comment
+    .o_knowledge_comment_temp_highlight {
+        background-color: #ffeb3b;
+        color: inherit;
+        border-radius: 2px;
+        padding: 0 1px;
     }
     
     // Improve focus visibility
@@ -2365,6 +2386,366 @@ html {
             }
         }
     }
+}
+
+// Comment Panel Styles - Deprecated: Comment panel is now handled by CommentOverlay component
+// This section is kept for backward compatibility but styles are defined in comment_overlay.scss
+
+// Comment Overlay Styles
+.o_knowledge_comment_overlay_wrapper {
+    .o_knowledge_comment_list_wrapper {
+        .o_knowledge_comment_list_header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: var(--knowledge-spacing-md, 16px);
+            padding-bottom: var(--knowledge-spacing-sm, 12px);
+            border-bottom: 1px solid var(--knowledge-border, #e0e0e0);
+            
+            .o_knowledge_comment_header_left {
+                display: flex;
+                align-items: center;
+                gap: var(--knowledge-spacing-md, 16px);
+                flex: 1;
+                
+                h4 {
+                    margin: 0;
+                    font-size: 18px;
+                    font-weight: 600;
+                    color: var(--knowledge-text, #212529);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    
+                    .badge {
+                        font-size: 12px;
+                        font-weight: 500;
+                        padding: 4px 8px;
+                    }
+                }
+                
+                .form-check {
+                    margin: 0;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    
+                    .form-check-input {
+                        margin: 0;
+                        cursor: pointer;
+                    }
+                    
+                    .form-check-label {
+                        margin: 0;
+                        font-size: 13px;
+                        color: var(--knowledge-text-secondary, #6c757d);
+                        cursor: pointer;
+                        user-select: none;
+                    }
+                }
+            }
+            
+            .o_knowledge_comment_close_btn {
+                padding: 6px 10px;
+                color: var(--knowledge-text-secondary, #6c757d);
+                font-size: 16px;
+                line-height: 1;
+                border: none;
+                background: transparent;
+                cursor: pointer;
+                border-radius: 4px;
+                transition: all 0.2s ease;
+                flex-shrink: 0;
+                
+                &:hover {
+                    color: var(--knowledge-text, #212529);
+                    background: var(--knowledge-bg-secondary, #f8f9fa);
+                }
+                
+                &:active {
+                    transform: scale(0.95);
+                }
+                
+                i {
+                    font-size: 18px;
+                }
+            }
+        }
+        
+        .o_knowledge_comment_item {
+            margin-bottom: var(--knowledge-spacing-md, 16px);
+            padding: var(--knowledge-spacing-md, 16px);
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            
+            .o_knowledge_comment_header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: var(--knowledge-spacing-sm, 12px);
+                
+                .o_knowledge_comment_author {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                    
+                    .o_knowledge_comment_author_avatar {
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 50%;
+                        object-fit: cover;
+                        border: 2px solid #fff;
+                        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                        flex-shrink: 0;
+                    }
+                    
+                    .o_knowledge_comment_author_name {
+                        font-weight: 600;
+                        color: var(--knowledge-text, #212529);
+                        font-size: 14px;
+                    }
+                    
+                    .o_knowledge_comment_date {
+                        color: var(--knowledge-text-secondary, #6c757d);
+                        font-size: 12px;
+                        margin-left: 8px;
+                    }
+                }
+            }
+            
+            .o_knowledge_comment_selected_text_preview {
+                background: #fff3cd;
+                border-left: 3px solid #ffc107;
+                padding: 8px 12px;
+                margin-bottom: var(--knowledge-spacing-sm, 12px);
+                border-radius: 4px;
+                font-size: 13px;
+                color: var(--knowledge-text, #212529);
+                position: relative;
+                
+                i {
+                    margin-right: 6px;
+                    color: #ffc107;
+                }
+                
+                // Highlight the selected text in the preview (matching article view)
+                .o_knowledge_comment_selected_text_highlight {
+                    background-color: #ffeb3b;
+                    padding: 2px 4px;
+                    border-radius: 2px;
+                    display: inline;
+                }
+                
+                // Styling for resolved comments (less prominent highlight)
+                &.o_knowledge_comment_resolved_preview {
+                    background: #f8f9fa;
+                    border-left-color: #6c757d;
+                    opacity: 0.7;
+                    
+                    .o_knowledge_comment_selected_text_highlight {
+                        background-color: transparent;
+                        text-decoration: line-through;
+                        color: var(--knowledge-text-secondary, #6c757d);
+                    }
+                }
+            }
+            
+            .o_knowledge_comment_body {
+                color: var(--knowledge-text, #212529);
+                font-size: 14px;
+                line-height: 1.6;
+                margin-bottom: var(--knowledge-spacing-sm, 12px);
+                
+                // Remove HTML tag display (like <p>)
+                p {
+                    margin: 0;
+                    display: inline;
+                }
+                
+                // Handle other HTML tags
+                br {
+                    display: block;
+                    margin: 4px 0;
+                }
+            }
+            
+            .o_knowledge_comment_replies_list {
+                margin-top: var(--knowledge-spacing-sm, 12px);
+                padding-left: var(--knowledge-spacing-md, 16px);
+                border-left: 2px solid #e0e0e0;
+                
+                .o_knowledge_comment_reply_item {
+                    margin-bottom: var(--knowledge-spacing-sm, 12px);
+                    
+                    .o_knowledge_comment_reply_header {
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin-bottom: 6px;
+                        
+                        .o_knowledge_comment_reply_avatar {
+                            width: 24px;
+                            height: 24px;
+                            border-radius: 50%;
+                            object-fit: cover;
+                            border: 1px solid #fff;
+                            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+                            flex-shrink: 0;
+                        }
+                        
+                        .o_knowledge_comment_author_name {
+                            font-weight: 600;
+                            color: var(--knowledge-text, #212529);
+                            font-size: 13px;
+                        }
+                        
+                        .o_knowledge_comment_date {
+                            color: var(--knowledge-text-secondary, #6c757d);
+                            font-size: 11px;
+                            margin-left: 6px;
+                        }
+                    }
+                    
+                    .o_knowledge_comment_reply_body {
+                        color: var(--knowledge-text, #212529);
+                        font-size: 13px;
+                        line-height: 1.5;
+                        
+                        // Remove HTML tag display
+                        p {
+                            margin: 0;
+                            display: inline;
+                        }
+                        
+                        br {
+                            display: block;
+                            margin: 3px 0;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Comment selection overlay button - positioned to the right of selected text
+.o_knowledge_comment_selection_overlay {
+    position: fixed;
+    z-index: 2000;
+    pointer-events: auto; // Ensure button is clickable
+    margin: 0; // Remove default margins
+    padding: 0; // Remove default padding
+    
+    .o_knowledge_comment_add_button {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        padding: 0;
+        margin: 0;
+        
+        i {
+            font-size: 20px;
+            color: #4285f4; // Google Blue
+            line-height: 1;
+        }
+        
+        &:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), 0 2px 6px rgba(0, 0, 0, 0.15);
+            background: #f8f9fa;
+        }
+        
+        &:active {
+            transform: scale(0.95);
+        }
+        
+        // Remove default button styles
+        &::before,
+        &::after {
+            display: none;
+        }
+    }
+}
+
+// Temporary highlight styling - ensure it stays visible
+.o_knowledge_comment_temp_highlight {
+    background-color: #ffeb3b !important;
+    border-radius: 2px !important;
+    display: inline !important;
+    user-select: none !important;
+    pointer-events: auto !important;
+    position: relative !important;
+    z-index: 1 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    
+    // Prevent highlight from being removed or hidden
+    &::before,
+    &::after {
+        content: '';
+        position: absolute;
+        width: 0;
+        height: 0;
+        pointer-events: none;
+    }
+    
+    // Prevent any style overrides that might hide the highlight
+    &[style*="display: none"],
+    &[style*="visibility: hidden"],
+    &[style*="opacity: 0"] {
+        display: inline !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+}
+
+// Profile picture inline next to highlight
+.o_knowledge_comment_avatar_inline {
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50% !important;
+    margin-left: 6px !important;
+    vertical-align: middle !important;
+    display: inline-block !important;
+    object-fit: cover !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+    transition: transform 0.2s ease;
+    
+    &:hover {
+        transform: scale(1.15);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+}
+
+// Adjust main content when comment panel is open
+.o_knowledge_article_content.o_knowledge_with_comments {
+    padding-right: 352px; // 320px panel + 32px gap (reduced from 416px)
+    
+    @media (max-width: 1200px) {
+        padding-right: 332px; // 300px panel + 32px gap for smaller screens
+    }
+    
+    @media (max-width: 768px) {
+        padding-right: 0;
+        // On mobile, comment panel should overlay or be in modal
+    }
+}
+
+// Comment button active state
+.o_knowledge_article_header_right .btn.o_active {
+    background-color: var(--knowledge-primary-light-fallback, rgba(35, 34, 34, 0.1));
+    border-color: var(--knowledge-primary, #232222);
 }
 
 // Reduced motion support

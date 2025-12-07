@@ -1,0 +1,572 @@
+/* Comment System Styles */
+
+/* Comment Highlight in Content */
+.o_knowledge_comment_highlight {
+    background-color: #ffeb3b !important;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: background-color 0.2s ease;
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 1;
+    
+    /* Prevent flickering by using will-change */
+    will-change: background-color;
+    
+    &:hover {
+        background-color: #ffc107 !important;
+    }
+    
+    /* Ensure click events work properly */
+    * {
+        pointer-events: none; /* Let clicks bubble to parent highlight */
+    }
+}
+
+/* Temporary Highlight (when text is selected) */
+.o_knowledge_comment_temp_highlight {
+    /* Method 1: Background color (primary) */
+    background-color: #ffeb3b !important;
+    background: #ffeb3b !important;
+    /* Method 2: Box shadow inset (backup for WYSIWYG editor issues) */
+    box-shadow: 0 0 0 4px #ffeb3b inset !important;
+    -webkit-box-shadow: 0 0 0 4px #ffeb3b inset !important;
+    -moz-box-shadow: 0 0 0 4px #ffeb3b inset !important;
+    /* Method 3: Outline (additional backup) */
+    outline: 3px solid #ffeb3b !important;
+    outline-offset: -3px !important;
+    /* Other styles */
+    cursor: pointer !important;
+    border-radius: 2px !important;
+    padding: 2px 0 !important;
+    transition: background-color 0.3s ease !important;
+    display: inline !important;
+    position: relative !important;
+    z-index: 999 !important;
+    color: inherit !important;
+    /* Prevent browser selection styling from overriding */
+    user-select: none !important;
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    /* Force visibility */
+    visibility: visible !important;
+    opacity: 1 !important;
+    
+    /* Ensure text is visible */
+    * {
+        color: inherit !important;
+        user-select: none !important;
+    }
+    
+    /* Override browser selection styling */
+    &::selection,
+    & *::selection {
+        background-color: transparent !important;
+        color: inherit !important;
+    }
+    
+    &:hover {
+        background-color: #ffc107 !important;
+        background: #ffc107 !important;
+        box-shadow: 0 0 0 4px #ffc107 inset !important;
+        outline-color: #ffc107 !important;
+    }
+}
+
+/* Prevent browser selection styling on highlighted text */
+.o_knowledge_article_body .o_knowledge_comment_temp_highlight::selection {
+    background-color: transparent !important;
+}
+
+.o_knowledge_article_body .o_knowledge_comment_temp_highlight *::selection {
+    background-color: transparent !important;
+}
+
+/* Force highlight visibility with highest specificity */
+.o_knowledge_article_body span.o_knowledge_comment_temp_highlight,
+.o_knowledge_article_content span.o_knowledge_comment_temp_highlight,
+div span.o_knowledge_comment_temp_highlight,
+p span.o_knowledge_comment_temp_highlight,
+strong span.o_knowledge_comment_temp_highlight {
+    background-color: #ffeb3b !important;
+    background: #ffeb3b !important;
+    display: inline !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* Ultra-high specificity for WYSIWYG editor content */
+.o_knowledge_article_body [contenteditable] span.o_knowledge_comment_temp_highlight,
+.o_knowledge_article_body p span.o_knowledge_comment_temp_highlight,
+.o_knowledge_article_body div span.o_knowledge_comment_temp_highlight,
+.o_knowledge_article_body strong span.o_knowledge_comment_temp_highlight,
+.o_knowledge_article_body em span.o_knowledge_comment_temp_highlight,
+.o_knowledge_article_body span span.o_knowledge_comment_temp_highlight {
+    background-color: #ffeb3b !important;
+    background: #ffeb3b !important;
+    background-image: none !important;
+    -webkit-background-clip: padding-box !important;
+    background-clip: padding-box !important;
+    display: inline !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    z-index: 999 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+/* Force highlight using ::before pseudo-element as backup */
+.o_knowledge_comment_temp_highlight::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ffeb3b;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Comment Button (shown when text is selected) */
+.o_knowledge_comment_button {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    
+    button {
+        white-space: nowrap;
+        
+        i {
+            margin-right: 4px;
+        }
+    }
+}
+
+/* Floating Comment Button (shown when text is selected in article) */
+.o_knowledge_comment_button_floating {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    /* No transform - show on the right side of selection */
+    display: flex;
+    align-items: center;
+    
+    button {
+        white-space: nowrap;
+        height: 30px; /* Fixed height for consistent alignment */
+        display: flex;
+        align-items: center;
+        
+        i {
+            margin-right: 4px;
+        }
+    }
+}
+
+/* Comment Overlay Wrapper */
+.o_knowledge_comment_overlay_wrapper {
+    position: relative;
+    
+    /* Comment Panel UI (fixed position on the right side) */
+    .o_knowledge_comment_list_wrapper {
+        position: fixed !important;
+        right: 0 !important;
+        top: 0 !important;
+        width: 320px !important;
+        max-width: 90vw !important;
+        height: 100vh !important;
+        background: #ffffff !important;
+        border-left: 1px solid #dee2e6 !important;
+        box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1) !important;
+        z-index: 1050 !important;
+        overflow-y: auto !important;
+        padding: 16px !important;
+        transition: transform 0.3s ease !important;
+        transform: translateX(0) !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        display: block !important;
+        
+        @media (max-width: 1200px) {
+            width: 300px !important;
+        }
+        
+        @media (max-width: 768px) {
+            width: 100vw !important;
+            max-width: 100vw !important;
+        }
+    }
+    
+    /* When hidden, slide panel off-screen but keep component mounted */
+    &.o_knowledge_comment_overlay_hidden {
+        .o_knowledge_comment_list_wrapper {
+            transform: translateX(100%) !important;
+            pointer-events: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+        }
+    }
+    
+    /* Ensure panel is visible when not hidden */
+    &:not(.o_knowledge_comment_overlay_hidden) {
+        .o_knowledge_comment_list_wrapper {
+            transform: translateX(0) !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+    }
+}
+
+/* Comment Form */
+.o_knowledge_comment_form {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1050;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    min-width: 320px; // Reduced from 400px to match panel width
+    max-width: 600px;
+    max-height: 80vh;
+    overflow-y: auto;
+    
+    .o_knowledge_comment_form_header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        border-bottom: 1px solid #dee2e6;
+        
+        .o_knowledge_comment_form_title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+    }
+    
+    .o_knowledge_comment_form_body {
+        padding: 16px;
+        
+        .o_knowledge_comment_selected_text {
+            margin-bottom: 16px;
+            padding: 12px;
+            background-color: #f8f9fa;
+            border-left: 3px solid #007bff;
+            border-radius: 4px;
+            
+            strong {
+                display: block;
+                margin-bottom: 4px;
+                color: #6c757d;
+                font-size: 12px;
+            }
+            
+            span {
+                color: #212529;
+                font-style: italic;
+            }
+        }
+        
+        .o_knowledge_comment_input {
+            margin-bottom: 16px;
+            
+            textarea {
+                resize: vertical;
+                min-height: 100px;
+            }
+        }
+        
+        .o_knowledge_comment_form_actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+    }
+}
+
+/* Comment List Wrapper - Fixed Position Panel */
+.o_knowledge_comment_list_wrapper {
+    position: fixed;
+    right: 0;
+    top: 0;
+    width: 320px;
+    max-width: 90vw;
+    height: 100vh;
+    background: #ffffff;
+    border-left: 1px solid #dee2e6;
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+    z-index: 1050;
+    overflow-y: auto;
+    padding: 16px;
+    transition: transform 0.3s ease;
+    margin-top: 0;
+    
+    @media (max-width: 1200px) {
+        width: 300px;
+    }
+    
+    @media (max-width: 768px) {
+        width: 100vw;
+        max-width: 100vw;
+    }
+    
+    .o_knowledge_comment_list_header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+        padding-bottom: 8px;
+        border-bottom: 2px solid #dee2e6;
+        
+        h4 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            
+            i {
+                margin-right: 8px;
+                color: #6c757d;
+            }
+            
+            .badge {
+                margin-left: 8px;
+                vertical-align: middle;
+            }
+        }
+        
+        .form-check {
+            margin: 0;
+            
+            .form-check-label {
+                font-size: 14px;
+                color: #6c757d;
+            }
+        }
+    }
+}
+
+/* Comment List */
+.o_knowledge_comment_list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Comment Item */
+.o_knowledge_comment_item {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+    transition: all 0.2s ease;
+    cursor: pointer; /* Make it clear it's clickable */
+    
+    &:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-color: #007bff;
+    }
+    
+    &.o_knowledge_comment_resolved {
+        opacity: 0.6;
+        
+        .o_knowledge_comment_body {
+            text-decoration: line-through;
+        }
+    }
+    
+    &.o_knowledge_comment_selected {
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    }
+    
+    &.o_knowledge_comment_highlighted {
+        animation: commentPulse 0.5s ease;
+    }
+}
+
+/* Pulse animation for highlighted comment */
+@keyframes commentPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0.7);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(0, 123, 255, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 123, 255, 0);
+    }
+}
+
+/* Comment Header */
+.o_knowledge_comment_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    
+    .o_knowledge_comment_author {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        
+        .o_knowledge_comment_author_avatar {
+            font-size: 24px;
+            color: #6c757d;
+        }
+        
+        .o_knowledge_comment_author_name {
+            font-weight: 600;
+            color: #212529;
+        }
+        
+        .o_knowledge_comment_date {
+            color: #6c757d;
+            font-size: 12px;
+        }
+    }
+    
+    .o_knowledge_comment_actions {
+        display: flex;
+        gap: 4px;
+    }
+}
+
+/* Selected Text Preview */
+.o_knowledge_comment_selected_text_preview {
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border-left: 3px solid #ffeb3b;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #495057;
+    font-style: italic;
+    
+    i {
+        margin-right: 8px;
+        color: #ffc107;
+    }
+}
+
+/* Comment Body */
+.o_knowledge_comment_body {
+    margin-bottom: 12px;
+    color: #212529;
+    line-height: 1.6;
+    word-wrap: break-word;
+}
+
+/* Replies Section */
+.o_knowledge_comment_replies {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e9ecef;
+    
+    .o_knowledge_comment_reply_form {
+        margin-top: 8px;
+        
+        textarea {
+            margin-bottom: 8px;
+        }
+        
+        .o_knowledge_comment_reply_actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+    }
+    
+    .o_knowledge_comment_replies_list {
+        margin-top: 12px;
+        padding-left: 24px;
+        border-left: 2px solid #e9ecef;
+    }
+}
+
+/* Reply Item */
+.o_knowledge_comment_reply_item {
+    margin-bottom: 12px;
+    padding: 12px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    
+    .o_knowledge_comment_reply_header {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 8px;
+        
+        .o_knowledge_comment_author_name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .o_knowledge_comment_date {
+            color: #6c757d;
+            font-size: 12px;
+        }
+    }
+    
+    .o_knowledge_comment_reply_body {
+        color: #495057;
+        font-size: 14px;
+        line-height: 1.5;
+        word-wrap: break-word;
+    }
+}
+
+/* Empty State */
+.o_knowledge_comment_empty {
+    text-align: center;
+    padding: 48px 24px;
+    color: #6c757d;
+    
+    i {
+        font-size: 48px;
+        margin-bottom: 16px;
+        color: #dee2e6;
+    }
+    
+    p {
+        margin: 8px 0;
+        
+        &.text-muted {
+            font-size: 14px;
+            color: #adb5bd;
+        }
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .o_knowledge_comment_form {
+        min-width: 90vw;
+        max-width: 90vw;
+        left: 5vw;
+        transform: translate(0, -50%);
+    }
+    
+    .o_knowledge_comment_list_header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .o_knowledge_comment_replies_list {
+        padding-left: 16px;
+    }
+}
+

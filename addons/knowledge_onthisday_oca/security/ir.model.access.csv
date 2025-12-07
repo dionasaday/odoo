@@ -8,3 +8,6 @@ access_knowledge_article_category_manager,knowledge.article.category.manager,mod
 access_knowledge_article_tag_user,knowledge.article.tag.user,model_knowledge_article_tag,base.group_user,1,1,1,0
 access_knowledge_article_tag_system,knowledge.article.tag.system,model_knowledge_article_tag,base.group_system,1,1,1,1
 access_knowledge_article_tag_manager,knowledge.article.tag.manager,model_knowledge_article_tag,knowledge_onthisday_oca.group_knowledge_manager,1,1,1,1
+access_knowledge_article_comment_user,knowledge.article.comment.user,model_knowledge_article_comment,base.group_user,1,1,1,1
+access_knowledge_article_comment_system,knowledge.article.comment.system,model_knowledge_article_comment,base.group_system,1,1,1,1
+access_knowledge_article_comment_manager,knowledge.article.comment.manager,model_knowledge_article_comment,knowledge_onthisday_oca.group_knowledge_manager,1,1,1,1

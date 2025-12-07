@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+        <!-- List View -->
+        <record id="view_knowledge_article_comment_list" model="ir.ui.view">
+            <field name="name">knowledge.article.comment.list</field>
+            <field name="model">knowledge.article.comment</field>
+            <field name="arch" type="xml">
+                <list string="Comments" decoration-muted="resolved == True">
+                    <field name="article_id"/>
+                    <field name="selected_text" string="Selected Text"/>
+                    <field name="author_id"/>
+                    <field name="resolved"/>
+                    <field name="create_date"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Form View -->
+        <record id="view_knowledge_article_comment_form" model="ir.ui.view">
+            <field name="name">knowledge.article.comment.form</field>
+            <field name="model">knowledge.article.comment</field>
+            <field name="arch" type="xml">
+                <form string="Comment">
+                    <header>
+                        <button name="action_resolve"
+                                string="Resolve"
+                                type="object"
+                                class="btn-primary"
+                                invisible="resolved == True"/>
+                        <button name="action_unresolve"
+                                string="Unresolve"
+                                type="object"
+                                class="btn-secondary"
+                                invisible="resolved == False"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <field name="article_id" readonly="1"/>
+                            <field name="author_id" readonly="1"/>
+                            <field name="resolved"/>
+                        </group>
+                        <group>
+                            <field name="selected_text" readonly="1"/>
+                            <field name="start_offset" readonly="1"/>
+                            <field name="end_offset" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="body" widget="html" nolabel="1"/>
+                        </group>
+                        <group string="Threading">
+                            <field name="parent_id"/>
+                            <field name="child_ids" readonly="1">
+                                <list>
+                                    <field name="author_id"/>
+                                    <field name="body" widget="html"/>
+                                    <field name="create_date"/>
+                                </list>
+                            </field>
+                        </group>
+                        <group string="Mentions">
+                            <field name="mentioned_user_ids" widget="many2many_tags"/>
+                        </group>
+                    </sheet>
+                    <chatter/>
+                </form>
+            </field>
+        </record>
+
+        <!-- Search View -->
+        <record id="view_knowledge_article_comment_search" model="ir.ui.view">
+            <field name="name">knowledge.article.comment.search</field>
+            <field name="model">knowledge.article.comment</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="selected_text"/>
+                    <field name="article_id"/>
+                    <field name="author_id"/>
+                    <field name="mentioned_user_ids"/>
+                    <filter string="Unresolved" name="filter_unresolved" domain="[('resolved', '=', False)]"/>
+                    <filter string="Resolved" name="filter_resolved" domain="[('resolved', '=', True)]"/>
+                    <filter string="My Comments" name="filter_my_comments" domain="[('author_id', '=', uid)]"/>
+                    <filter string="Mentions Me" name="filter_mentions_me" domain="[('mentioned_user_ids', 'in', [uid])]"/>
+                </search>
+            </field>
+        </record>
+
+        <!-- Action: All Comments -->
+        <record id="action_knowledge_article_comment" model="ir.actions.act_window">
+            <field name="name">Comments</field>
+            <field name="res_model">knowledge.article.comment</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_knowledge_article_comment_search"/>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    No comments yet!
+                </p>
+                <p>
+                    Comments allow you to discuss specific parts of articles with your team.
+                </p>
+            </field>
+        </record>
+    </data>
+</odoo>
+
