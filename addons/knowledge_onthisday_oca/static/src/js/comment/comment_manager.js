@@ -22,6 +22,8 @@ export class CommentManager {
         this.highlights = new Map(); // Map<commentId, highlightElement>
         this.onHighlightClickCallback = onHighlightClickCallback; // Callback when highlight is clicked
         this._isRenderingHighlights = false; // Flag to prevent infinite loop
+        this._highlightObserver = null; // MutationObserver to watch for removed highlights
+        this._lastReRenderTime = 0; // Timestamp of last re-render to prevent too frequent re-renders
     }
 
     /**
@@ -123,6 +125,9 @@ export class CommentManager {
                                 resolvedCount: comments.filter(c => c.resolved).length,
                                 highlightsCount: this.highlights.size
                             });
+                            
+                            // Start watching for removed highlights after initial render
+                            this.startWatchingHighlights();
                         } catch (highlightError) {
                             logger.warn('Error rendering highlights (non-critical):', highlightError);
                             // Continue even if highlight rendering fails
@@ -436,6 +441,12 @@ export class CommentManager {
         if (this._isRenderingHighlights) {
             logger.log('Skipping renderHighlights(): already rendering (preventing infinite loop)');
             return;
+        }
+        
+        // Temporarily stop watching to prevent observer from interfering
+        const wasWatching = !!this._highlightObserver;
+        if (wasWatching) {
+            this.stopWatchingHighlights();
         }
         
         // Set flag to prevent recursive calls
@@ -765,6 +776,13 @@ export class CommentManager {
             // Add a small delay before clearing to prevent rapid re-renders
             setTimeout(() => {
                 this._isRenderingHighlights = false;
+                
+                // Re-start watching after rendering completes
+                if (wasWatching) {
+                    setTimeout(() => {
+                        this.startWatchingHighlights();
+                    }, 1000);
+                }
             }, 100);
         }
     }
@@ -1047,47 +1065,142 @@ export class CommentManager {
                     range.surroundContents(highlight);
                     this.highlights.set(comment.id, highlight);
                     
+                    // CRITICAL: Wait for DOM to stabilize before adding profile picture
+                    // Sometimes DOM manipulation needs time to settle
+                    await new Promise(resolve => {
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                resolve();
+                            });
+                        });
+                    });
+                    
+                    // Verify highlight is actually in DOM before proceeding
+                    const highlightInDOM = this.contentElement.querySelector(
+                        `.o_knowledge_comment_highlight[data-comment-id="${comment.id}"]`
+                    );
+                    
+                    if (!highlightInDOM || !highlightInDOM.parentNode) {
+                        logger.warn(`Highlight for comment ${comment.id} not in DOM immediately after render, attempting fallback`);
+                        // Try fallback insertion method
+                        try {
+                            const clonedRange = range.cloneRange();
+                            const contents = clonedRange.extractContents();
+                            highlight.appendChild(contents);
+                            clonedRange.insertNode(highlight);
+                            this.highlights.set(comment.id, highlight);
+                        } catch (fallbackError) {
+                            logger.error(`Fallback insertion failed for comment ${comment.id}:`, fallbackError);
+                            return false;
+                        }
+                    }
+                    
                     // Add profile picture to the right of highlight
                     this.addProfilePictureToHighlight(comment, highlight);
+                    
+                    // Final verification after all operations
+                    await new Promise(resolve => requestAnimationFrame(resolve));
+                    
+                    const finalCheck = this.contentElement.querySelector(
+                        `.o_knowledge_comment_highlight[data-comment-id="${comment.id}"]`
+                    );
+                    
+                    if (!finalCheck || !finalCheck.parentNode) {
+                        logger.warn(`Highlight for comment ${comment.id} disappeared from DOM after operations`, {
+                            hasParentNode: finalCheck && finalCheck.parentNode !== null,
+                            highlightInMap: this.highlights.has(comment.id)
+                        });
+                        // Remove stale reference from map
+                        if (this.highlights.has(comment.id)) {
+                            this.highlights.delete(comment.id);
+                        }
+                        return false;
+                    }
+                    
+                    // Update map with verified reference
+                    this.highlights.set(comment.id, finalCheck);
                     
                     logger.log(`Highlight rendered for comment ${comment.id}`, {
                         commentId: comment.id,
                         selectedText: comment.selected_text,
                         textSearchUsed: textSearchSuccess,
-                        tempHighlightActive: hasTempHighlight
+                        tempHighlightActive: hasTempHighlight,
+                        highlightInDOM: !!finalCheck.parentNode
                     });
                     
-                    // Verify highlight is in DOM
-                    if (highlight.parentNode) {
-                        return true; // Success
-                    } else {
-                        logger.warn(`Highlight for comment ${comment.id} was created but not in DOM`);
-                        return false; // Failed
-                    }
+                    return true; // Success
                 } catch (e) {
                     // If surroundContents fails (e.g., range spans multiple elements),
                     // use extractContents and insert
-                    const contents = range.extractContents();
-                    highlight.appendChild(contents);
-                    range.insertNode(highlight);
-                    this.highlights.set(comment.id, highlight);
+                    logger.log(`surroundContents failed for comment ${comment.id}, using fallback method:`, e.message);
                     
-                    // Add profile picture to the right of highlight
-                    this.addProfilePictureToHighlight(comment, highlight);
-                    
-                    logger.log(`Highlight rendered for comment ${comment.id} (using extractContents)`, {
-                        commentId: comment.id,
-                        selectedText: comment.selected_text,
-                        textSearchUsed: textSearchSuccess,
-                        tempHighlightActive: hasTempHighlight
-                    });
-                    
-                    // Verify highlight is in DOM
-                    if (highlight.parentNode) {
+                    try {
+                        const contents = range.extractContents();
+                        highlight.appendChild(contents);
+                        range.insertNode(highlight);
+                        this.highlights.set(comment.id, highlight);
+                        
+                        // Wait for DOM to stabilize
+                        await new Promise(resolve => {
+                            requestAnimationFrame(() => {
+                                requestAnimationFrame(() => {
+                                    resolve();
+                                });
+                            });
+                        });
+                        
+                        // Verify highlight is in DOM
+                        const highlightInDOM = this.contentElement.querySelector(
+                            `.o_knowledge_comment_highlight[data-comment-id="${comment.id}"]`
+                        );
+                        
+                        if (!highlightInDOM || !highlightInDOM.parentNode) {
+                            logger.warn(`Highlight for comment ${comment.id} not in DOM after fallback insertion`);
+                            if (this.highlights.has(comment.id)) {
+                                this.highlights.delete(comment.id);
+                            }
+                            return false;
+                        }
+                        
+                        // Add profile picture to the right of highlight
+                        this.addProfilePictureToHighlight(comment, highlight);
+                        
+                        // Final verification
+                        await new Promise(resolve => requestAnimationFrame(resolve));
+                        
+                        const finalCheck = this.contentElement.querySelector(
+                            `.o_knowledge_comment_highlight[data-comment-id="${comment.id}"]`
+                        );
+                        
+                        if (!finalCheck || !finalCheck.parentNode) {
+                            logger.warn(`Highlight for comment ${comment.id} disappeared after fallback operations`, {
+                                hasParentNode: finalCheck && finalCheck.parentNode !== null,
+                                highlightInMap: this.highlights.has(comment.id)
+                            });
+                            if (this.highlights.has(comment.id)) {
+                                this.highlights.delete(comment.id);
+                            }
+                            return false;
+                        }
+                        
+                        // Update map with verified reference
+                        this.highlights.set(comment.id, finalCheck);
+                        
+                        logger.log(`Highlight rendered for comment ${comment.id} (using extractContents)`, {
+                            commentId: comment.id,
+                            selectedText: comment.selected_text,
+                            textSearchUsed: textSearchSuccess,
+                            tempHighlightActive: hasTempHighlight,
+                            highlightInDOM: !!finalCheck.parentNode
+                        });
+                        
                         return true; // Success
-                    } else {
-                        logger.warn(`Highlight for comment ${comment.id} was created but not in DOM (fallback method)`);
-                        return false; // Failed
+                    } catch (fallbackError) {
+                        logger.error(`Fallback insertion also failed for comment ${comment.id}:`, fallbackError);
+                        if (this.highlights.has(comment.id)) {
+                            this.highlights.delete(comment.id);
+                        }
+                        return false;
                     }
                 }
             } finally {
@@ -1365,5 +1478,166 @@ export class CommentManager {
      */
     getUnresolvedCount() {
         return this.comments.filter(c => !c.resolved).length;
+    }
+
+    /**
+     * Start watching for highlights being removed from DOM
+     * This will automatically re-render highlights if they're removed by Owl/framework
+     */
+    startWatchingHighlights() {
+        if (!this.contentElement) return;
+        
+        // Stop existing observer if any
+        if (this._highlightObserver) {
+            this._highlightObserver.disconnect();
+            this._highlightObserver = null;
+        }
+        
+        let reRenderTimeout = null;
+        const scheduleReRender = () => {
+            // Clear existing timeout
+            if (reRenderTimeout) {
+                clearTimeout(reRenderTimeout);
+            }
+            
+            // Debounce re-rendering (wait 2 seconds after last mutation)
+            reRenderTimeout = setTimeout(async () => {
+                // Prevent re-render if already rendering
+                if (this._isRenderingHighlights) {
+                    return;
+                }
+                
+                // Cooldown period - don't re-render if we just rendered recently (within 5 seconds)
+                const now = Date.now();
+                const timeSinceLastRender = now - (this._lastReRenderTime || 0);
+                if (timeSinceLastRender < 5000) {
+                    logger.log('Skipping highlight re-render: cooldown period active', {
+                        timeSinceLastRender: timeSinceLastRender,
+                        cooldownRemaining: 5000 - timeSinceLastRender
+                    });
+                    return;
+                }
+                
+                // Check which highlights are missing from DOM
+                const unresolvedComments = this.comments.filter(c => !c.resolved);
+                const missingHighlights = [];
+                
+                for (const comment of unresolvedComments) {
+                    const highlightInDOM = this.contentElement.querySelector(
+                        `.o_knowledge_comment_highlight[data-comment-id="${comment.id}"]`
+                    );
+                    
+                    if (!highlightInDOM) {
+                        // Highlight should exist but doesn't - mark as missing
+                        if (this.highlights.has(comment.id)) {
+                            // Remove stale reference from map
+                            this.highlights.delete(comment.id);
+                        }
+                        missingHighlights.push(comment);
+                    } else {
+                        // Highlight exists - update map reference if needed
+                        if (!this.highlights.has(comment.id) || this.highlights.get(comment.id) !== highlightInDOM) {
+                            this.highlights.set(comment.id, highlightInDOM);
+                        }
+                    }
+                }
+                
+                // If we have missing highlights, re-render them
+                if (missingHighlights.length > 0) {
+                    logger.warn('Highlights were removed from DOM, re-rendering missing highlights', {
+                        missingCount: missingHighlights.length,
+                        missingCommentIds: missingHighlights.map(c => c.id)
+                    });
+                    
+                    // Temporarily disconnect observer to prevent loop
+                    if (this._highlightObserver) {
+                        this._highlightObserver.disconnect();
+                    }
+                    
+                    try {
+                        this._lastReRenderTime = Date.now();
+                        
+                        // Re-render missing highlights only
+                        for (const comment of missingHighlights) {
+                            await this.renderHighlight(comment);
+                            // Small delay between renders
+                            await new Promise(resolve => requestAnimationFrame(resolve));
+                        }
+                        
+                        logger.log('Missing highlights re-rendered', {
+                            reRenderedCount: missingHighlights.length
+                        });
+                    } catch (error) {
+                        logger.error('Error re-rendering missing highlights:', error);
+                    } finally {
+                        // Reconnect observer after a delay
+                        setTimeout(() => {
+                            if (this.contentElement && !this._highlightObserver) {
+                                this.startWatchingHighlights();
+                            }
+                        }, 2000);
+                    }
+                }
+            }, 2000); // Wait 2 seconds after last mutation before checking
+        };
+        
+        // Watch for removed nodes (highlights being deleted)
+        this._highlightObserver = new MutationObserver((mutations) => {
+            let shouldCheck = false;
+            
+            for (const mutation of mutations) {
+                // Check if any highlights were removed
+                if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
+                    for (const node of mutation.removedNodes) {
+                        // Check if removed node is a highlight or contains highlights
+                        if (node.nodeType === Node.ELEMENT_NODE) {
+                            if (node.classList && node.classList.contains('o_knowledge_comment_highlight')) {
+                                shouldCheck = true;
+                                break;
+                            }
+                            // Also check if it's a parent that might contain highlights
+                            if (node.querySelector && node.querySelector('.o_knowledge_comment_highlight')) {
+                                shouldCheck = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (shouldCheck) break;
+                }
+                
+                // Also check if attributes changed (e.g., highlights were replaced)
+                if (mutation.type === 'attributes' && mutation.target.classList && 
+                    mutation.target.classList.contains('o_knowledge_comment_highlight')) {
+                    shouldCheck = true;
+                    break;
+                }
+            }
+            
+            if (shouldCheck) {
+                scheduleReRender();
+            }
+        });
+        
+        // Observe content element for changes
+        this._highlightObserver.observe(this.contentElement, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['class', 'data-comment-id']
+        });
+        
+        logger.log('Started watching for removed highlights');
+    }
+
+    /**
+     * Stop watching for highlights being removed
+     */
+    stopWatchingHighlights() {
+        if (this._highlightObserver) {
+            this._highlightObserver.disconnect();
+            this._highlightObserver = null;
+            logger.log('Stopped watching for removed highlights');
+        }
     }
 }

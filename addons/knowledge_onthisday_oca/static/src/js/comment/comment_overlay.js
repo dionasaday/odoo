@@ -3439,18 +3439,87 @@ export class CommentOverlay extends Component {
     }
 
     /**
-     * Format date for display
+     * Format date for display in Thailand timezone (UTC+7)
+     * Odoo sends datetime in format: "YYYY-MM-DD HH:MM:SS" (stored in UTC)
+     * We need to properly parse and convert to Thailand timezone
      */
     formatDate(dateString) {
         if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('th-TH', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        
+        try {
+            // Odoo sends datetime in format: "YYYY-MM-DD HH:MM:SS" or "YYYY-MM-DDTHH:MM:SS"
+            // Odoo stores datetime in UTC but sends without timezone indicator
+            // We need to treat it as UTC and convert to Thailand timezone
+            
+            let date;
+            if (typeof dateString === 'string') {
+                // Normalize the string
+                let normalizedString = dateString.trim();
+                
+                // Replace first space with T if not already in ISO format
+                // Format: "2025-12-07 14:25:00" -> "2025-12-07T14:25:00"
+                if (normalizedString.includes(' ') && !normalizedString.includes('T')) {
+                    normalizedString = normalizedString.replace(' ', 'T');
+                }
+                
+                // Remove microseconds if present (e.g., ".123456")
+                normalizedString = normalizedString.replace(/\.\d{6}/, '');
+                
+                // Check if timezone indicator exists
+                // Format can be: "Z", "+07:00", "-05:00", etc.
+                const hasTimezone = normalizedString.endsWith('Z') || 
+                                   /[+-]\d{2}:?\d{2}$/.test(normalizedString);
+                
+                // If no timezone, treat as UTC by adding 'Z'
+                // This is critical because Odoo stores datetime in UTC
+                if (!hasTimezone) {
+                    normalizedString = normalizedString + 'Z';
+                }
+                
+                date = new Date(normalizedString);
+            } else {
+                date = new Date(dateString);
+            }
+            
+            // Validate date
+            if (isNaN(date.getTime())) {
+                logger.warn('Invalid date string:', dateString);
+                return dateString; // Return original string if parsing fails
+            }
+            
+            // Log for debugging (can be removed in production)
+            // logger.log('formatDate:', {
+            //     original: dateString,
+            //     parsed: date.toISOString(),
+            //     utcTime: date.toUTCString()
+            // });
+            
+            // Use Intl.DateTimeFormat for better timezone handling
+            // Convert to Thailand timezone (Asia/Bangkok, UTC+7)
+            const formatter = new Intl.DateTimeFormat('th-TH', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'Asia/Bangkok' // Force Thailand timezone (UTC+7)
+            });
+            
+            const formatted = formatter.format(date);
+            
+            // Log result for debugging (can be removed in production)
+            // logger.log('formatDate result:', {
+            //     original: dateString,
+            //     formatted: formatted,
+            //     utcHour: date.getUTCHours(),
+            //     thaiHour: new Date(formatter.formatToParts(date).find(p => p.type === 'hour').value)
+            // });
+            
+            return formatted;
+        } catch (error) {
+            logger.error('Error formatting date:', error, dateString);
+            return dateString; // Return original string on error
+        }
     }
 
     /**
