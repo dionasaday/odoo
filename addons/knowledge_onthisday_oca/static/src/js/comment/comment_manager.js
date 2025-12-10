@@ -1601,7 +1601,13 @@ export class CommentManager {
         
         // Watch for removed nodes (highlights being deleted)
         this._highlightObserver = new MutationObserver((mutations) => {
+            // Skip if we're currently rendering (highlights may be temporarily removed during rendering)
+            if (this._isRenderingHighlights) {
+                return;
+            }
+            
             let shouldCheck = false;
+            let removedHighlightIds = new Set();
             
             for (const mutation of mutations) {
                 // Check if any highlights were removed
@@ -1610,13 +1616,22 @@ export class CommentManager {
                         // Check if removed node is a highlight or contains highlights
                         if (node.nodeType === Node.ELEMENT_NODE) {
                             if (node.classList && node.classList.contains('o_knowledge_comment_highlight')) {
+                                const commentId = node.getAttribute('data-comment-id');
+                                if (commentId) {
+                                    removedHighlightIds.add(parseInt(commentId, 10));
+                                }
                                 shouldCheck = true;
-                                break;
                             }
                             // Also check if it's a parent that might contain highlights
                             if (node.querySelector && node.querySelector('.o_knowledge_comment_highlight')) {
+                                const highlightsInNode = node.querySelectorAll('.o_knowledge_comment_highlight');
+                                highlightsInNode.forEach(hl => {
+                                    const commentId = hl.getAttribute('data-comment-id');
+                                    if (commentId) {
+                                        removedHighlightIds.add(parseInt(commentId, 10));
+                                    }
+                                });
                                 shouldCheck = true;
-                                break;
                             }
                         }
                     }
@@ -1625,10 +1640,35 @@ export class CommentManager {
                 }
                 
                 // Also check if attributes changed (e.g., highlights were replaced)
+                // But skip this check if we're rendering to avoid false positives
                 if (mutation.type === 'attributes' && mutation.target.classList && 
                     mutation.target.classList.contains('o_knowledge_comment_highlight')) {
+                    const commentId = mutation.target.getAttribute('data-comment-id');
+                    if (commentId) {
+                        removedHighlightIds.add(parseInt(commentId, 10));
+                    }
                     shouldCheck = true;
-                    break;
+                }
+            }
+            
+            // Verify that highlights are actually missing (not just temporarily during rendering)
+            if (shouldCheck && removedHighlightIds.size > 0) {
+                // Double-check by querying DOM directly
+                let actuallyMissing = false;
+                for (const commentId of removedHighlightIds) {
+                    const stillInDOM = this.contentElement.querySelector(
+                        `.o_knowledge_comment_highlight[data-comment-id="${commentId}"]`
+                    );
+                    if (!stillInDOM) {
+                        actuallyMissing = true;
+                        break;
+                    }
+                }
+                
+                if (!actuallyMissing) {
+                    // Highlights are still in DOM - false alarm, skip re-render
+                    logger.log('Highlights detected as removed but still in DOM - false alarm, skipping re-render');
+                    return;
                 }
             }
             
