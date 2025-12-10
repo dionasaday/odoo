@@ -2310,73 +2310,81 @@ export class CommentOverlay extends Component {
             return;
         }
 
-        // Calculate text box position: positioned to the right of selected text
-        // Position text box at the right edge of the content area, below the highlight
-        const boxWidth = 350; // Text box width
-        const boxHeight = 150; // Estimated text box height (will adjust based on content)
-        const boxTop = rect.bottom + 12; // Position below highlight with 12px gap
-        // Position at end of line (right edge of content area, with margin)
-        const contentElement = this.props.contentElement || document.querySelector('.o_knowledge_article_body');
-        let endOfLineLeft = rect.right; // Default to right of highlight
+        // Calculate button position: positioned at end of line, right side of article
+        // Get the button size (circular icon, 32x32px)
+        const buttonWidth = 32;
+        const buttonHeight = 32;
+        const buttonMargin = 12; // Margin from right edge
         
-        // Try to find the right edge of the content container or line
+        // Find the content element to get its right edge
+        const contentElement = this.props.contentElement || document.querySelector('.o_knowledge_article_body');
+        let contentRightEdge = 0;
+        
         if (contentElement) {
             const contentRect = contentElement.getBoundingClientRect();
-            const rightEdge = contentRect.right;
-            const minMargin = 20; // Margin from right edge
-            // Use right edge of content minus box width and margin, but ensure it's after highlight
-            endOfLineLeft = Math.max(rect.right + 12, rightEdge - boxWidth - minMargin);
+            contentRightEdge = contentRect.right;
         } else {
-            // Fallback: use viewport width
+            // Fallback: use viewport width minus some margin for sidebar/panel
             const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-            const minMargin = 20;
-            endOfLineLeft = Math.max(rect.right + 12, viewportWidth - boxWidth - minMargin);
+            // Account for possible right sidebar (comment panel, TOC, etc.)
+            contentRightEdge = viewportWidth - 350; // Approximate space for sidebars
         }
         
-        const boxLeft = endOfLineLeft;
+        // Position button at the same vertical level as the selected text (top of selection)
+        // Aligned to the right edge of content area
+        const buttonTop = rect.top; // Same vertical position as selection
+        const buttonLeft = contentRightEdge - buttonWidth - buttonMargin; // Right edge minus button width and margin
         
-        // Also check if box would go off screen, adjust if needed
+        // Additional validation: ensure positions are reasonable
         const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
         const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
         
-        // Additional validation: ensure positions are reasonable
-        if (isNaN(boxTop) || isNaN(boxLeft) || boxTop < 0 || boxLeft < 0) {
-            logger.warn('Invalid text box position calculated', {
-                boxTop,
-                boxLeft,
-                rect
+        if (isNaN(buttonTop) || isNaN(buttonLeft) || buttonTop < 0 || buttonLeft < 0) {
+            logger.warn('Invalid button position calculated', {
+                buttonTop,
+                buttonLeft,
+                rect,
+                contentRightEdge
             });
             return;
         }
         
-        // Determine final position: position below highlight, aligned to right
-        let finalTop = boxTop;
-        let finalLeft = boxLeft;
+        // Determine final position: end of line, right side
+        let finalTop = buttonTop;
+        let finalLeft = buttonLeft;
         
-        // Ensure box doesn't go off right edge of viewport
-        const maxLeft = viewportWidth - boxWidth - 20; // Leave 20px margin from right edge
+        // Ensure button doesn't go off right edge of viewport
+        const maxLeft = viewportWidth - buttonWidth - 20; // Leave 20px margin from viewport right edge
         if (finalLeft > maxLeft) {
             finalLeft = maxLeft;
-            logger.log('Text box adjusted to stay within viewport', {
-                originalLeft: boxLeft,
+            logger.log('Button adjusted to stay within viewport', {
+                originalLeft: buttonLeft,
                 finalLeft: finalLeft,
                 maxLeft: maxLeft
             });
         }
         
-        // Ensure box is at least to the right of highlight (don't overlap)
+        // Ensure button doesn't overlap with selected text (must be to the right)
         if (finalLeft < rect.right + 8) {
-            finalLeft = rect.right + 8; // Minimum 8px gap from highlight
+            // If selection extends too far right, position below selection instead
+            finalTop = rect.bottom + 8;
+            finalLeft = contentRightEdge - buttonWidth - buttonMargin;
+            
+            // If still doesn't fit, use fallback: position at right edge anyway
+            if (finalLeft < rect.right + 8) {
+                finalLeft = rect.right + 8;
+            }
         }
         
-        // Ensure box doesn't go above viewport
+        // Ensure button doesn't go above viewport
         if (finalTop < 0) {
             finalTop = 10; // 10px from top
         }
         
-        // Ensure box doesn't go below viewport - if it does, position above highlight instead
-        if (finalTop + boxHeight > viewportHeight - 20) {
-            finalTop = rect.top - boxHeight - 12; // Position above highlight with 12px gap
+        // Ensure button doesn't go below viewport
+        if (finalTop + buttonHeight > viewportHeight - 20) {
+            // Position above selection if below doesn't fit
+            finalTop = rect.top - buttonHeight - 8;
             // If still doesn't fit, position at top of viewport
             if (finalTop < 10) {
                 finalTop = 10;
