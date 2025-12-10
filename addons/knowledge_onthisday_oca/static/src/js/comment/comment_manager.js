@@ -471,6 +471,20 @@ export class CommentManager {
         const resolvedIds = new Set(resolvedComments.map(c => c.id));
         const unresolvedIds = new Set(unresolvedComments.map(c => c.id));
         
+        // Log for debugging - check comment 17 specifically
+        const comment17 = this.comments.find(c => c.id === 17);
+        if (comment17) {
+            logger.log('Comment 17 status check:', {
+                id: comment17.id,
+                resolved: comment17.resolved,
+                resolvedType: typeof comment17.resolved,
+                resolvedValue: comment17.resolved,
+                inResolvedIds: resolvedIds.has(17),
+                inUnresolvedIds: unresolvedIds.has(17),
+                selectedText: comment17.selected_text ? comment17.selected_text.substring(0, 50) : null
+            });
+        }
+        
         // Also collect all resolved comment IDs including those that might have unresolved replies
         // We need to ensure highlights for resolved comments are removed even if they have unresolved replies
         const allResolvedCommentIds = new Set();
@@ -488,6 +502,13 @@ export class CommentManager {
             });
         };
         findResolvedParentIds(this.comments);
+        
+        // Log allResolvedCommentIds for debugging
+        if (allResolvedCommentIds.has(17)) {
+            logger.log('Comment 17 is in allResolvedCommentIds - highlight should be removed');
+        } else {
+            logger.log('Comment 17 is NOT in allResolvedCommentIds - may be rendered');
+        }
 
         // Step 3: If temp highlight exists, try to find matching comment to replace it
         // IMPORTANT: Don't skip rendering if we have unresolved comments - always render them
