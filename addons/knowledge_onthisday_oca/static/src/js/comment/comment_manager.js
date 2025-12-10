@@ -831,8 +831,14 @@ export class CommentManager {
         }
 
         // Step 10: Verify all unresolved comments have highlights in DOM
+        // CRITICAL: Only check comments that are NOT in allResolvedCommentIds
+        // Comments that are hidden (because parent is resolved) should not be checked
         const highlightsInDOM = this.contentElement.querySelectorAll('.o_knowledge_comment_highlight').length;
         const missingHighlights = unresolvedComments.filter(comment => {
+            // Skip if comment is in allResolvedCommentIds (should be hidden)
+            if (allResolvedCommentIds.has(comment.id)) {
+                return false; // Don't check for missing highlights - comment should be hidden
+            }
             const highlightInDOM = this.contentElement.querySelector(
                 `.o_knowledge_comment_highlight[data-comment-id="${comment.id}"]`
             );
