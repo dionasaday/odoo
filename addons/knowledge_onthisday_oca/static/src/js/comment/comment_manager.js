@@ -474,6 +474,8 @@ export class CommentManager {
         // Log for debugging - check comment 17 specifically
         const comment17 = this.comments.find(c => c.id === 17);
         if (comment17) {
+            // Find parent comment if exists
+            const parentComment = comment17.parent_id ? this.comments.find(c => c.id === comment17.parent_id) : null;
             logger.log('Comment 17 status check:', {
                 id: comment17.id,
                 resolved: comment17.resolved,
@@ -481,6 +483,9 @@ export class CommentManager {
                 resolvedValue: comment17.resolved,
                 inResolvedIds: resolvedIds.has(17),
                 inUnresolvedIds: unresolvedIds.has(17),
+                parentId: comment17.parent_id,
+                parentResolved: parentComment ? parentComment.resolved : null,
+                parentExists: !!parentComment,
                 selectedText: comment17.selected_text ? comment17.selected_text.substring(0, 50) : null
             });
         }
@@ -507,25 +512,50 @@ export class CommentManager {
         };
         findResolvedParentIds(this.comments);
         
-        // Also find all child IDs of resolved comments (to hide unresolved replies of resolved parents)
-        const findChildrenOfResolved = (comments) => {
-            comments.forEach(comment => {
-                if (comment.resolved && comment.replies && comment.replies.length > 0) {
-                    comment.replies.forEach(reply => {
-                        // Mark all replies of resolved comments as "should be hidden"
-                        allResolvedCommentIds.add(reply.id);
-                        // Recursively mark nested replies
-                        if (reply.replies && reply.replies.length > 0) {
-                            findChildrenOfResolved([reply]);
-                        }
-                    });
+        // CRITICAL: Also find all child IDs of resolved comments using parent_id
+        // Since this.comments is a flat array, we need to check parent_id directly
+        // If a comment has a parent_id and that parent is resolved, mark the comment as "should be hidden"
+        this.comments.forEach(comment => {
+            if (comment.parent_id) {
+                // Find parent comment
+                const parentComment = this.comments.find(c => c.id === comment.parent_id);
+                if (parentComment && parentComment.resolved) {
+                    // Parent is resolved - mark this comment (and all its descendants) as "should be hidden"
+                    allResolvedCommentIds.add(comment.id);
+                    logger.log(`Marking comment ${comment.id} as hidden because parent ${comment.parent_id} is resolved`);
                 }
-                if (comment.replies && comment.replies.length > 0) {
-                    findChildrenOfResolved(comment.replies);
+            }
+        });
+        
+        // Also recursively mark all descendants of resolved comments
+        // Build a map of parent -> children for efficient lookup
+        const childrenMap = new Map();
+        this.comments.forEach(comment => {
+            if (comment.parent_id) {
+                if (!childrenMap.has(comment.parent_id)) {
+                    childrenMap.set(comment.parent_id, []);
                 }
-            });
+                childrenMap.get(comment.parent_id).push(comment);
+            }
+        });
+        
+        // Recursively mark all descendants of resolved comments
+        const markDescendants = (parentId) => {
+            const children = childrenMap.get(parentId);
+            if (children) {
+                children.forEach(child => {
+                    allResolvedCommentIds.add(child.id);
+                    logger.log(`Marking descendant comment ${child.id} as hidden because ancestor is resolved`);
+                    // Recursively mark nested descendants
+                    markDescendants(child.id);
+                });
+            }
         };
-        findChildrenOfResolved(this.comments);
+        
+        // Mark all descendants of resolved comments
+        resolvedComments.forEach(resolvedComment => {
+            markDescendants(resolvedComment.id);
+        });
         
         // Log allResolvedCommentIds for debugging
         if (allResolvedCommentIds.has(17)) {
