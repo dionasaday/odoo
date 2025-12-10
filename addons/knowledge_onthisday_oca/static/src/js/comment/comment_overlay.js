@@ -2433,16 +2433,16 @@ export class CommentOverlay extends Component {
                 height: rect.height 
             },
             boxPosition: { 
-                calculatedTop: boxTop, 
-                calculatedLeft: boxLeft,
+                calculatedTop: buttonTop, 
+                calculatedLeft: buttonLeft,
                 finalTop: finalTop,
                 finalLeft: finalLeft,
                 viewportWidth: viewportWidth,
                 viewportHeight: viewportHeight,
                 endOfLineLeft: endOfLineLeft,
                 distanceFromHighlight: finalLeft - rect.right,
-                boxWidth: boxWidth,
-                boxHeight: boxHeight,
+                buttonWidth: buttonWidth,
+                buttonHeight: buttonHeight,
                 positioning: 'end-of-line'
             },
             source: source
