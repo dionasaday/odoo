@@ -619,10 +619,11 @@ export class CommentManager {
         // Step 9: Render highlights for unresolved comments only
         // These will be permanent highlights that remain visible until resolved
         // IMPORTANT: Render in sequence (not parallel) to avoid DOM conflicts
+        // CRITICAL: Double-check that comment is not in allResolvedCommentIds before rendering
         for (const comment of unresolvedComments) {
-            // Triple-check: Don't render if resolved
-            if (!comment.resolved && !resolvedIds.has(comment.id)) {
-                this.renderHighlight(comment);
+            // Triple-check: Don't render if resolved (check both resolvedIds and allResolvedCommentIds)
+            if (!comment.resolved && !resolvedIds.has(comment.id) && !allResolvedCommentIds.has(comment.id)) {
+                await this.renderHighlight(comment);
                 
                 // Small delay between renders to prevent DOM conflicts
                 await new Promise(resolve => {
@@ -630,6 +631,25 @@ export class CommentManager {
                         resolve();
                     });
                 });
+            } else {
+                // Comment is resolved - ensure highlight is removed
+                if (allResolvedCommentIds.has(comment.id) || resolvedIds.has(comment.id)) {
+                    logger.log(`Skipping render for resolved comment ${comment.id}, ensuring highlight is removed`);
+                    // Remove highlight if it exists
+                    const existingHighlight = this.contentElement.querySelector(
+                        `.o_knowledge_comment_highlight[data-comment-id="${comment.id}"]`
+                    );
+                    if (existingHighlight) {
+                        const parent = existingHighlight.parentNode;
+                        if (parent) {
+                            const text = existingHighlight.textContent || existingHighlight.innerText;
+                            parent.replaceChild(document.createTextNode(text), existingHighlight);
+                            parent.normalize();
+                        }
+                        this.highlights.delete(comment.id);
+                        logger.log(`Removed highlight for resolved comment ${comment.id}`);
+                    }
+                }
             }
         }
         
