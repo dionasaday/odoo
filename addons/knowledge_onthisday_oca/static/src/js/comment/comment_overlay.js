@@ -3770,23 +3770,38 @@ export class CommentOverlay extends Component {
      */
     getCurrentUserAvatar() {
         if (!this.state.currentUser || !this.state.currentUser.id) {
+            logger.log('No current user, returning default avatar');
             return '/web/static/img/avatar.png';
         }
 
-        // If we have image_128, use it
+        // Method 1: If we have image_128 field directly (from searchRead)
         if (this.state.currentUser.image_128) {
-            // If it's base64, return as data URL
+            // If it's already a data URL
             if (typeof this.state.currentUser.image_128 === 'string' && this.state.currentUser.image_128.startsWith('data:')) {
                 return this.state.currentUser.image_128;
             }
-            // If it's binary data, convert to base64 data URL
+            // If it's base64 string, convert to data URL
             if (typeof this.state.currentUser.image_128 === 'string') {
-                return `data:image/png;base64,${this.state.currentUser.image_128}`;
+                // Check if it's base64 encoded (starts with /9j/ for JPEG or iVBORw0 for PNG)
+                if (this.state.currentUser.image_128.match(/^[A-Za-z0-9+/=]+$/)) {
+                    // It's base64, determine MIME type from first bytes
+                    const firstChars = this.state.currentUser.image_128.substring(0, 10);
+                    let mimeType = 'image/png';
+                    if (firstChars.startsWith('/9j/')) {
+                        mimeType = 'image/jpeg';
+                    }
+                    return `data:${mimeType};base64,${this.state.currentUser.image_128}`;
+                }
             }
         }
 
-        // Fallback: Use Odoo's web/image route
-        return `/web/image/res.users/${this.state.currentUser.id}/image_128`;
+        // Method 2: Use Odoo's web/image route (most reliable)
+        const avatarUrl = `/web/image/res.users/${this.state.currentUser.id}/image_128`;
+        logger.log('Returning avatar URL from web/image route', {
+            userId: this.state.currentUser.id,
+            url: avatarUrl
+        });
+        return avatarUrl;
     }
 
     /**
