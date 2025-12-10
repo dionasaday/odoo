@@ -2879,7 +2879,9 @@ export class CommentOverlay extends Component {
         this.hideCommentButton(true);
 
         // Initialize for new comment (uncontrolled component - DOM is source of truth)
+        // Set both state and flag to prevent race conditions
         this.state.isCreating = true;
+        this._isCreatingComment = true; // Keep flag set - will be cleared when form is closed or comment is saved/cancelled
         this.state.newCommentBody = ""; // Clear state
 
         // If parent supplied a callback (e.g., main view state), use it to sync UI
