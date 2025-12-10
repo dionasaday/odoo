@@ -1560,11 +1560,28 @@ export class CommentManager {
                     }
                 }
                 
-                // If we have missing highlights, re-render them
+                // If we have missing highlights, verify they're really missing before re-rendering
                 if (missingHighlights.length > 0) {
+                    // Wait a bit more and verify again to avoid false positives
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    // Re-check to confirm they're still missing
+                    const stillMissing = unresolvedComments.filter(comment => {
+                        const highlightInDOM = this.contentElement.querySelector(
+                            `.o_knowledge_comment_highlight[data-comment-id="${comment.id}"]`
+                        );
+                        return !highlightInDOM;
+                    });
+                    
+                    if (stillMissing.length === 0) {
+                        logger.log('Highlights reappeared in DOM - false alarm, skipping re-render');
+                        return;
+                    }
+                    
                     logger.warn('Highlights were removed from DOM, re-rendering missing highlights', {
-                        missingCount: missingHighlights.length,
-                        missingCommentIds: missingHighlights.map(c => c.id)
+                        missingCount: stillMissing.length,
+                        missingCommentIds: stillMissing.map(c => c.id),
+                        originallyMissingCount: missingHighlights.length
                     });
                     
                     // Temporarily disconnect observer to prevent loop
