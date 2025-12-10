@@ -3019,6 +3019,7 @@ export class CommentOverlay extends Component {
             
             // Reset state and clear textarea
             this.state.isCreating = false;
+            this._isCreatingComment = false; // Reset flag
             this.state.newCommentBody = ""; // Clear using state
             this._propagateNewCommentBodyImmediate("");
             
