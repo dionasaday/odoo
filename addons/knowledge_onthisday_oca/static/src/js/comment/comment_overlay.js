@@ -3732,18 +3732,39 @@ export class CommentOverlay extends Component {
     getDisplayComments() {
         const comments = this.state.comments || [];
         
-        // Helper function to recursively check if comment or its replies are unresolved
-        const hasUnresolved = (comment) => {
-            if (!comment.resolved) {
-                return true;
-            }
-            if (comment.replies && comment.replies.length > 0) {
-                return comment.replies.some(reply => hasUnresolved(reply));
-            }
-            return false;
+        // Helper function to recursively filter comments - only show unresolved comments
+        // If a comment is resolved, it should NOT be shown even if it has unresolved replies
+        const filterUnresolved = (commentList) => {
+            const filtered = [];
+            commentList.forEach(comment => {
+                // Only include the comment itself if it's unresolved
+                if (!comment.resolved) {
+                    // Create a copy of the comment to avoid mutating original
+                    const filteredComment = { ...comment };
+                    // Recursively filter replies - only include unresolved replies
+                    if (comment.replies && comment.replies.length > 0) {
+                        filteredComment.replies = filterUnresolved(comment.replies);
+                    }
+                    filtered.push(filteredComment);
+                } else {
+                    // Comment is resolved - don't include it, but check if it has unresolved replies
+                    // If it has unresolved replies, we still don't show the parent comment
+                    // but we could show the unresolved replies as separate top-level comments
+                    // However, for now, we'll hide the entire resolved thread
+                    // If you want to show unresolved replies of resolved comments, uncomment below:
+                    // if (comment.replies && comment.replies.length > 0) {
+                    //     const unresolvedReplies = filterUnresolved(comment.replies);
+                    //     if (unresolvedReplies.length > 0) {
+                    //         // Add unresolved replies as separate comments (flatten the hierarchy)
+                    //         filtered.push(...unresolvedReplies);
+                    //     }
+                    // }
+                }
+            });
+            return filtered;
         };
         
-        // Helper function to recursively count unresolved comments
+        // Helper function to recursively count unresolved comments (for logging only)
         const countUnresolved = (commentList) => {
             let count = 0;
             commentList.forEach(comment => {
@@ -3766,16 +3787,19 @@ export class CommentOverlay extends Component {
         });
         
         if (this.state.showResolved) {
+            // Show all comments when showResolved is true
             return comments;
         }
         
-        // Filter: include comments that are unresolved OR have unresolved replies
-        const filtered = comments.filter(c => hasUnresolved(c));
+        // Filter: only show comments that are NOT resolved
+        // Resolved comments are hidden even if they have unresolved replies
+        const filtered = filterUnresolved(comments);
         
         logger.log('getDisplayComments filtered result:', {
             filteredCount: filtered.length,
             filteredIds: filtered.map(c => c.id),
-            unresolvedIncludingReplies: countUnresolved(filtered)
+            resolvedHidden: comments.filter(c => c.resolved).length,
+            unresolvedShown: filtered.length
         });
         return filtered;
     }
