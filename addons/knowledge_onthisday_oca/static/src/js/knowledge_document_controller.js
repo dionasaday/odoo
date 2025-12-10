@@ -238,6 +238,11 @@ export class KnowledgeDocumentController extends Component {
                                 this._highlightQueryInContent(activeQuery);
                             }
                             this.processTOCAfterRender();
+                            // Re-initialize code block copy buttons and syntax highlighting
+                            // Use a small delay to ensure DOM is fully rendered
+                            setTimeout(() => {
+                                this._initializeCodeBlocks();
+                            }, 100);
                         }
                     } else {
                         // Retry after a short delay
@@ -253,6 +258,8 @@ export class KnowledgeDocumentController extends Component {
             // Use requestAnimationFrame to ensure layout is ready
             requestAnimationFrame(() => {
                 if (this.contentRef.el && this.state.currentArticle) {
+                    // CRITICAL: Preserve all whitespace and line breaks in HTML content
+                    // Don't normalize or trim - preserve exact formatting from editor
                     this.contentRef.el.innerHTML = content;
                     const activeQuery = (this.state.lastSearchQuery || "").trim();
                     if (activeQuery) {
@@ -260,6 +267,11 @@ export class KnowledgeDocumentController extends Component {
                     }
                     this.processTOCAfterRender();
                     this.setupTextSelectionListener();
+                    // Re-initialize code block copy buttons and syntax highlighting
+                    // Use a small delay to ensure DOM is fully rendered
+                    setTimeout(() => {
+                        this._initializeCodeBlocks();
+                    }, 100);
                 }
             });
         } else {
@@ -2629,6 +2641,788 @@ export class KnowledgeDocumentController extends Component {
                 link.classList.remove('o_toc_active');
             }
         });
+    }
+
+    /**
+     * Load highlight.js library dynamically if not already loaded
+     * @returns {Promise} Promise that resolves when hljs is loaded
+     */
+    async _loadHighlightJS() {
+        // Check if already loaded
+        if (typeof window.hljs !== 'undefined') {
+            return Promise.resolve();
+        }
+
+        // Check if already loading
+        if (this._hljsLoading) {
+            return this._hljsLoading;
+        }
+
+        // Start loading
+        this._hljsLoading = new Promise((resolve, reject) => {
+            // Load CSS
+            const cssLink = document.createElement('link');
+            cssLink.rel = 'stylesheet';
+            cssLink.href = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css';
+            cssLink.onerror = () => {
+                logger.warn('Failed to load highlight.js CSS');
+            };
+            document.head.appendChild(cssLink);
+
+            // Load JS
+            const script = document.createElement('script');
+            script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
+            script.async = true;
+            script.onload = () => {
+                // Wait a bit for hljs to initialize
+                setTimeout(() => {
+                    if (typeof window.hljs !== 'undefined') {
+                        logger.log('highlight.js loaded successfully');
+                        resolve();
+                    } else {
+                        logger.warn('highlight.js script loaded but window.hljs not available');
+                        resolve(); // Resolve anyway to continue
+                    }
+                }, 100);
+            };
+            script.onerror = () => {
+                logger.warn('Failed to load highlight.js, will use fallback highlighting');
+                resolve(); // Resolve anyway to continue without hljs
+            };
+            document.head.appendChild(script);
+        });
+
+        return this._hljsLoading;
+    }
+
+    /**
+     * Wait for highlight.js to be loaded
+     * @returns {Promise} Promise that resolves when hljs is available
+     */
+    async _waitForHighlightJS(maxWait = 5000) {
+        if (typeof window.hljs !== 'undefined') {
+            return Promise.resolve();
+        }
+
+        // Try to load it first
+        await this._loadHighlightJS();
+
+        // Wait for it to be available
+        return new Promise((resolve) => {
+            const startTime = Date.now();
+            const checkInterval = setInterval(() => {
+                if (typeof window.hljs !== 'undefined') {
+                    clearInterval(checkInterval);
+                    resolve();
+                } else if (Date.now() - startTime > maxWait) {
+                    clearInterval(checkInterval);
+                    logger.warn('highlight.js not loaded after timeout, continuing without it');
+                    resolve();
+                }
+            }, 100);
+        });
+    }
+
+    /**
+     * Initialize code blocks: add syntax highlighting styles and copy buttons
+     */
+    async _initializeCodeBlocks() {
+        if (!this.contentRef || !this.contentRef.el) {
+            return;
+        }
+
+        const contentElement = this.contentRef.el;
+
+        // Wait for highlight.js to be loaded
+        await this._waitForHighlightJS();
+
+        // Find all code blocks - Odoo editor typically uses <pre><code> structure
+        // or divs with specific classes for code blocks (e.g., .o-knowledge-quick-reply)
+        // Use more specific selector to avoid duplicates
+        const allCodeBlocks = contentElement.querySelectorAll('pre, .o-knowledge-quick-reply, [data-code-block]');
+        
+        // Also find code elements that might not be inside pre
+        const standaloneCode = contentElement.querySelectorAll('code.hljs, .hljs:not(pre):not(.o-knowledge-quick-reply)');
+        
+        // Combine and deduplicate
+        const codeBlocksSet = new Set();
+        allCodeBlocks.forEach(block => codeBlocksSet.add(block));
+        standaloneCode.forEach(block => {
+            // Only add if not already in a pre container
+            if (!block.closest('pre') && !block.classList.contains('o-knowledge-quick-reply')) {
+                codeBlocksSet.add(block);
+            }
+        });
+        const codeBlocks = Array.from(codeBlocksSet);
+        
+        logger.log('Initializing code blocks', { 
+            count: codeBlocks.length,
+            codeBlocksInfo: Array.from(codeBlocks).map(block => ({
+                tagName: block.tagName,
+                className: block.className,
+                hasBrTags: (block.innerHTML || '').includes('<br'),
+                textLength: (block.textContent || block.innerText || '').length,
+                htmlLength: (block.innerHTML || '').length,
+                innerHTMLPreview: (block.innerHTML || '').substring(0, 200)
+            }))
+        });
+        
+        codeBlocks.forEach((codeBlock) => {
+            // Get the container (pre, code, or div element itself)
+            let container = codeBlock;
+            if (codeBlock.tagName === 'CODE' && codeBlock.parentElement && codeBlock.parentElement.tagName === 'PRE') {
+                container = codeBlock.parentElement;
+            }
+            // Handle .o-knowledge-quick-reply divs (Odoo editor code blocks)
+            else if (codeBlock.classList && codeBlock.classList.contains('o-knowledge-quick-reply')) {
+                container = codeBlock;
+            }
+
+            // Skip if already initialized (has copy button)
+            if (container.dataset.hasCopyButton === '1') {
+                return;
+            }
+
+            // Mark as initialized
+            container.dataset.hasCopyButton = '1';
+
+            // Ensure code block has proper styling
+            // Handle both <pre> and <div class="o-knowledge-quick-reply">
+            if (container.tagName === 'PRE' || (container.classList && container.classList.contains('o-knowledge-quick-reply'))) {
+                container.style.position = 'relative';
+                container.style.backgroundColor = '#f8f9fa';
+                container.style.border = '1px solid #dee2e6';
+                container.style.borderRadius = '6px';
+                container.style.padding = '16px';
+                container.style.margin = '16px 0';
+                // Match edit mode: preserve formatting exactly, show scrollbar for long lines
+                // CRITICAL: preserve all whitespace, line breaks, and indentation
+                container.style.whiteSpace = 'pre';
+                container.style.overflowX = 'auto';
+                container.style.overflowY = 'visible';
+                container.style.wordWrap = 'normal';
+                container.style.wordBreak = 'normal';
+                container.style.maxWidth = '100%';
+                container.style.width = '100%';
+                container.style.boxSizing = 'border-box';
+                container.style.fontFamily = "'Courier New', 'Consolas', 'Monaco', monospace";
+                container.style.fontSize = '14px';
+                container.style.lineHeight = '1.5'; // Match edit mode line height
+                container.style.tabSize = '4'; // Match edit mode tab size
+                container.style.MozTabSize = '4'; // Firefox
+                container.style.OTabSize = '4'; // Opera
+                container.style.textAlign = 'left';
+                container.style.unicodeBidi = 'embed';
+                // Ensure container doesn't wrap its children
+                container.style.display = 'block';
+            }
+                
+            // For .o-knowledge-quick-reply, ensure content preserves line breaks and indentation
+            if (container.classList && container.classList.contains('o-knowledge-quick-reply')) {
+                // CRITICAL: Normalize br tags to newlines IMMEDIATELY
+                // This must happen BEFORE styling and highlighting
+                const htmlContent = container.innerHTML || '';
+                const textContent = container.textContent || container.innerText || '';
+                const hasLineBreaks = textContent.includes('\n') || textContent.includes('\r\n');
+                const hasBrTags = htmlContent.includes('<br') || htmlContent.includes('<BR');
+                
+                // CRITICAL: ALWAYS normalize br tags to newlines if they exist
+                // This must happen BEFORE any styling or highlighting to preserve line breaks
+                if (hasBrTags) {
+                    // Method 1: Direct DOM manipulation - replace ALL br elements with text nodes (most reliable)
+                    // Use querySelectorAll which works recursively to find ALL br tags
+                    const brElements = container.querySelectorAll('br, BR');
+                    if (brElements.length > 0) {
+                        // Replace each br element with a text node containing newline
+                        brElements.forEach((br) => {
+                            const newlineNode = document.createTextNode('\n');
+                            if (br.parentNode) {
+                                br.parentNode.replaceChild(newlineNode, br);
+                            }
+                        });
+                        
+                        // Get text after DOM manipulation
+                        const normalizedText = container.textContent || container.innerText || '';
+                        
+                        // Verify newlines are present
+                        if (normalizedText.includes('\n') || normalizedText.includes('\r\n')) {
+                            logger.log('Normalized .o-knowledge-quick-reply: replaced br elements with newlines (DOM method)', {
+                                brElementsReplaced: brElements.length,
+                                originalTextLength: textContent.length,
+                                normalizedTextLength: normalizedText.length,
+                                hasNewlinesNow: true,
+                                newlineCount: (normalizedText.match(/\n/g) || []).length
+                            });
+                        } else {
+                            // Fallback: String replacement method
+                            logger.warn('DOM method did not preserve newlines, using string replacement fallback');
+                            let processedHTML = htmlContent;
+                            // Replace all br variants with newline character - comprehensive patterns
+                            processedHTML = processedHTML.replace(/<br\s*\/?>/gi, '\n');
+                            processedHTML = processedHTML.replace(/<BR\s*\/?>/gi, '\n');
+                            processedHTML = processedHTML.replace(/<br\s+[^>]*\/?>/gi, '\n');
+                            processedHTML = processedHTML.replace(/<BR\s+[^>]*\/?>/gi, '\n');
+                            processedHTML = processedHTML.replace(/<br[^>]*>/gi, '\n');
+                            processedHTML = processedHTML.replace(/<BR[^>]*>/gi, '\n');
+                            
+                            // Use DOM manipulation to ensure conversion
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = processedHTML;
+                            const allBrTags = tempDiv.querySelectorAll('br, BR');
+                            allBrTags.forEach(br => {
+                                const newlineNode = document.createTextNode('\n');
+                                if (br.parentNode) {
+                                    br.parentNode.replaceChild(newlineNode, br);
+                                }
+                            });
+                            
+                            // Get normalized text with newlines
+                            const normalizedText = tempDiv.textContent || tempDiv.innerText || textContent;
+                            
+                            // Set as plain text with newlines preserved
+                            container.textContent = normalizedText;
+                            
+                            logger.log('Normalized .o-knowledge-quick-reply: converted br tags to newlines (string replacement method)', {
+                                originalTextLength: textContent.length,
+                                normalizedTextLength: normalizedText.length,
+                                hasNewlinesNow: normalizedText.includes('\n'),
+                                brTagsFound: htmlContent.match(/<br[^>]*>/gi)?.length || 0
+                            });
+                        }
+                    } else {
+                        // No br elements found but HTML has br tags - use string replacement
+                        let processedHTML = htmlContent;
+                        processedHTML = processedHTML.replace(/<br[^>]*>/gi, '\n');
+                        processedHTML = processedHTML.replace(/<BR[^>]*>/gi, '\n');
+                        
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = processedHTML;
+                        const normalizedText = tempDiv.textContent || tempDiv.innerText || textContent;
+                        container.textContent = normalizedText;
+                        
+                        logger.log('Normalized .o-knowledge-quick-reply: converted br tags via string replacement (no DOM br elements)', {
+                            hasNewlinesNow: normalizedText.includes('\n')
+                        });
+                    }
+                }
+                
+                // CRITICAL: Ensure all whitespace, line breaks are preserved
+                // Match edit mode exactly: use pre (no wrapping, horizontal scrollbar)
+                container.style.whiteSpace = 'pre'; // Preserve ALL whitespace and line breaks, no wrapping
+                container.style.overflowX = 'auto';
+                container.style.overflowY = 'visible';
+                container.style.wordWrap = 'normal'; // Don't wrap words (match edit mode)
+                container.style.wordBreak = 'normal'; // Don't break words (match edit mode)
+                container.style.tabSize = '4';
+                container.style.MozTabSize = '4';
+                container.style.OTabSize = '4';
+                container.style.lineHeight = '1.5';
+                container.style.fontSize = '14px';
+                container.style.fontFamily = "'Courier New', 'Consolas', 'Monaco', monospace";
+                container.style.textAlign = 'left';
+                container.style.unicodeBidi = 'embed';
+                
+                // Ensure all child elements also preserve whitespace
+                const allChildren = container.querySelectorAll('*');
+                allChildren.forEach((child) => {
+                    // Skip buttons and absolute positioned elements
+                    if (child.tagName === 'BUTTON' || child.closest('[style*="position: absolute"]')) {
+                        return;
+                    }
+                    // Force preserve whitespace for all code content elements
+                    child.style.whiteSpace = 'pre'; // Preserve ALL whitespace and line breaks
+                    child.style.tabSize = '4';
+                    child.style.MozTabSize = '4';
+                    child.style.OTabSize = '4';
+                });
+            }
+            
+            // Ensure all child elements also preserve whitespace (for pre containers)
+            if (container.tagName === 'PRE') {
+                const allChildren = container.querySelectorAll('*');
+                allChildren.forEach((child) => {
+                    if (child.tagName !== 'BUTTON' && !child.closest('[style*="position: absolute"]')) {
+                        // Force preserve whitespace for code content
+                        if (child.classList.contains('hljs') || child.tagName === 'CODE') {
+                            child.style.whiteSpace = 'pre';
+                            child.style.tabSize = '4';
+                            child.style.MozTabSize = '4';
+                            child.style.OTabSize = '4';
+                        }
+                    }
+                });
+            }
+
+            // Get the actual code element
+            let codeElement;
+            if (container.tagName === 'PRE') {
+                codeElement = container.querySelector('code') || container;
+                // CRITICAL: Normalize br tags in code element (may be inside <code> within <pre>)
+                if (codeElement) {
+                    const codeHtml = codeElement.innerHTML || '';
+                    const codeText = codeElement.textContent || codeElement.innerText || '';
+                    const codeHasBrTags = codeHtml.includes('<br') || codeHtml.includes('<BR');
+                    
+                    // ALWAYS normalize if br tags exist
+                    if (codeHasBrTags) {
+                        // Method 1: Direct DOM manipulation
+                        const brElements = codeElement.querySelectorAll('br, BR');
+                        if (brElements.length > 0) {
+                            brElements.forEach((br) => {
+                                const newlineNode = document.createTextNode('\n');
+                                if (br.parentNode) {
+                                    br.parentNode.replaceChild(newlineNode, br);
+                                }
+                            });
+                            const normalizedText = codeElement.textContent || codeElement.innerText || '';
+                            
+                            logger.log('Normalized code element in PRE: replaced br elements with newlines (DOM method)', {
+                                brElementsReplaced: brElements.length,
+                                hasNewlinesNow: normalizedText.includes('\n')
+                            });
+                        } else {
+                            // Method 2: String replacement fallback
+                            let processedHTML = codeHtml.replace(/<br[^>]*>/gi, '\n');
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = processedHTML;
+                            const allBrTags = tempDiv.querySelectorAll('br, BR');
+                            allBrTags.forEach(br => {
+                                const newlineNode = document.createTextNode('\n');
+                                if (br.parentNode) {
+                                    br.parentNode.replaceChild(newlineNode, br);
+                                }
+                            });
+                            const normalizedText = tempDiv.textContent || tempDiv.innerText || codeText;
+                            codeElement.textContent = normalizedText;
+                            
+                            logger.log('Normalized code element in PRE: converted br tags to newlines (string replacement)', {
+                                hasNewlinesNow: normalizedText.includes('\n')
+                            });
+                        }
+                    }
+                }
+            } else if (container.classList && container.classList.contains('o-knowledge-quick-reply')) {
+                // For .o-knowledge-quick-reply divs, use the container itself as code element
+                // Normalization already done above
+                codeElement = container;
+            } else {
+                codeElement = codeBlock;
+                // Also normalize br tags in standalone code elements
+                if (codeElement) {
+                    const codeHtml = codeElement.innerHTML || '';
+                    const codeHasBrTags = codeHtml.includes('<br') || codeHtml.includes('<BR');
+                    if (codeHasBrTags) {
+                        const brElements = codeElement.querySelectorAll('br, BR');
+                        if (brElements.length > 0) {
+                            brElements.forEach((br) => {
+                                const newlineNode = document.createTextNode('\n');
+                                if (br.parentNode) {
+                                    br.parentNode.replaceChild(newlineNode, br);
+                                }
+                            });
+                            logger.log('Normalized standalone code element: replaced br elements with newlines');
+                        }
+                    }
+                }
+            }
+
+            // Ensure code element has hljs class for styling
+            if (codeElement && !codeElement.classList.contains('hljs')) {
+                codeElement.classList.add('hljs');
+            }
+            
+            // Apply styles to code element to match edit mode
+            // CRITICAL: preserve all whitespace, line breaks, and indentation
+            if (codeElement) {
+                codeElement.style.whiteSpace = 'pre';
+                codeElement.style.overflowX = 'auto';
+                codeElement.style.overflowY = 'visible';
+                codeElement.style.wordWrap = 'normal';
+                codeElement.style.wordBreak = 'normal';
+                codeElement.style.display = 'block';
+                codeElement.style.margin = '0';
+                codeElement.style.padding = '0';
+                codeElement.style.backgroundColor = 'transparent';
+                // Match edit mode: tab size and line height for proper indentation
+                codeElement.style.tabSize = '4';
+                codeElement.style.MozTabSize = '4'; // Firefox
+                codeElement.style.OTabSize = '4'; // Opera
+                codeElement.style.lineHeight = '1.5';
+                codeElement.style.fontSize = '14px';
+                codeElement.style.fontFamily = "'Courier New', 'Consolas', 'Monaco', monospace";
+                codeElement.style.textAlign = 'left';
+                codeElement.style.unicodeBidi = 'embed';
+                
+                // Ensure all child spans (from syntax highlighting) also preserve whitespace
+                const highlightSpans = codeElement.querySelectorAll('span');
+                highlightSpans.forEach((span) => {
+                    span.style.whiteSpace = 'pre';
+                });
+            }
+
+            // Try to re-highlight using highlight.js if available
+            if (typeof window.hljs !== 'undefined' && codeElement) {
+                try {
+                    // Detect language from class (language-js, language-javascript, etc.)
+                    let detectedLanguage = null;
+                    const classList = codeElement.classList;
+                    for (let cls of classList) {
+                        if (cls.startsWith('language-')) {
+                            detectedLanguage = cls.replace('language-', '');
+                            break;
+                        }
+                        if (cls.startsWith('hljs-')) {
+                            // Extract language from hljs-lang or hljs language
+                            const match = cls.match(/^hljs-([a-z]+)$/);
+                            if (match) {
+                                detectedLanguage = match[1];
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // CRITICAL: Preserve line breaks and formatting from editor
+                    // Get original HTML first to check structure
+                    const originalHTML = codeElement.innerHTML || '';
+                    const originalTextContent = codeElement.textContent || codeElement.innerText || '';
+                    
+                    // Check if HTML contains br tags or newlines
+                    const hasBrTags = originalHTML.includes('<br') || originalHTML.includes('<BR');
+                    const hasNewlines = originalTextContent.includes('\n') || originalTextContent.includes('\r\n');
+                    
+                    logger.log('Code block content analysis:', {
+                        hasBrTags,
+                        hasNewlines,
+                        textLength: originalTextContent.length,
+                        htmlLength: originalHTML.length,
+                        firstChars: originalTextContent.substring(0, 200)
+                    });
+                    
+                    // If no language detected, try to detect from content
+                    if (!detectedLanguage) {
+                        // More comprehensive language detection
+                        if (originalTextContent.includes('@odoo-module') || originalTextContent.includes('import {') || 
+                            originalTextContent.includes('export') || originalTextContent.includes('function') ||
+                            originalTextContent.includes('const {') || originalTextContent.includes('class ') ||
+                            originalTextContent.includes('extends')) {
+                            detectedLanguage = 'javascript';
+                        } else if (originalTextContent.includes('def ') || originalTextContent.match(/^import\s+\w+/m)) {
+                            detectedLanguage = 'python';
+                        } else if (originalTextContent.includes('<?xml') || originalTextContent.includes('<!DOCTYPE')) {
+                            detectedLanguage = 'xml';
+                        } else if (originalTextContent.includes('SELECT') || originalTextContent.includes('FROM')) {
+                            detectedLanguage = 'sql';
+                        }
+                    }
+                    
+                    // SECURITY & FORMATTING: Normalize code content before highlighting
+                    // CRITICAL: Convert br tags to newlines and ensure plain text
+                    // This must be done ALWAYS if we have br tags, not just when hasHtmlChildren
+                    let textToHighlight = originalTextContent;
+                    
+                    // CRITICAL: If HTML has br tags but textContent doesn't have newlines,
+                    // we MUST convert br tags to newlines to preserve line breaks
+                    if (hasBrTags && !hasNewlines) {
+                        // Convert br tags to newlines by processing HTML
+                        // Use a more robust method to preserve line breaks
+                        // Method 1: Replace br tags directly in HTML string
+                        let processedHTML = originalHTML;
+                        // Replace all br variants with newline character - more comprehensive patterns
+                        processedHTML = processedHTML.replace(/<br\s*\/?>/gi, '\n');
+                        processedHTML = processedHTML.replace(/<BR\s*\/?>/gi, '\n');
+                        processedHTML = processedHTML.replace(/<br\s+[^>]*\/?>/gi, '\n');
+                        processedHTML = processedHTML.replace(/<BR\s+[^>]*\/?>/gi, '\n');
+                        
+                        // Method 2: Use DOM manipulation to preserve structure better
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = processedHTML;
+                        
+                        // Method 3: Also manually process br tags in DOM
+                        const allBrTags = tempDiv.querySelectorAll('br, BR');
+                        allBrTags.forEach(br => {
+                            // Replace br with text node containing newline
+                            const newlineNode = document.createTextNode('\n');
+                            br.parentNode.replaceChild(newlineNode, br);
+                        });
+                        
+                        // Get text content which should now have newlines
+                        textToHighlight = tempDiv.textContent || tempDiv.innerText || originalTextContent;
+                        
+                        // Method 4: Fallback - manually process if still no newlines
+                        if (!textToHighlight.includes('\n')) {
+                            // Directly replace br tags in HTML string more aggressively
+                            processedHTML = originalHTML.replace(/<br[^>]*>/gi, '\n');
+                            tempDiv.innerHTML = processedHTML;
+                            textToHighlight = tempDiv.textContent || tempDiv.innerText || originalTextContent;
+                        }
+                        
+                        logger.log('Converted br tags to newlines', {
+                            originalTextLength: originalTextContent.length,
+                            convertedTextLength: textToHighlight.length,
+                            hasNewlinesNow: textToHighlight.includes('\n'),
+                            brTagsFound: originalHTML.match(/<br[^>]*>/gi)?.length || 0,
+                            originalFirstChars: originalTextContent.substring(0, 100),
+                            convertedFirstChars: textToHighlight.substring(0, 150)
+                        });
+                    }
+                    
+                    // SECURITY: Always normalize to plain text before highlighting
+                    // Check if element has HTML children (spans, etc. from previous highlighting)
+                    // OR if we have br tags that need to be converted
+                    const hasHtmlChildren = codeElement.querySelector('span, div, p') !== null;
+                    if ((hasHtmlChildren || hasBrTags) && textToHighlight) {
+                        // Clear and set as plain text (with newlines preserved) to prevent security warning
+                        codeElement.textContent = textToHighlight;
+                        
+                        logger.log('Code element normalized for highlighting', {
+                            hadHtmlChildren: hasHtmlChildren,
+                            hadBrTags: hasBrTags,
+                            finalTextLength: textToHighlight.length,
+                            hasNewlines: textToHighlight.includes('\n'),
+                            firstChars: textToHighlight.substring(0, 200)
+                        });
+                    }
+                    
+                    // Add language class if detected
+                    if (detectedLanguage) {
+                        codeElement.classList.add(`language-${detectedLanguage}`);
+                        // Also add hljs class if not present
+                        if (!codeElement.classList.contains('hljs')) {
+                            codeElement.classList.add('hljs');
+                        }
+                    }
+                    
+                    // Re-highlight the code block
+                    // highlight.js will safely escape HTML and apply syntax highlighting
+                    if (detectedLanguage) {
+                        window.hljs.highlightElement(codeElement);
+                        logger.log('Code block re-highlighted with hljs', {
+                            language: detectedLanguage,
+                            element: codeElement.tagName
+                        });
+                    } else {
+                        // Try highlighting without language (auto-detect)
+                        window.hljs.highlightElement(codeElement);
+                        logger.log('Code block re-highlighted with hljs (auto-detect)');
+                    }
+                    
+                    // CRITICAL: After highlighting, verify and preserve line breaks
+                    // highlight.js might process content, so ensure newlines are still present
+                    // Use setTimeout to check after highlight.js finishes processing
+                    setTimeout(() => {
+                        const afterHighlightText = codeElement.textContent || codeElement.innerText || '';
+                        const afterHighlightHasNewlines = afterHighlightText.includes('\n') || afterHighlightText.includes('\r\n');
+                        const afterHighlightHTML = codeElement.innerHTML || '';
+                        const stillHasBrTags = afterHighlightHTML.includes('<br') || afterHighlightHTML.includes('<BR');
+                        
+                        // If newlines are missing but we had them before, or br tags still exist, restore them
+                        if ((textToHighlight && textToHighlight.includes('\n') && !afterHighlightHasNewlines) || stillHasBrTags) {
+                            // If br tags still exist, normalize them again
+                            if (stillHasBrTags) {
+                                const brElements = codeElement.querySelectorAll('br, BR');
+                                if (brElements.length > 0) {
+                                    brElements.forEach((br) => {
+                                        const newlineNode = document.createTextNode('\n');
+                                        if (br.parentNode) {
+                                            br.parentNode.replaceChild(newlineNode, br);
+                                        }
+                                    });
+                                    logger.log('Normalized br tags after highlight.js processing', {
+                                        brElementsReplaced: brElements.length
+                                    });
+                                }
+                            } else if (textToHighlight && textToHighlight.includes('\n')) {
+                                // Restore normalized text with newlines
+                                codeElement.textContent = textToHighlight;
+                                // Re-highlight with the correct text
+                                if (detectedLanguage) {
+                                    window.hljs.highlightElement(codeElement);
+                                } else {
+                                    window.hljs.highlightElement(codeElement);
+                                }
+                                
+                                logger.log('Restored newlines after highlight.js processing', {
+                                    hasNewlinesRestored: codeElement.textContent.includes('\n')
+                                });
+                            }
+                            
+                            // Final verification
+                            const finalText = codeElement.textContent || codeElement.innerText || '';
+                            const finalHasNewlines = finalText.includes('\n') || finalText.includes('\r\n');
+                            logger.log('Final code block verification', {
+                                hasNewlines: finalHasNewlines,
+                                textLength: finalText.length,
+                                firstChars: finalText.substring(0, 200)
+                            });
+                        }
+                    }, 100);
+                } catch (error) {
+                    logger.warn('Failed to re-highlight with hljs:', error);
+                    // Fallback to manual highlighting
+                    if (codeElement.tagName === 'CODE') {
+                        this._applyManualSyntaxHighlighting(codeElement);
+                    }
+                }
+            } else {
+                // highlight.js not available, use manual highlighting
+                if (codeElement && codeElement.tagName === 'CODE') {
+                    const codeText = codeElement.textContent || codeElement.innerText;
+                    // Only apply if it looks like code (contains typical code characters)
+                    if (codeText && (codeText.includes('{') || codeText.includes('function') || 
+                        codeText.includes('=') || codeText.includes('()') || codeText.includes('import'))) {
+                        // Apply manual syntax highlighting
+                        this._applyManualSyntaxHighlighting(codeElement);
+                    }
+                }
+            }
+
+            // Create copy button wrapper - position absolutely in top right
+            const buttonWrapper = document.createElement('div');
+            buttonWrapper.style.position = 'absolute';
+            buttonWrapper.style.top = '8px';
+            buttonWrapper.style.right = '8px';
+            buttonWrapper.style.zIndex = '100';
+            buttonWrapper.style.pointerEvents = 'auto';
+
+            // Create copy button
+            const copyButton = document.createElement('button');
+            copyButton.type = 'button';
+            copyButton.className = 'btn btn-secondary btn-sm';
+            copyButton.innerHTML = '<i class="fa fa-copy"></i> Copy';
+            copyButton.style.fontSize = '12px';
+            copyButton.style.padding = '4px 12px';
+            copyButton.style.backgroundColor = '#ffffff';
+            copyButton.style.border = '1px solid #dee2e6';
+            copyButton.style.borderRadius = '4px';
+            copyButton.style.cursor = 'pointer';
+            copyButton.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            copyButton.style.transition = 'all 0.2s ease';
+
+            // Hover effect
+            copyButton.addEventListener('mouseenter', () => {
+                copyButton.style.backgroundColor = '#e9ecef';
+                copyButton.style.transform = 'scale(1.05)';
+            });
+            copyButton.addEventListener('mouseleave', () => {
+                copyButton.style.backgroundColor = '#ffffff';
+                copyButton.style.transform = 'scale(1)';
+            });
+
+            // Copy functionality
+            copyButton.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+
+                // Get text to copy
+                const textToCopy = codeBlock.textContent || codeBlock.innerText || container.textContent || '';
+
+                try {
+                    // Try Clipboard API first
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(textToCopy);
+                    } else {
+                        // Fallback method
+                        const textArea = document.createElement('textarea');
+                        textArea.value = textToCopy;
+                        textArea.style.position = 'fixed';
+                        textArea.style.left = '-999999px';
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                    }
+
+                    // Visual feedback
+                    const originalText = copyButton.innerHTML;
+                    copyButton.innerHTML = '<i class="fa fa-check"></i> Copied!';
+                    copyButton.style.backgroundColor = '#28a745';
+                    copyButton.style.color = '#ffffff';
+                    
+                    setTimeout(() => {
+                        copyButton.innerHTML = originalText;
+                        copyButton.style.backgroundColor = '#ffffff';
+                        copyButton.style.color = '';
+                    }, 2000);
+
+                    logger.log('Code copied to clipboard', { textLength: textToCopy.length });
+                } catch (error) {
+                    logger.error('Failed to copy code:', error);
+                    copyButton.innerHTML = '<i class="fa fa-exclamation"></i> Error';
+                    setTimeout(() => {
+                        copyButton.innerHTML = '<i class="fa fa-copy"></i> Copy';
+                    }, 2000);
+                }
+            });
+
+            buttonWrapper.appendChild(copyButton);
+            
+            // Insert button into container
+            if (container.style.position !== 'relative') {
+                container.style.position = 'relative';
+            }
+            container.appendChild(buttonWrapper);
+        }); // End of codeBlocks.forEach
+
+        logger.log('Code blocks initialized', { count: codeBlocks.length, hljsAvailable: typeof window.hljs !== 'undefined' });
+        
+        // Try to trigger highlight.js globally if available (for code blocks that may be added later)
+        if (typeof window.hljs !== 'undefined') {
+            try {
+                // Wait a bit for DOM to be fully ready
+                setTimeout(() => {
+                    const allCodeBlocks = contentElement.querySelectorAll('pre code, code.hljs, .hljs');
+                    allCodeBlocks.forEach((block) => {
+                        try {
+                            // Only highlight if not already highlighted
+                            if (!block.classList.contains('hljs-processed')) {
+                                window.hljs.highlightElement(block);
+                                block.classList.add('hljs-processed');
+                            }
+                        } catch (e) {
+                            // Ignore errors for individual blocks
+                            logger.warn('Failed to highlight individual block:', e);
+                        }
+                    });
+                    logger.log('Global hljs.highlightAll triggered', { count: allCodeBlocks.length });
+                }, 200);
+            } catch (error) {
+                logger.warn('Failed to trigger global hljs highlighting:', error);
+            }
+        }
+    }
+
+    /**
+     * Apply manual syntax highlighting to code block (fallback if no highlighting library)
+     * @param {HTMLElement} codeElement - Code element to highlight
+     */
+    _applyManualSyntaxHighlighting(codeElement) {
+        if (!codeElement || codeElement.tagName !== 'CODE') {
+            return;
+        }
+
+        const codeText = codeElement.textContent || codeElement.innerText;
+        if (!codeText) return;
+
+        // Simple regex-based syntax highlighting for JavaScript
+        let highlightedHTML = codeText
+            // Strings (single and double quotes)
+            .replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, '<span class="hljs-string">$&</span>')
+            // Comments (single line)
+            .replace(/(\/\/.*$)/gm, '<span class="hljs-comment">$1</span>')
+            // Comments (multi-line)
+            .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="hljs-comment">$1</span>')
+            // Keywords
+            .replace(/\b(const|let|var|function|async|await|import|export|from|return|if|else|for|while|class|extends|new|this|typeof|instanceof)\b/g, '<span class="hljs-keyword">$1</span>')
+            // Numbers
+            .replace(/\b(\d+\.?\d*)\b/g, '<span class="hljs-number">$1</span>')
+            // Functions
+            .replace(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)\s*(?=\()/g, '<span class="hljs-function">$1</span>');
+
+        // Only update if we actually made changes
+        if (highlightedHTML !== codeText) {
+            codeElement.innerHTML = highlightedHTML;
+            logger.log('Manual syntax highlighting applied');
+        }
     }
 }
 

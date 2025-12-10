@@ -289,17 +289,42 @@ strong span.o_knowledge_comment_temp_highlight {
             background-color: #f8f9fa;
             border-left: 3px solid #007bff;
             border-radius: 4px;
+            position: relative;
             
-            strong {
-                display: block;
-                margin-bottom: 4px;
-                color: #6c757d;
-                font-size: 12px;
+            .o_knowledge_comment_selected_text_header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 8px;
+                
+                strong {
+                    color: #6c757d;
+                    font-size: 12px;
+                    margin: 0;
+                }
+                
+                .o_knowledge_comment_copy_text_btn {
+                    padding: 2px 8px;
+                    font-size: 12px;
+                    color: #34a853;
+                    margin: 0;
+                    
+                    &:hover {
+                        color: #2d8f47;
+                        background-color: #e8f5e9;
+                    }
+                    
+                    i {
+                        margin-right: 4px;
+                    }
+                }
             }
             
             span {
+                display: block;
                 color: #212529;
                 font-style: italic;
+                word-wrap: break-word;
             }
         }
         
@@ -477,10 +502,55 @@ strong span.o_knowledge_comment_temp_highlight {
     font-size: 14px;
     color: #495057;
     font-style: italic;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    position: relative;
     
-    i {
-        margin-right: 8px;
-        color: #ffc107;
+    .o_knowledge_comment_selected_text_preview_content {
+        flex: 1;
+        display: flex;
+        align-items: flex-start;
+        cursor: pointer;
+        
+        i {
+            margin-right: 8px;
+            color: #ffc107;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .o_knowledge_comment_selected_text_highlight {
+            flex: 1;
+            word-wrap: break-word;
+        }
+    }
+    
+    .o_knowledge_comment_copy_text_btn {
+        padding: 4px 8px;
+        font-size: 12px;
+        color: #34a853;
+        flex-shrink: 0;
+        margin: 0;
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
+        
+        &:hover {
+            color: #2d8f47;
+            background-color: #e8f5e9;
+            opacity: 1;
+        }
+        
+        i {
+            margin: 0;
+        }
+    }
+    
+    &:hover {
+        .o_knowledge_comment_copy_text_btn {
+            opacity: 1;
+        }
     }
 }
 

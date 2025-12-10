@@ -2301,10 +2301,11 @@ export class CommentOverlay extends Component {
             return;
         }
 
-        // Calculate button position: same line as highlight, at the end of the line
-        // Position button at the right edge of the content area (end of line), same vertical position as highlight
-        const buttonSize = 48; // Icon button size (48px diameter)
-        const buttonTop = rect.top; // Same line as highlight top (not centered vertically)
+        // Calculate text box position: positioned to the right of selected text
+        // Position text box at the right edge of the content area, below the highlight
+        const boxWidth = 350; // Text box width
+        const boxHeight = 150; // Estimated text box height (will adjust based on content)
+        const boxTop = rect.bottom + 12; // Position below highlight with 12px gap
         // Position at end of line (right edge of content area, with margin)
         const contentElement = this.props.contentElement || document.querySelector('.o_knowledge_article_body');
         let endOfLineLeft = rect.right; // Default to right of highlight
@@ -2313,63 +2314,66 @@ export class CommentOverlay extends Component {
         if (contentElement) {
             const contentRect = contentElement.getBoundingClientRect();
             const rightEdge = contentRect.right;
-            const minMargin = 12; // Margin from right edge
-            // Use right edge of content minus button size and margin, but ensure it's after highlight
-            endOfLineLeft = Math.max(rect.right + 12, rightEdge - buttonSize - minMargin);
+            const minMargin = 20; // Margin from right edge
+            // Use right edge of content minus box width and margin, but ensure it's after highlight
+            endOfLineLeft = Math.max(rect.right + 12, rightEdge - boxWidth - minMargin);
         } else {
             // Fallback: use viewport width
             const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
-            const minMargin = 12;
-            endOfLineLeft = Math.max(rect.right + 12, viewportWidth - buttonSize - minMargin);
+            const minMargin = 20;
+            endOfLineLeft = Math.max(rect.right + 12, viewportWidth - boxWidth - minMargin);
         }
         
-        const buttonLeft = endOfLineLeft;
+        const boxLeft = endOfLineLeft;
         
-        // Also check if button would go off screen, adjust if needed
+        // Also check if box would go off screen, adjust if needed
         const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
         const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
         
         // Additional validation: ensure positions are reasonable
-        if (isNaN(buttonTop) || isNaN(buttonLeft) || buttonTop < 0 || buttonLeft < 0) {
-            logger.warn('Invalid button position calculated', {
-                buttonTop,
-                buttonLeft,
+        if (isNaN(boxTop) || isNaN(boxLeft) || boxTop < 0 || boxLeft < 0) {
+            logger.warn('Invalid text box position calculated', {
+                boxTop,
+                boxLeft,
                 rect
             });
             return;
         }
         
-        // Determine final position: always try to stay on same line, at end of line
-        let finalTop = buttonTop;
-        let finalLeft = buttonLeft;
+        // Determine final position: position below highlight, aligned to right
+        let finalTop = boxTop;
+        let finalLeft = boxLeft;
         
-        // Ensure button doesn't go off right edge of viewport
-        const maxLeft = viewportWidth - buttonSize - 20; // Leave 20px margin from right edge
+        // Ensure box doesn't go off right edge of viewport
+        const maxLeft = viewportWidth - boxWidth - 20; // Leave 20px margin from right edge
         if (finalLeft > maxLeft) {
             finalLeft = maxLeft;
-            logger.log('Button adjusted to stay within viewport', {
-                originalLeft: buttonLeft,
+            logger.log('Text box adjusted to stay within viewport', {
+                originalLeft: boxLeft,
                 finalLeft: finalLeft,
                 maxLeft: maxLeft
             });
         }
         
-        // Ensure button is at least to the right of highlight (don't overlap)
+        // Ensure box is at least to the right of highlight (don't overlap)
         if (finalLeft < rect.right + 8) {
             finalLeft = rect.right + 8; // Minimum 8px gap from highlight
         }
         
-        // Ensure button doesn't go above viewport
+        // Ensure box doesn't go above viewport
         if (finalTop < 0) {
             finalTop = 10; // 10px from top
         }
         
-        // Ensure button doesn't go below viewport (but keep it on same line if possible)
-        if (finalTop + buttonSize > viewportHeight) {
-            // Only adjust if absolutely necessary, prefer keeping on same line
-            finalTop = Math.max(0, viewportHeight - buttonSize - 10); // 10px from bottom
+        // Ensure box doesn't go below viewport - if it does, position above highlight instead
+        if (finalTop + boxHeight > viewportHeight - 20) {
+            finalTop = rect.top - boxHeight - 12; // Position above highlight with 12px gap
+            // If still doesn't fit, position at top of viewport
+            if (finalTop < 10) {
+                finalTop = 10;
+            }
         }
-
+        
         overlay.style.display = 'block';
         overlay.style.position = 'fixed';
         overlay.style.top = `${finalTop}px`;
@@ -2378,8 +2382,8 @@ export class CommentOverlay extends Component {
 
         this.overlayVisible = true;
         
-        // CRITICAL: Immediately verify and ensure highlight is still visible after showing button
-        // This is a common issue where highlight disappears right after button appears
+        // CRITICAL: Immediately verify and ensure highlight is still visible after showing text box
+        // This is a common issue where highlight disappears right after box appears
         requestAnimationFrame(() => {
             this._verifyAndRestoreHighlight(selection);
         });
@@ -2389,7 +2393,7 @@ export class CommentOverlay extends Component {
             this._verifyAndRestoreHighlight(selection);
         }, 50);
         
-        logger.log('Comment button shown:', {
+        logger.log('Comment text box shown:', {
             top: overlay.style.top,
             left: overlay.style.left,
             rect: { 
@@ -2400,9 +2404,9 @@ export class CommentOverlay extends Component {
                 width: rect.width,
                 height: rect.height 
             },
-            buttonPosition: { 
-                calculatedTop: buttonTop, 
-                calculatedLeft: buttonLeft,
+            boxPosition: { 
+                calculatedTop: boxTop, 
+                calculatedLeft: boxLeft,
                 finalTop: finalTop,
                 finalLeft: finalLeft,
                 viewportWidth: viewportWidth,
@@ -2555,6 +2559,139 @@ export class CommentOverlay extends Component {
     /**
      * Start creating a new comment
      */
+    /**
+     * Copy text to clipboard (helper method)
+     * @param {string} textToCopy - Text to copy
+     * @returns {Promise<boolean>} Success status
+     */
+    async _copyToClipboard(textToCopy) {
+        if (!textToCopy || !textToCopy.trim()) {
+            return false;
+        }
+
+        const text = textToCopy.trim();
+        
+        try {
+            // Try to use modern Clipboard API first
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+                logger.log('Text copied to clipboard using Clipboard API', {
+                    textLength: text.length,
+                    textPreview: text.substring(0, 50)
+                });
+                return true;
+            } else {
+                // Fallback: Use traditional method
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                try {
+                    const successful = document.execCommand('copy');
+                    if (!successful) {
+                        throw new Error('execCommand copy failed');
+                    }
+                    logger.log('Text copied to clipboard using execCommand', {
+                        textLength: text.length,
+                        textPreview: text.substring(0, 50)
+                    });
+                    return true;
+                } finally {
+                    document.body.removeChild(textArea);
+                }
+            }
+        } catch (error) {
+            logger.error('Failed to copy text to clipboard:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Copy selected text to clipboard (from floating button)
+     */
+    async onCopyText() {
+        if (!this.currentSelection || !this.currentSelection.text) {
+            this.notification.add('กรุณาเลือกข้อความก่อน copy', { type: 'warning' });
+            return;
+        }
+
+        const textToCopy = this.currentSelection.text.trim();
+        
+        if (!textToCopy) {
+            this.notification.add('ไม่มีข้อความให้ copy', { type: 'warning' });
+            return;
+        }
+
+        const success = await this._copyToClipboard(textToCopy);
+        
+        if (success) {
+            // Show success notification
+            this.notification.add(`Copy ข้อความสำเร็จ! (${textToCopy.length} ตัวอักษร)`, { 
+                type: 'success',
+                sticky: false
+            });
+        } else {
+            this.notification.add('ไม่สามารถ copy ข้อความได้ กรุณาลองอีกครั้ง', { 
+                type: 'danger',
+                sticky: true
+            });
+        }
+    }
+
+    /**
+     * Copy selected text from comment form
+     */
+    async onCopySelectedText() {
+        if (!this.currentSelection || !this.currentSelection.text) {
+            this.notification.add('ไม่มีข้อความให้ copy', { type: 'warning' });
+            return;
+        }
+
+        const textToCopy = this.currentSelection.text.trim();
+        const success = await this._copyToClipboard(textToCopy);
+        
+        if (success) {
+            this.notification.add(`Copy ข้อความสำเร็จ! (${textToCopy.length} ตัวอักษร)`, { 
+                type: 'success',
+                sticky: false
+            });
+        } else {
+            this.notification.add('ไม่สามารถ copy ข้อความได้ กรุณาลองอีกครั้ง', { 
+                type: 'danger',
+                sticky: true
+            });
+        }
+    }
+
+    /**
+     * Copy comment selected text from comment list
+     */
+    async onCopyCommentText(selectedText) {
+        if (!selectedText || !selectedText.trim()) {
+            this.notification.add('ไม่มีข้อความให้ copy', { type: 'warning' });
+            return;
+        }
+
+        const success = await this._copyToClipboard(selectedText);
+        
+        if (success) {
+            this.notification.add(`Copy ข้อความสำเร็จ! (${selectedText.trim().length} ตัวอักษร)`, { 
+                type: 'success',
+                sticky: false
+            });
+        } else {
+            this.notification.add('ไม่สามารถ copy ข้อความได้ กรุณาลองอีกครั้ง', { 
+                type: 'danger',
+                sticky: true
+            });
+        }
+    }
+
     onCreateComment() {
         if (!this.currentSelection) {
             this.notification.add('กรุณาเลือกข้อความก่อนสร้าง comment', { type: 'warning' });
@@ -3420,20 +3557,51 @@ export class CommentOverlay extends Component {
      */
     getDisplayComments() {
         const comments = this.state.comments || [];
+        
+        // Helper function to recursively check if comment or its replies are unresolved
+        const hasUnresolved = (comment) => {
+            if (!comment.resolved) {
+                return true;
+            }
+            if (comment.replies && comment.replies.length > 0) {
+                return comment.replies.some(reply => hasUnresolved(reply));
+            }
+            return false;
+        };
+        
+        // Helper function to recursively count unresolved comments
+        const countUnresolved = (commentList) => {
+            let count = 0;
+            commentList.forEach(comment => {
+                if (!comment.resolved) {
+                    count++;
+                }
+                if (comment.replies && comment.replies.length > 0) {
+                    count += countUnresolved(comment.replies);
+                }
+            });
+            return count;
+        };
+        
         logger.log('getDisplayComments called:', {
             totalComments: comments.length,
             showResolved: this.state.showResolved,
             resolvedCount: comments.filter(c => c.resolved).length,
-            unresolvedCount: comments.filter(c => !c.resolved).length
+            unresolvedCount: comments.filter(c => !c.resolved).length,
+            unresolvedIncludingReplies: countUnresolved(comments)
         });
         
         if (this.state.showResolved) {
             return comments;
         }
-        const filtered = comments.filter(c => !c.resolved);
+        
+        // Filter: include comments that are unresolved OR have unresolved replies
+        const filtered = comments.filter(c => hasUnresolved(c));
+        
         logger.log('getDisplayComments filtered result:', {
             filteredCount: filtered.length,
-            filteredIds: filtered.map(c => c.id)
+            filteredIds: filtered.map(c => c.id),
+            unresolvedIncludingReplies: countUnresolved(filtered)
         });
         return filtered;
     }

@@ -4,11 +4,29 @@
     <!-- Comment Overlay Template -->
     <t t-name="knowledge_onthisday_oca.CommentOverlay">
         <div class="o_knowledge_comment_overlay_wrapper" t-att-class="{'o_knowledge_comment_overlay_hidden': !this.getShowCommentPanel()}">
-            <!-- Floating button for selection -->
+            <!-- Floating text box for selection with Copy button -->
             <div t-ref="overlay" class="o_knowledge_comment_selection_overlay" style="display:none;">
-                <button class="o_knowledge_comment_add_button" t-on-click.stop="() => this.onCreateComment()" title="เพิ่ม Comment">
-                    <i class="fa fa-commenting"/>
-                </button>
+                <div class="o_knowledge_comment_selected_text_box">
+                    <div class="o_knowledge_comment_selected_text_box_header">
+                        <button 
+                            class="btn btn-link btn-sm o_knowledge_comment_copy_text_box_btn"
+                            t-on-click.stop="() => this.onCopyText()"
+                            title="Copy ข้อความ">
+                            <i class="fa fa-copy"/> Copy
+                        </button>
+                    </div>
+                    <div class="o_knowledge_comment_selected_text_box_content">
+                        <span t-esc="currentSelection ? currentSelection.text : ''"/>
+                    </div>
+                    <div class="o_knowledge_comment_selected_text_box_actions">
+                        <button 
+                            class="btn btn-primary btn-sm o_knowledge_comment_add_from_box_btn"
+                            t-on-click.stop="() => this.onCreateComment()"
+                            title="เพิ่ม Comment">
+                            <i class="fa fa-commenting"/> เพิ่ม Comment
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <!-- Comment Creation Form -->
@@ -24,7 +42,15 @@
                     </div>
                     <div class="o_knowledge_comment_form_body">
                         <div class="o_knowledge_comment_selected_text">
-                            <strong>ข้อความที่เลือก:</strong>
+                            <div class="o_knowledge_comment_selected_text_header">
+                                <strong>ข้อความที่เลือก:</strong>
+                                <button 
+                                    class="btn btn-link btn-sm o_knowledge_comment_copy_text_btn"
+                                    t-on-click.stop="() => this.onCopySelectedText()"
+                                    title="Copy ข้อความนี้">
+                                    <i class="fa fa-copy"/> Copy
+                                </button>
+                            </div>
                             <span t-esc="currentSelection ? currentSelection.text : ''"/>
                         </div>
                         <div class="o_knowledge_comment_input">
@@ -120,10 +146,17 @@
 
                             <!-- Selected Text -->
                             <div class="o_knowledge_comment_selected_text_preview"
-                                 t-att-class="{'o_knowledge_comment_resolved_preview': comment.resolved}"
-                                 t-on-click.stop="() => this.onCommentItemClick(comment.id)">
-                                <i class="fa fa-quote-left"/>
-                                <span class="o_knowledge_comment_selected_text_highlight" t-esc="comment.selected_text"/>
+                                 t-att-class="{'o_knowledge_comment_resolved_preview': comment.resolved}">
+                                <div class="o_knowledge_comment_selected_text_preview_content" t-on-click.stop="() => this.onCommentItemClick(comment.id)">
+                                    <i class="fa fa-quote-left"/>
+                                    <span class="o_knowledge_comment_selected_text_highlight" t-esc="comment.selected_text"/>
+                                </div>
+                                <button 
+                                    class="btn btn-link btn-sm o_knowledge_comment_copy_text_btn"
+                                    t-on-click.stop="() => this.onCopyCommentText(comment.selected_text)"
+                                    title="Copy ข้อความนี้">
+                                    <i class="fa fa-copy"/>
+                                </button>
                             </div>
 
                             <!-- Comment Body -->
