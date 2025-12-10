@@ -3720,6 +3720,68 @@ export class CommentOverlay extends Component {
     }
 
     /**
+     * Load current user information
+     */
+    async loadCurrentUser() {
+        try {
+            const userId = this.orm.userId;
+            if (userId) {
+                const users = await this.orm.read(
+                    'res.users',
+                    [[userId]],
+                    ['id', 'name', 'image_128']
+                );
+                if (users && users.length > 0) {
+                    this.state.currentUser = users[0];
+                    logger.log('Current user loaded', {
+                        userId: users[0].id,
+                        userName: users[0].name
+                    });
+                }
+            }
+        } catch (error) {
+            logger.warn('Failed to load current user:', error);
+            this.state.currentUser = null;
+        }
+    }
+
+    /**
+     * Get current user avatar URL
+     * @returns {string} Avatar URL
+     */
+    getCurrentUserAvatar() {
+        if (!this.state.currentUser || !this.state.currentUser.id) {
+            return '/web/static/img/avatar.png';
+        }
+
+        // If we have image_128, use it
+        if (this.state.currentUser.image_128) {
+            // If it's base64, return as data URL
+            if (typeof this.state.currentUser.image_128 === 'string' && this.state.currentUser.image_128.startsWith('data:')) {
+                return this.state.currentUser.image_128;
+            }
+            // If it's binary data, convert to base64 data URL
+            if (typeof this.state.currentUser.image_128 === 'string') {
+                return `data:image/png;base64,${this.state.currentUser.image_128}`;
+            }
+        }
+
+        // Fallback: Use Odoo's web/image route
+        return `/web/image/res.users/${this.state.currentUser.id}/image_128`;
+    }
+
+    /**
+     * Get current user name
+     * @returns {string} User name
+     */
+    getCurrentUserName() {
+        if (!this.state.currentUser || !this.state.currentUser.name) {
+            return 'User';
+        }
+        return this.state.currentUser.name;
+    }
+
+    /**
      * Get markup function for rendering HTML content
      * This is needed to properly render HTML in t-out directive
      */
