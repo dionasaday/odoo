@@ -78,8 +78,13 @@ export class CommentOverlay extends Component {
         this._propagateDebounceTimer = null;
 
         onMounted(async () => {
-            // Load current user info
+            // Load current user info first
             await this.loadCurrentUser();
+            logger.log('After loadCurrentUser:', {
+                hasCurrentUser: !!this.state.currentUser,
+                userId: this.state.currentUser?.id,
+                userName: this.state.currentUser?.name
+            });
             
             // Try to initialize with retry mechanism
             // This will wait for contentElement to be ready
@@ -3770,14 +3775,25 @@ export class CommentOverlay extends Component {
      */
     getCurrentUserAvatar() {
         if (!this.state.currentUser || !this.state.currentUser.id) {
-            logger.log('No current user, returning default avatar');
+            logger.log('No current user, returning default avatar', {
+                hasCurrentUser: !!this.state.currentUser,
+                userId: this.state.currentUser?.id
+            });
             return '/web/static/img/avatar.png';
         }
+
+        logger.log('Getting avatar for user', {
+            userId: this.state.currentUser.id,
+            userName: this.state.currentUser.name,
+            hasImage128: !!this.state.currentUser.image_128,
+            image128Type: typeof this.state.currentUser.image_128
+        });
 
         // Method 1: If we have image_128 field directly (from searchRead)
         if (this.state.currentUser.image_128) {
             // If it's already a data URL
             if (typeof this.state.currentUser.image_128 === 'string' && this.state.currentUser.image_128.startsWith('data:')) {
+                logger.log('Using data URL from image_128');
                 return this.state.currentUser.image_128;
             }
             // If it's base64 string, convert to data URL
@@ -3790,6 +3806,7 @@ export class CommentOverlay extends Component {
                     if (firstChars.startsWith('/9j/')) {
                         mimeType = 'image/jpeg';
                     }
+                    logger.log('Using base64 image from image_128', { mimeType });
                     return `data:${mimeType};base64,${this.state.currentUser.image_128}`;
                 }
             }
