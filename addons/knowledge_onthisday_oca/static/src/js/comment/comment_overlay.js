@@ -2823,12 +2823,31 @@ export class CommentOverlay extends Component {
         // Update currentSelection to ensure we have the recovered version
         if (recoveredSelection && (!this.currentSelection || !this.currentSelection.text || this.currentSelection.text.trim().length === 0)) {
             this.currentSelection = recoveredSelection;
+            logger.log('Updated currentSelection with recovered selection');
         }
 
-        logger.log('onCreateComment called - keeping temp highlight visible while user types', {
+        // Final validation: ensure we have valid selection before proceeding
+        if (!this.currentSelection || !this.currentSelection.text || typeof this.currentSelection.text !== 'string' || this.currentSelection.text.trim().length === 0) {
+            logger.error('❌ Selection validation failed even after recovery', {
+                recoveredSelection,
+                currentSelection: this.currentSelection,
+                hasCurrentSelection: !!this.currentSelection,
+                currentSelectionText: this.currentSelection?.text,
+                currentSelectionTextType: typeof this.currentSelection?.text,
+                textLength: this.currentSelection?.text?.length
+            });
+            if (!this.state.isCreating) {
+                this.notification.add('กรุณาเลือกข้อความก่อนสร้าง comment', { type: 'warning' });
+            }
+            return;
+        }
+
+        logger.log('✓ onCreateComment validated successfully - proceeding to open form', {
             hasTempHighlight: !!(this.textSelectionHandler && this.textSelectionHandler.tempHighlight),
             tempHighlightInDOM: !!(this.textSelectionHandler && this.textSelectionHandler.tempHighlight && this.textSelectionHandler.tempHighlight.parentNode),
-            selectionText: this.currentSelection.text.substring(0, 50)
+            selectionText: this.currentSelection.text.substring(0, 50),
+            selectionTextLength: this.currentSelection.text.length,
+            hasRange: !!this.currentSelection.range
         });
 
         // IMPORTANT: Don't clear temp highlight - keep it visible while user types comment
