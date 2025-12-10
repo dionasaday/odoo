@@ -60,6 +60,7 @@ export class CommentOverlay extends Component {
         this._mousedownListener = null; // Listener for mousedown to detect start of selection
         this._mousemoveListener = null; // Listener for mousemove to detect active selection dragging
         this._lastHighlightRenderTime = 0; // Timestamp of last highlight render to prevent rapid re-renders
+        this._isCreatingComment = false; // Flag to prevent duplicate onCreateComment calls
 
         this.state = useState({
             comments: [],
@@ -2731,12 +2732,18 @@ export class CommentOverlay extends Component {
     }
 
     onCreateComment() {
-        // Prevent duplicate calls
-        if (this.state.isCreating) {
-            logger.log('Comment form already open, ignoring duplicate onCreateComment call');
+        // Prevent duplicate calls - use both state and flag for maximum protection
+        if (this.state.isCreating || this._isCreatingComment) {
+            logger.log('Comment form already open, ignoring duplicate onCreateComment call', {
+                stateIsCreating: this.state.isCreating,
+                flagIsCreating: this._isCreatingComment
+            });
             return;
         }
 
+        // Set flag immediately to prevent race conditions
+        this._isCreatingComment = true;
+        
         // CRITICAL: Try multiple methods to recover selection if missing (browser clears selection on click)
         // We must be very thorough here because clicking the button will clear browser selection
         let hasValidSelection = false;
@@ -2813,8 +2820,13 @@ export class CommentOverlay extends Component {
                 tempHighlightInDOM: !!(this.textSelectionHandler && this.textSelectionHandler.tempHighlight && this.textSelectionHandler.tempHighlight.parentNode),
                 tempHighlightText: this.textSelectionHandler?.tempHighlight?.textContent?.substring(0, 50)
             });
+            // Reset flag since we're returning early
+            this._isCreatingComment = false;
             // Only show notification if form is not already open (prevent duplicate notifications)
             if (!this.state.isCreating) {
+                logger.warn('⚠️ Showing notification: no valid selection found', {
+                    stackTrace: new Error().stack
+                });
                 this.notification.add('กรุณาเลือกข้อความก่อนสร้าง comment', { type: 'warning' });
             }
             return;
@@ -2836,7 +2848,12 @@ export class CommentOverlay extends Component {
                 currentSelectionTextType: typeof this.currentSelection?.text,
                 textLength: this.currentSelection?.text?.length
             });
+            // Reset flag since we're returning early
+            this._isCreatingComment = false;
             if (!this.state.isCreating) {
+                logger.warn('⚠️ Showing notification: selection validation failed after recovery', {
+                    stackTrace: new Error().stack
+                });
                 this.notification.add('กรุณาเลือกข้อความก่อนสร้าง comment', { type: 'warning' });
             }
             return;
@@ -2964,6 +2981,7 @@ export class CommentOverlay extends Component {
      */
     onCancelCreate() {
         this.state.isCreating = false;
+        this._isCreatingComment = false; // Reset flag
         this.state.newCommentBody = ""; // Clear using state
         this._propagateNewCommentBodyImmediate("");
         this.currentSelection = null;
