@@ -1507,23 +1507,34 @@ export class CommentManager {
                 clearTimeout(reRenderTimeout);
             }
             
-            // Debounce re-rendering (wait 2 seconds after last mutation)
+            // Debounce re-rendering (wait 3 seconds after last mutation to allow DOM to stabilize)
             reRenderTimeout = setTimeout(async () => {
                 // Prevent re-render if already rendering
                 if (this._isRenderingHighlights) {
+                    logger.log('Skipping highlight re-render: already rendering');
                     return;
                 }
                 
-                // Cooldown period - don't re-render if we just rendered recently (within 5 seconds)
+                // Cooldown period - don't re-render if we just rendered recently (within 8 seconds)
                 const now = Date.now();
                 const timeSinceLastRender = now - (this._lastReRenderTime || 0);
-                if (timeSinceLastRender < 5000) {
+                if (timeSinceLastRender < 8000) {
                     logger.log('Skipping highlight re-render: cooldown period active', {
                         timeSinceLastRender: timeSinceLastRender,
-                        cooldownRemaining: 5000 - timeSinceLastRender
+                        cooldownRemaining: 8000 - timeSinceLastRender
                     });
                     return;
                 }
+                
+                // CRITICAL: Double-check that highlights are actually missing before re-rendering
+                // Wait for DOM to stabilize before checking
+                await new Promise(resolve => {
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            resolve();
+                        });
+                    });
+                });
                 
                 // Check which highlights are missing from DOM
                 const unresolvedComments = this.comments.filter(c => !c.resolved);
