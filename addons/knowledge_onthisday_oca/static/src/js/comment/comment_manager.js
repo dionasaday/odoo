@@ -491,17 +491,41 @@ export class CommentManager {
         resolvedComments.forEach(c => allResolvedCommentIds.add(c.id));
         
         // Helper to recursively find all resolved comment IDs (including parent comments of unresolved replies)
-        const findResolvedParentIds = (comments) => {
+        // CRITICAL: Also find all comment IDs that are children of resolved comments
+        // If a parent comment is resolved, we should hide ALL its children (including unresolved replies)
+        const findResolvedParentIds = (comments, parentResolved = false) => {
             comments.forEach(comment => {
-                if (comment.resolved) {
+                const isResolved = comment.resolved || parentResolved;
+                if (isResolved) {
                     allResolvedCommentIds.add(comment.id);
                 }
+                // If parent is resolved, mark all children as "should be hidden" (even if they're unresolved)
                 if (comment.replies && comment.replies.length > 0) {
-                    findResolvedParentIds(comment.replies);
+                    findResolvedParentIds(comment.replies, isResolved);
                 }
             });
         };
         findResolvedParentIds(this.comments);
+        
+        // Also find all child IDs of resolved comments (to hide unresolved replies of resolved parents)
+        const findChildrenOfResolved = (comments) => {
+            comments.forEach(comment => {
+                if (comment.resolved && comment.replies && comment.replies.length > 0) {
+                    comment.replies.forEach(reply => {
+                        // Mark all replies of resolved comments as "should be hidden"
+                        allResolvedCommentIds.add(reply.id);
+                        // Recursively mark nested replies
+                        if (reply.replies && reply.replies.length > 0) {
+                            findChildrenOfResolved([reply]);
+                        }
+                    });
+                }
+                if (comment.replies && comment.replies.length > 0) {
+                    findChildrenOfResolved(comment.replies);
+                }
+            });
+        };
+        findChildrenOfResolved(this.comments);
         
         // Log allResolvedCommentIds for debugging
         if (allResolvedCommentIds.has(17)) {
