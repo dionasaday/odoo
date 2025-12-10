@@ -3738,20 +3738,25 @@ export class CommentOverlay extends Component {
      */
     async loadCurrentUser() {
         try {
-            const userId = this.orm.userId;
-            if (userId) {
-                const users = await this.orm.read(
-                    'res.users',
-                    [[userId]],
-                    ['id', 'name', 'image_128']
-                );
-                if (users && users.length > 0) {
-                    this.state.currentUser = users[0];
-                    logger.log('Current user loaded', {
-                        userId: users[0].id,
-                        userName: users[0].name
-                    });
-                }
+            // Try to get user ID - use same method as knowledge_document_controller.js
+            // Use searchRead with fallback to admin user (ID 2)
+            const userId = this.orm.userId || 2;
+            const users = await this.orm.searchRead(
+                'res.users',
+                [['id', '=', userId]],
+                ['id', 'name', 'image_128'],
+                { limit: 1 }
+            );
+            if (users && users.length > 0) {
+                this.state.currentUser = users[0];
+                logger.log('Current user loaded', {
+                    userId: users[0].id,
+                    userName: users[0].name,
+                    hasImage: !!users[0].image_128
+                });
+            } else {
+                logger.warn('No user found with ID:', userId);
+                this.state.currentUser = null;
             }
         } catch (error) {
             logger.warn('Failed to load current user:', error);
