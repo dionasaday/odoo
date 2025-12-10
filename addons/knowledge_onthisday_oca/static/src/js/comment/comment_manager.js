@@ -475,7 +475,16 @@ export class CommentManager {
         const comment17 = this.comments.find(c => c.id === 17);
         if (comment17) {
             // Find parent comment if exists
-            const parentComment = comment17.parent_id ? this.comments.find(c => c.id === comment17.parent_id) : null;
+            // parent_id can be in format [id, name] or just id
+            let parentId = null;
+            if (comment17.parent_id) {
+                if (Array.isArray(comment17.parent_id)) {
+                    parentId = comment17.parent_id[0];
+                } else {
+                    parentId = comment17.parent_id;
+                }
+            }
+            const parentComment = parentId ? this.comments.find(c => c.id === parentId) : null;
             logger.log('Comment 17 status check:', {
                 id: comment17.id,
                 resolved: comment17.resolved,
@@ -483,7 +492,8 @@ export class CommentManager {
                 resolvedValue: comment17.resolved,
                 inResolvedIds: resolvedIds.has(17),
                 inUnresolvedIds: unresolvedIds.has(17),
-                parentId: comment17.parent_id,
+                parentIdRaw: comment17.parent_id,
+                parentId: parentId,
                 parentResolved: parentComment ? parentComment.resolved : null,
                 parentExists: !!parentComment,
                 selectedText: comment17.selected_text ? comment17.selected_text.substring(0, 50) : null
@@ -515,14 +525,25 @@ export class CommentManager {
         // CRITICAL: Also find all child IDs of resolved comments using parent_id
         // Since this.comments is a flat array, we need to check parent_id directly
         // If a comment has a parent_id and that parent is resolved, mark the comment as "should be hidden"
+        // parent_id can be in format [id, name] or just id
         this.comments.forEach(comment => {
             if (comment.parent_id) {
-                // Find parent comment
-                const parentComment = this.comments.find(c => c.id === comment.parent_id);
-                if (parentComment && parentComment.resolved) {
-                    // Parent is resolved - mark this comment (and all its descendants) as "should be hidden"
-                    allResolvedCommentIds.add(comment.id);
-                    logger.log(`Marking comment ${comment.id} as hidden because parent ${comment.parent_id} is resolved`);
+                // Extract parent ID (handle both [id, name] and id formats)
+                let parentId = null;
+                if (Array.isArray(comment.parent_id)) {
+                    parentId = comment.parent_id[0];
+                } else {
+                    parentId = comment.parent_id;
+                }
+                
+                if (parentId) {
+                    // Find parent comment
+                    const parentComment = this.comments.find(c => c.id === parentId);
+                    if (parentComment && parentComment.resolved) {
+                        // Parent is resolved - mark this comment (and all its descendants) as "should be hidden"
+                        allResolvedCommentIds.add(comment.id);
+                        logger.log(`Marking comment ${comment.id} as hidden because parent ${parentId} is resolved`);
+                    }
                 }
             }
         });
@@ -532,10 +553,20 @@ export class CommentManager {
         const childrenMap = new Map();
         this.comments.forEach(comment => {
             if (comment.parent_id) {
-                if (!childrenMap.has(comment.parent_id)) {
-                    childrenMap.set(comment.parent_id, []);
+                // Extract parent ID (handle both [id, name] and id formats)
+                let parentId = null;
+                if (Array.isArray(comment.parent_id)) {
+                    parentId = comment.parent_id[0];
+                } else {
+                    parentId = comment.parent_id;
                 }
-                childrenMap.get(comment.parent_id).push(comment);
+                
+                if (parentId) {
+                    if (!childrenMap.has(parentId)) {
+                        childrenMap.set(parentId, []);
+                    }
+                    childrenMap.get(parentId).push(comment);
+                }
             }
         });
         
@@ -545,7 +576,7 @@ export class CommentManager {
             if (children) {
                 children.forEach(child => {
                     allResolvedCommentIds.add(child.id);
-                    logger.log(`Marking descendant comment ${child.id} as hidden because ancestor is resolved`);
+                    logger.log(`Marking descendant comment ${child.id} as hidden because ancestor ${parentId} is resolved`);
                     // Recursively mark nested descendants
                     markDescendants(child.id);
                 });
@@ -556,6 +587,15 @@ export class CommentManager {
         resolvedComments.forEach(resolvedComment => {
             markDescendants(resolvedComment.id);
         });
+        
+        // Log childrenMap for debugging
+        if (childrenMap.size > 0) {
+            logger.log('Children map built:', {
+                totalParents: childrenMap.size,
+                parentIds: Array.from(childrenMap.keys()),
+                comment17ParentId: comment17 ? (Array.isArray(comment17.parent_id) ? comment17.parent_id[0] : comment17.parent_id) : null
+            });
+        }
         
         // Log allResolvedCommentIds for debugging
         if (allResolvedCommentIds.has(17)) {
