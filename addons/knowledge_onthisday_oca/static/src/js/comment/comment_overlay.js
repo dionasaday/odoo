@@ -2737,65 +2737,92 @@ export class CommentOverlay extends Component {
             return;
         }
 
-        // Try multiple methods to recover selection if missing (e.g., browser clears selection on click)
+        // CRITICAL: Try multiple methods to recover selection if missing (browser clears selection on click)
+        // We must be very thorough here because clicking the button will clear browser selection
         let hasValidSelection = false;
+        let recoveredSelection = null;
         
-        // Method 1: Check if we have stored currentSelection
-        if (this.currentSelection && this.currentSelection.text && this.currentSelection.text.trim()) {
-            hasValidSelection = true;
-            logger.log('Using stored currentSelection for comment creation', {
-                textLength: this.currentSelection.text.length,
-                textPreview: this.currentSelection.text.substring(0, 50)
-            });
-        }
-        
-        // Method 2: Try to recover from textSelectionHandler
-        if (!hasValidSelection && this.textSelectionHandler) {
-            const recovered = this.textSelectionHandler.getSelection();
-            if (recovered && recovered.text && recovered.text.trim()) {
-                this.currentSelection = recovered;
+        // Method 1: Check if we have stored currentSelection (most reliable - stored when button was shown)
+        // This should always be available if user clicked the button after selecting text
+        if (this.currentSelection && this.currentSelection.text && typeof this.currentSelection.text === 'string') {
+            const text = this.currentSelection.text.trim();
+            if (text.length > 0) {
                 hasValidSelection = true;
-                logger.log('Recovered selection from textSelectionHandler', {
-                    textLength: recovered.text.length,
-                    textPreview: recovered.text.substring(0, 50)
+                recoveredSelection = this.currentSelection;
+                logger.log('✓ Method 1: Using stored currentSelection', {
+                    textLength: text.length,
+                    textPreview: text.substring(0, 50),
+                    hasRange: !!this.currentSelection.range
                 });
             }
         }
         
-        // Method 3: Check if temp highlight exists (it contains the selected text)
+        // Method 2: Check if temp highlight exists (it contains the selected text)
+        // This is reliable because temp highlight is created when selection is made
         if (!hasValidSelection && this.textSelectionHandler && this.textSelectionHandler.tempHighlight) {
             const tempHighlight = this.textSelectionHandler.tempHighlight;
             if (tempHighlight && tempHighlight.parentNode) {
                 const highlightText = (tempHighlight.textContent || tempHighlight.innerText || '').trim();
-                if (highlightText) {
+                if (highlightText && highlightText.length > 0) {
                     // Try to reconstruct selection from temp highlight
-                    // This is a fallback - we'll use the text but may not have exact range
+                    recoveredSelection = {
+                        text: highlightText,
+                        range: null, // May not have exact range, but text is enough
+                        // Try to get range from highlight if possible
+                        elementSelector: this.textSelectionHandler ? this.textSelectionHandler.getElementSelector(tempHighlight) : ''
+                    };
                     if (!this.currentSelection) {
-                        this.currentSelection = {
-                            text: highlightText,
-                            // We'll try to use the highlight element to get range
-                            range: null
-                        };
+                        this.currentSelection = recoveredSelection;
                     }
                     hasValidSelection = true;
-                    logger.log('Recovered selection from temp highlight', {
+                    logger.log('✓ Method 2: Recovered selection from temp highlight', {
                         textLength: highlightText.length,
                         textPreview: highlightText.substring(0, 50)
                     });
                 }
             }
         }
+        
+        // Method 3: Try to recover from textSelectionHandler (last resort - may not work if selection cleared)
+        if (!hasValidSelection && this.textSelectionHandler) {
+            try {
+                const recovered = this.textSelectionHandler.getSelection();
+                if (recovered && recovered.text && typeof recovered.text === 'string' && recovered.text.trim().length > 0) {
+                    this.currentSelection = recovered;
+                    recoveredSelection = recovered;
+                    hasValidSelection = true;
+                    logger.log('✓ Method 3: Recovered selection from textSelectionHandler', {
+                        textLength: recovered.text.length,
+                        textPreview: recovered.text.substring(0, 50)
+                    });
+                }
+            } catch (error) {
+                logger.warn('Error trying to recover selection from textSelectionHandler:', error);
+            }
+        }
 
-        // Only show error if we truly have no selection
-        if (!hasValidSelection || !this.currentSelection || !this.currentSelection.text || !this.currentSelection.text.trim()) {
-            logger.warn('Cannot create comment: no valid selection found', {
+        // CRITICAL: Only show error if we truly have no selection after all recovery attempts
+        // Even if range is missing, text alone is sufficient to create a comment
+        if (!hasValidSelection || !recoveredSelection || !recoveredSelection.text || typeof recoveredSelection.text !== 'string' || recoveredSelection.text.trim().length === 0) {
+            logger.error('❌ Cannot create comment: no valid selection found after all recovery attempts', {
                 hasCurrentSelection: !!this.currentSelection,
+                currentSelectionText: this.currentSelection?.text?.substring(0, 50),
+                currentSelectionTextType: typeof this.currentSelection?.text,
                 hasTextSelectionHandler: !!this.textSelectionHandler,
                 hasTempHighlight: !!(this.textSelectionHandler && this.textSelectionHandler.tempHighlight),
-                tempHighlightInDOM: !!(this.textSelectionHandler && this.textSelectionHandler.tempHighlight && this.textSelectionHandler.tempHighlight && this.textSelectionHandler.tempHighlight.parentNode)
+                tempHighlightInDOM: !!(this.textSelectionHandler && this.textSelectionHandler.tempHighlight && this.textSelectionHandler.tempHighlight.parentNode),
+                tempHighlightText: this.textSelectionHandler?.tempHighlight?.textContent?.substring(0, 50)
             });
-            this.notification.add('กรุณาเลือกข้อความก่อนสร้าง comment', { type: 'warning' });
+            // Only show notification if form is not already open (prevent duplicate notifications)
+            if (!this.state.isCreating) {
+                this.notification.add('กรุณาเลือกข้อความก่อนสร้าง comment', { type: 'warning' });
+            }
             return;
+        }
+
+        // Update currentSelection to ensure we have the recovered version
+        if (recoveredSelection && (!this.currentSelection || !this.currentSelection.text || this.currentSelection.text.trim().length === 0)) {
+            this.currentSelection = recoveredSelection;
         }
 
         logger.log('onCreateComment called - keeping temp highlight visible while user types', {
