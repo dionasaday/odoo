@@ -2421,7 +2421,7 @@ export class CommentOverlay extends Component {
             this._verifyAndRestoreHighlight(selection);
         }, 50);
         
-        logger.log('Comment text box shown:', {
+        logger.log('Comment button shown:', {
             top: overlay.style.top,
             left: overlay.style.left,
             rect: { 
@@ -2432,14 +2432,14 @@ export class CommentOverlay extends Component {
                 width: rect.width,
                 height: rect.height 
             },
-            boxPosition: { 
+            buttonPosition: { 
                 calculatedTop: buttonTop, 
                 calculatedLeft: buttonLeft,
                 finalTop: finalTop,
                 finalLeft: finalLeft,
                 viewportWidth: viewportWidth,
                 viewportHeight: viewportHeight,
-                endOfLineLeft: endOfLineLeft,
+                contentRightEdge: contentRightEdge,
                 distanceFromHighlight: finalLeft - rect.right,
                 buttonWidth: buttonWidth,
                 buttonHeight: buttonHeight,
