@@ -860,6 +860,19 @@ export class CommentManager {
         );
         
         if (highlightInDOM) {
+            // CRITICAL: Check if comment is actually resolved - if so, remove the highlight
+            if (comment.resolved) {
+                logger.log(`Highlight for comment ${comment.id} exists in DOM but comment is resolved - removing highlight`);
+                const parent = highlightInDOM.parentNode;
+                if (parent) {
+                    const text = highlightInDOM.textContent || highlightInDOM.innerText;
+                    parent.replaceChild(document.createTextNode(text), highlightInDOM);
+                    parent.normalize();
+                }
+                this.highlights.delete(comment.id);
+                return false; // Don't render, highlight was removed
+            }
+            
             // Highlight exists in DOM - update reference if needed and skip rendering
             if (this.highlights.has(comment.id)) {
                 const existingHighlight = this.highlights.get(comment.id);
