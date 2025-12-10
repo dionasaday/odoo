@@ -4,20 +4,9 @@
     <!-- Comment Overlay Template -->
     <t t-name="knowledge_onthisday_oca.CommentOverlay">
         <div class="o_knowledge_comment_overlay_wrapper" t-att-class="{'o_knowledge_comment_overlay_hidden': !this.getShowCommentPanel()}">
-            <!-- Floating text box for selection with Copy button -->
+            <!-- Floating overlay for selection - shows only Add Comment button -->
             <div t-ref="overlay" class="o_knowledge_comment_selection_overlay" style="display:none;">
                 <div class="o_knowledge_comment_selected_text_box">
-                    <div class="o_knowledge_comment_selected_text_box_header">
-                        <button 
-                            class="btn btn-link btn-sm o_knowledge_comment_copy_text_box_btn"
-                            t-on-click.stop="() => this.onCopyText()"
-                            title="Copy ข้อความ">
-                            <i class="fa fa-copy"/> Copy
-                        </button>
-                    </div>
-                    <div class="o_knowledge_comment_selected_text_box_content">
-                        <span t-esc="currentSelection ? currentSelection.text : ''"/>
-                    </div>
                     <div class="o_knowledge_comment_selected_text_box_actions">
                         <button 
                             class="btn btn-primary btn-sm o_knowledge_comment_add_from_box_btn"
