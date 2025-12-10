@@ -2177,10 +2177,13 @@ export class KnowledgeDocumentController extends Component {
      * Create comment from selected text
      */
     async onCreateCommentFromSelection() {
-        if (!this.state.currentTextSelection || !this.state.currentArticle) {
-            this.showNotification('กรุณาเลือกข้อความก่อนสร้าง comment', 'warning');
-            return;
-        }
+        // CRITICAL: Don't show notification here - the comment overlay component handles its own validation
+        // This method is called from comment_overlay.js after it has already validated the selection
+        // If we show notification here, it will appear even when selection is valid
+        // The comment overlay component will show notification if needed
+        
+        // Just ensure comment panel is open and trigger creation
+        // The comment overlay will handle all validation and error messages
 
         // Open comment panel if not already open
         if (!this.state.showCommentPanel) {
