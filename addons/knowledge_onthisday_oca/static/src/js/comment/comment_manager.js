@@ -743,8 +743,10 @@ export class CommentManager {
             
             // Attempt to render missing highlights (but only once per renderHighlights call)
             // CRITICAL: Use for...of loop with await to render sequentially
+            // CRITICAL: Only render unresolved comments that are not in allResolvedCommentIds
             for (const comment of missingHighlights) {
-                if (!comment.resolved) {
+                // Double-check: Don't render if resolved (check both resolvedIds and allResolvedCommentIds)
+                if (!comment.resolved && !resolvedIds.has(comment.id) && !allResolvedCommentIds.has(comment.id)) {
                     try {
                         // Double-check it's still missing before rendering
                         const stillMissing = !this.contentElement.querySelector(
