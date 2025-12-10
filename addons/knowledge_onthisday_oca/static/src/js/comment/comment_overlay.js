@@ -2378,6 +2378,12 @@ export class CommentOverlay extends Component {
             }
         }
         
+        // Don't show overlay if comment form is already open
+        if (this.state.isCreating) {
+            logger.log('Skipping showCommentButton: comment form is open');
+            return;
+        }
+        
         overlay.style.display = 'block';
         overlay.style.position = 'fixed';
         overlay.style.top = `${finalTop}px`;
@@ -2715,7 +2721,8 @@ export class CommentOverlay extends Component {
         // Set prevent hide flag to false to allow hiding button
         this._preventHide = false;
         
-        // Force hide comment button immediately when clicked (force = true bypasses all checks)
+        // Hide comment button immediately when clicked (force = true bypasses all checks)
+        // The overlay will also be hidden via state.isCreating = true in template
         this.hideCommentButton(true);
 
         // Initialize for new comment (uncontrolled component - DOM is source of truth)
