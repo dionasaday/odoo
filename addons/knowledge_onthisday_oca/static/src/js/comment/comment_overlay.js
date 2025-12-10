@@ -77,7 +77,10 @@ export class CommentOverlay extends Component {
         this._textareaObserver = null;
         this._propagateDebounceTimer = null;
 
-        onMounted(() => {
+        onMounted(async () => {
+            // Load current user info
+            await this.loadCurrentUser();
+            
             // Try to initialize with retry mechanism
             // This will wait for contentElement to be ready
             if (this.props.articleId) {
