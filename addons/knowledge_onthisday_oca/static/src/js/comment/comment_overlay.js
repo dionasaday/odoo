@@ -3833,6 +3833,23 @@ export class CommentOverlay extends Component {
     }
 
     /**
+     * Handle avatar image error
+     * @param {Event} event - Error event
+     */
+    onAvatarError(event) {
+        logger.warn('Avatar image failed to load, using fallback', {
+            src: event.target.src,
+            userId: this.state.currentUser?.id
+        });
+        // Set fallback avatar
+        if (event.target) {
+            event.target.src = '/web/static/img/avatar.png';
+            // Prevent infinite loop if fallback also fails
+            event.target.onerror = null;
+        }
+    }
+
+    /**
      * Get markup function for rendering HTML content
      * This is needed to properly render HTML in t-out directive
      */

@@ -25,6 +25,7 @@
                                 t-att-src="getCurrentUserAvatar()"
                                 t-att-alt="getCurrentUserName()"
                                 t-att-title="getCurrentUserName()"
+                                t-on-error="(ev) => this.onAvatarError(ev)"
                                 width="32"
                                 height="32"/>
                             <span class="o_knowledge_comment_form_title">สร้าง Comment ใหม่</span>
