@@ -331,9 +331,14 @@ export class CommentOverlay extends Component {
         useEffect(() => {
             // Only trigger if:
             // 1. triggerCreation prop is true
-            // 2. Comment form is not already open
-            // 3. We have a valid selection
-            if (this.props.triggerCreation && !this.state.isCreating) {
+            // 2. Comment form is not already open (check both state and flag)
+            // 3. onCreateComment will handle selection validation internally
+            if (this.props.triggerCreation && !this.state.isCreating && !this._isCreatingComment) {
+                logger.log('Trigger creation from useEffect', {
+                    triggerCreation: this.props.triggerCreation,
+                    stateIsCreating: this.state.isCreating,
+                    flagIsCreating: this._isCreatingComment
+                });
                 // onCreateComment will handle selection validation internally
                 this.onCreateComment();
             }
