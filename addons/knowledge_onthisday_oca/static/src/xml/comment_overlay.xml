@@ -5,7 +5,8 @@
     <t t-name="knowledge_onthisday_oca.CommentOverlay">
         <div class="o_knowledge_comment_overlay_wrapper" t-att-class="{'o_knowledge_comment_overlay_hidden': !this.getShowCommentPanel()}">
             <!-- Floating overlay for selection - minimal Add Comment button -->
-            <div t-ref="overlay" class="o_knowledge_comment_selection_overlay" style="display:none;">
+            <!-- Hide overlay when comment form is open -->
+            <div t-ref="overlay" class="o_knowledge_comment_selection_overlay" t-att-style="state.isCreating ? 'display:none !important;' : 'display:none;'">
                 <button 
                     class="o_knowledge_comment_add_from_box_btn"
                     t-on-click.stop="() => this.onCreateComment()"
@@ -18,7 +19,16 @@
             <t t-if="state.isCreating">
                 <div class="o_knowledge_comment_form" t-key="'comment-form-' + (currentSelection ? currentSelection.text : 'new') + '-' + (state.isCreating ? 'creating' : 'closed')">
                     <div class="o_knowledge_comment_form_header">
-                        <span class="o_knowledge_comment_form_title">สร้าง Comment ใหม่</span>
+                        <div class="o_knowledge_comment_form_header_left">
+                            <img 
+                                class="o_knowledge_comment_form_avatar"
+                                t-att-src="getCurrentUserAvatar()"
+                                t-att-alt="getCurrentUserName()"
+                                t-att-title="getCurrentUserName()"
+                                width="32"
+                                height="32"/>
+                            <span class="o_knowledge_comment_form_title">สร้าง Comment ใหม่</span>
+                        </div>
                         <button 
                             class="btn btn-link btn-sm"
                             t-on-click="() => this.onCancelCreate()">

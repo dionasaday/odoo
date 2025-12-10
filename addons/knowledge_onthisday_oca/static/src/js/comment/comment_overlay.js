@@ -70,6 +70,7 @@ export class CommentOverlay extends Component {
             showResolved: false,
             // Use state for textarea value - this is the Odoo 19/Owl best practice
             newCommentBody: "",
+            currentUser: null, // Store current user info
         });
         
         // Keep minimal instance variables for cleanup
