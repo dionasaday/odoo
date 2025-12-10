@@ -286,6 +286,23 @@ strong span.o_knowledge_comment_temp_highlight {
                 object-fit: cover;
                 border: 2px solid #e9ecef;
                 flex-shrink: 0;
+                background-color: #f8f9fa;
+                display: block;
+                
+                /* Ensure image loads properly */
+                &[src] {
+                    min-width: 32px;
+                    min-height: 32px;
+                }
+                
+                /* Fallback if image fails to load */
+                &:not([src]),
+                &[src=""],
+                &[src="/web/static/img/avatar.png"] {
+                    background-image: url('/web/static/img/avatar.png');
+                    background-size: cover;
+                    background-position: center;
+                }
             }
         }
         
