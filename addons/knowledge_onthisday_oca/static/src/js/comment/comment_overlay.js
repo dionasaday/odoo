@@ -2726,25 +2726,77 @@ export class CommentOverlay extends Component {
     }
 
     onCreateComment() {
-        // Try to recover selection if missing (e.g., browser clears selection on click)
-        if (!this.currentSelection && this.textSelectionHandler) {
+        // Prevent duplicate calls
+        if (this.state.isCreating) {
+            logger.log('Comment form already open, ignoring duplicate onCreateComment call');
+            return;
+        }
+
+        // Try multiple methods to recover selection if missing (e.g., browser clears selection on click)
+        let hasValidSelection = false;
+        
+        // Method 1: Check if we have stored currentSelection
+        if (this.currentSelection && this.currentSelection.text && this.currentSelection.text.trim()) {
+            hasValidSelection = true;
+            logger.log('Using stored currentSelection for comment creation', {
+                textLength: this.currentSelection.text.length,
+                textPreview: this.currentSelection.text.substring(0, 50)
+            });
+        }
+        
+        // Method 2: Try to recover from textSelectionHandler
+        if (!hasValidSelection && this.textSelectionHandler) {
             const recovered = this.textSelectionHandler.getSelection();
-            if (recovered) {
+            if (recovered && recovered.text && recovered.text.trim()) {
                 this.currentSelection = recovered;
-                logger.log('Recovered selection for comment creation', {
-                    textLength: recovered.text.length
+                hasValidSelection = true;
+                logger.log('Recovered selection from textSelectionHandler', {
+                    textLength: recovered.text.length,
+                    textPreview: recovered.text.substring(0, 50)
                 });
             }
         }
+        
+        // Method 3: Check if temp highlight exists (it contains the selected text)
+        if (!hasValidSelection && this.textSelectionHandler && this.textSelectionHandler.tempHighlight) {
+            const tempHighlight = this.textSelectionHandler.tempHighlight;
+            if (tempHighlight && tempHighlight.parentNode) {
+                const highlightText = (tempHighlight.textContent || tempHighlight.innerText || '').trim();
+                if (highlightText) {
+                    // Try to reconstruct selection from temp highlight
+                    // This is a fallback - we'll use the text but may not have exact range
+                    if (!this.currentSelection) {
+                        this.currentSelection = {
+                            text: highlightText,
+                            // We'll try to use the highlight element to get range
+                            range: null
+                        };
+                    }
+                    hasValidSelection = true;
+                    logger.log('Recovered selection from temp highlight', {
+                        textLength: highlightText.length,
+                        textPreview: highlightText.substring(0, 50)
+                    });
+                }
+            }
+        }
 
-        if (!this.currentSelection) {
+        // Only show error if we truly have no selection
+        if (!hasValidSelection || !this.currentSelection || !this.currentSelection.text || !this.currentSelection.text.trim()) {
+            logger.warn('Cannot create comment: no valid selection found', {
+                hasCurrentSelection: !!this.currentSelection,
+                hasTextSelectionHandler: !!this.textSelectionHandler,
+                hasTempHighlight: !!(this.textSelectionHandler && this.textSelectionHandler.tempHighlight),
+                tempHighlightInDOM: !!(this.textSelectionHandler && this.textSelectionHandler.tempHighlight && this.textSelectionHandler.tempHighlight && this.textSelectionHandler.tempHighlight.parentNode)
+            });
             this.notification.add('กรุณาเลือกข้อความก่อนสร้าง comment', { type: 'warning' });
             return;
         }
 
         logger.log('onCreateComment called - keeping temp highlight visible while user types', {
             hasTempHighlight: !!(this.textSelectionHandler && this.textSelectionHandler.tempHighlight),
-            tempHighlightInDOM: !!(this.textSelectionHandler && this.textSelectionHandler.tempHighlight && this.textSelectionHandler.tempHighlight.parentNode)
+            tempHighlightInDOM: !!(this.textSelectionHandler && this.textSelectionHandler.tempHighlight && this.textSelectionHandler.tempHighlight.parentNode),
+            selectionText: this.currentSelection.text.substring(0, 50)
         });
 
         // IMPORTANT: Don't clear temp highlight - keep it visible while user types comment
