@@ -1592,7 +1592,7 @@ export class CommentManager {
                     try {
                         this._lastReRenderTime = Date.now();
                         
-                        // Re-render missing highlights only
+                        // Re-render missing highlights only (use stillMissing which was verified above)
                         for (const comment of stillMissing) {
                             await this.renderHighlight(comment);
                             // Small delay between renders
