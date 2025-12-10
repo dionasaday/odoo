@@ -463,10 +463,31 @@ export class CommentManager {
             }
         }
 
+        // CRITICAL: Filter comments - only render highlights for comments that are NOT resolved
+        // Even if a resolved comment has unresolved replies, we should NOT show its highlight
+        // This matches the behavior of getDisplayComments() in comment_overlay.js
         const resolvedComments = this.comments.filter(c => c.resolved);
         const unresolvedComments = this.comments.filter(c => !c.resolved);
         const resolvedIds = new Set(resolvedComments.map(c => c.id));
         const unresolvedIds = new Set(unresolvedComments.map(c => c.id));
+        
+        // Also collect all resolved comment IDs including those that might have unresolved replies
+        // We need to ensure highlights for resolved comments are removed even if they have unresolved replies
+        const allResolvedCommentIds = new Set();
+        resolvedComments.forEach(c => allResolvedCommentIds.add(c.id));
+        
+        // Helper to recursively find all resolved comment IDs (including parent comments of unresolved replies)
+        const findResolvedParentIds = (comments) => {
+            comments.forEach(comment => {
+                if (comment.resolved) {
+                    allResolvedCommentIds.add(comment.id);
+                }
+                if (comment.replies && comment.replies.length > 0) {
+                    findResolvedParentIds(comment.replies);
+                }
+            });
+        };
+        findResolvedParentIds(this.comments);
 
         // Step 3: If temp highlight exists, try to find matching comment to replace it
         // IMPORTANT: Don't skip rendering if we have unresolved comments - always render them
@@ -522,6 +543,7 @@ export class CommentManager {
         }
 
         // Step 4: Force remove ALL resolved highlights from DOM SYNCHRONOUSLY first
+        // CRITICAL: Remove highlights for ALL resolved comments, even if they have unresolved replies
         const allHighlightsInDOM = this.contentElement.querySelectorAll(
             '.o_knowledge_comment_highlight'
         );
@@ -529,8 +551,9 @@ export class CommentManager {
             const commentIdAttr = highlightEl.getAttribute('data-comment-id');
             if (commentIdAttr) {
                 const commentId = parseInt(commentIdAttr, 10);
-                // Remove if resolved
-                if (resolvedIds.has(commentId)) {
+                // Remove if resolved (use allResolvedCommentIds to catch all resolved comments)
+                if (allResolvedCommentIds.has(commentId)) {
+                    logger.log(`Removing highlight for resolved comment ${commentId}`);
                     const parent = highlightEl.parentNode;
                     if (parent) {
                         const text = highlightEl.textContent || highlightEl.innerText;
@@ -542,6 +565,7 @@ export class CommentManager {
                 }
                 // Also remove if not in unresolved list (orphaned highlights)
                 else if (!unresolvedIds.has(commentId)) {
+                    logger.log(`Removing orphaned highlight for comment ${commentId}`);
                     const parent = highlightEl.parentNode;
                     if (parent) {
                         const text = highlightEl.textContent || highlightEl.innerText;
@@ -564,6 +588,7 @@ export class CommentManager {
         });
 
         // Step 6: Double-check and remove any remaining resolved highlights
+        // Use allResolvedCommentIds to catch all resolved comments
         const remainingHighlights = this.contentElement.querySelectorAll(
             '.o_knowledge_comment_highlight'
         );
@@ -571,7 +596,8 @@ export class CommentManager {
             const commentIdAttr = highlightEl.getAttribute('data-comment-id');
             if (commentIdAttr) {
                 const commentId = parseInt(commentIdAttr, 10);
-                if (resolvedIds.has(commentId)) {
+                if (allResolvedCommentIds.has(commentId)) {
+                    logger.log(`Double-check: Removing remaining highlight for resolved comment ${commentId}`);
                     const parent = highlightEl.parentNode;
                     if (parent) {
                         const text = highlightEl.textContent || highlightEl.innerText;
