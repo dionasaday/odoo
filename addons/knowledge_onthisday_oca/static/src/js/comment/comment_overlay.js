@@ -2411,9 +2411,10 @@ export class CommentOverlay extends Component {
                 finalLeft: finalLeft,
                 viewportWidth: viewportWidth,
                 viewportHeight: viewportHeight,
-                endOfLineLeft: endOfLineLeft || buttonLeft,
+                endOfLineLeft: endOfLineLeft,
                 distanceFromHighlight: finalLeft - rect.right,
-                buttonSize: buttonSize,
+                boxWidth: boxWidth,
+                boxHeight: boxHeight,
                 positioning: 'end-of-line'
             },
             source: source
