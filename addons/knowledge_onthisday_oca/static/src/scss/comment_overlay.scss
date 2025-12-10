@@ -13,13 +13,30 @@
     /* Prevent flickering by using will-change */
     will-change: background-color;
     
+    /* Allow text selection and copying */
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
+    
     &:hover {
         background-color: #ffc107 !important;
     }
     
-    /* Ensure click events work properly */
+    /* Ensure click events work properly but allow text selection */
     * {
         pointer-events: none; /* Let clicks bubble to parent highlight */
+        user-select: text !important;
+        -webkit-user-select: text !important;
+        -moz-user-select: text !important;
+        -ms-user-select: text !important;
+    }
+    
+    /* Allow browser selection styling but maintain highlight color when selected */
+    &::selection,
+    & *::selection {
+        background-color: rgba(255, 235, 59, 0.5) !important;
+        color: inherit !important;
     }
 }
 
@@ -44,25 +61,28 @@
     position: relative !important;
     z-index: 999 !important;
     color: inherit !important;
-    /* Prevent browser selection styling from overriding */
-    user-select: none !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
+    /* Allow text selection and copying */
+    user-select: text !important;
+    -webkit-user-select: text !important;
+    -moz-user-select: text !important;
+    -ms-user-select: text !important;
     /* Force visibility */
     visibility: visible !important;
     opacity: 1 !important;
     
-    /* Ensure text is visible */
+    /* Ensure text is visible and selectable */
     * {
         color: inherit !important;
-        user-select: none !important;
+        user-select: text !important;
+        -webkit-user-select: text !important;
+        -moz-user-select: text !important;
+        -ms-user-select: text !important;
     }
     
-    /* Override browser selection styling */
+    /* Allow browser selection styling but maintain highlight color when selected */
     &::selection,
     & *::selection {
-        background-color: transparent !important;
+        background-color: rgba(255, 235, 59, 0.5) !important;
         color: inherit !important;
     }
     
@@ -74,13 +94,15 @@
     }
 }
 
-/* Prevent browser selection styling on highlighted text */
+/* Allow browser selection styling on highlighted text with highlight color blend */
 .o_knowledge_article_body .o_knowledge_comment_temp_highlight::selection {
-    background-color: transparent !important;
+    background-color: rgba(255, 235, 59, 0.5) !important;
+    color: inherit !important;
 }
 
 .o_knowledge_article_body .o_knowledge_comment_temp_highlight *::selection {
-    background-color: transparent !important;
+    background-color: rgba(255, 235, 59, 0.5) !important;
+    color: inherit !important;
 }
 
 /* Force highlight visibility with highest specificity */

@@ -256,7 +256,10 @@ export class TextSelectionHandler {
         tempSpan.style.setProperty('background-color', '#ffeb3b', 'important');
         tempSpan.style.setProperty('border-radius', '2px', 'important');
         tempSpan.style.setProperty('display', 'inline', 'important');
-        tempSpan.style.setProperty('user-select', 'none', 'important');
+        tempSpan.style.setProperty('user-select', 'text', 'important');
+        tempSpan.style.setProperty('-webkit-user-select', 'text', 'important');
+        tempSpan.style.setProperty('-moz-user-select', 'text', 'important');
+        tempSpan.style.setProperty('-ms-user-select', 'text', 'important');
         tempSpan.style.setProperty('visibility', 'visible', 'important');
         tempSpan.style.setProperty('opacity', '1', 'important');
         tempSpan.style.setProperty('position', 'relative', 'important');
@@ -290,6 +293,25 @@ export class TextSelectionHandler {
                 workingRange.surroundContents(tempSpan);
                 this.tempHighlight = tempSpan;
                 
+                // CRITICAL: Restore selection after applying highlight so user can copy
+                // surroundContents may collapse the selection, so we need to restore it
+                // Use requestAnimationFrame to ensure DOM is fully updated before restoring selection
+                requestAnimationFrame(() => {
+                    try {
+                        const selection = window.getSelection();
+                        if (selection && tempSpan && tempSpan.parentNode) {
+                            // Create a new range that covers the highlight element
+                            const newRange = document.createRange();
+                            newRange.selectNodeContents(tempSpan);
+                            selection.removeAllRanges();
+                            selection.addRange(newRange);
+                            logger.log('Selection restored after applying highlight with surroundContents');
+                        }
+                    } catch (selectionError) {
+                        logger.warn('Failed to restore selection after surroundContents:', selectionError);
+                    }
+                });
+                
                 logger.log('Highlight applied using surroundContents');
             } catch (surroundError) {
                 // surroundContents failed (likely because range spans multiple elements)
@@ -314,6 +336,25 @@ export class TextSelectionHandler {
                 extractRange.insertNode(tempSpan);
                 
                 this.tempHighlight = tempSpan;
+                
+                // CRITICAL: Restore selection after applying highlight so user can copy
+                // extractContents will collapse the selection, so we need to restore it
+                // Use requestAnimationFrame to ensure DOM is fully updated before restoring selection
+                requestAnimationFrame(() => {
+                    try {
+                        const selection = window.getSelection();
+                        if (selection && tempSpan && tempSpan.parentNode) {
+                            // Create a new range that covers the highlight element
+                            const newRange = document.createRange();
+                            newRange.selectNodeContents(tempSpan);
+                            selection.removeAllRanges();
+                            selection.addRange(newRange);
+                            logger.log('Selection restored after applying highlight with extractContents');
+                        }
+                    } catch (selectionError) {
+                        logger.warn('Failed to restore selection after extractContents:', selectionError);
+                    }
+                });
                 
                 logger.log('Highlight applied using extractContents');
             }
@@ -573,6 +614,24 @@ export class TextSelectionHandler {
                         
                         this.tempHighlight = tempSpan;
                         
+                        // CRITICAL: Restore selection after applying highlight so user can copy
+                        // Use requestAnimationFrame to ensure DOM is fully updated before restoring selection
+                        requestAnimationFrame(() => {
+                            try {
+                                const selection = window.getSelection();
+                                if (selection && tempSpan && tempSpan.parentNode) {
+                                    // Create a new range that covers the highlight element
+                                    const newRange = document.createRange();
+                                    newRange.selectNodeContents(tempSpan);
+                                    selection.removeAllRanges();
+                                    selection.addRange(newRange);
+                                    logger.log('Selection restored after applying highlight with fallback method');
+                                }
+                            } catch (selectionError) {
+                                logger.warn('Failed to restore selection after fallback method:', selectionError);
+                            }
+                        });
+                        
                         // Verify content again
                         const finalText = this.tempHighlight.textContent || this.tempHighlight.innerText || '';
                         const finalNormalized = finalText.replace(/\s+/g, ' ').trim();
@@ -601,7 +660,10 @@ export class TextSelectionHandler {
                             finalSpan.style.setProperty('background-color', '#ffeb3b', 'important');
                             finalSpan.style.setProperty('border-radius', '2px', 'important');
                             finalSpan.style.setProperty('display', 'inline', 'important');
-                            finalSpan.style.setProperty('user-select', 'none', 'important');
+                            finalSpan.style.setProperty('user-select', 'text', 'important');
+                            finalSpan.style.setProperty('-webkit-user-select', 'text', 'important');
+                            finalSpan.style.setProperty('-moz-user-select', 'text', 'important');
+                            finalSpan.style.setProperty('-ms-user-select', 'text', 'important');
                             finalSpan.style.setProperty('visibility', 'visible', 'important');
                             finalSpan.style.setProperty('opacity', '1', 'important');
                             finalSpan.style.setProperty('position', 'relative', 'important');
@@ -617,6 +679,24 @@ export class TextSelectionHandler {
                             finalRange.insertNode(finalSpan);
                             
                             this.tempHighlight = finalSpan;
+                            
+                            // CRITICAL: Restore selection after applying highlight so user can copy
+                            // Use requestAnimationFrame to ensure DOM is fully updated before restoring selection
+                            requestAnimationFrame(() => {
+                                try {
+                                    const selection = window.getSelection();
+                                    if (selection && finalSpan && finalSpan.parentNode) {
+                                        // Create a new range that covers the highlight element
+                                        const newRange = document.createRange();
+                                        newRange.selectNodeContents(finalSpan);
+                                        selection.removeAllRanges();
+                                        selection.addRange(newRange);
+                                        logger.log('Selection restored after applying highlight with final fallback method');
+                                    }
+                                } catch (selectionError) {
+                                    logger.warn('Failed to restore selection after final fallback method:', selectionError);
+                                }
+                            });
                             
                             // Final verification
                             const finalFinalText = this.tempHighlight.textContent || this.tempHighlight.innerText || '';

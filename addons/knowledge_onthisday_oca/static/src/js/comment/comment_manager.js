@@ -1019,6 +1019,13 @@ export class CommentManager {
                 let clickHandled = false;
                 
                 highlight.addEventListener('click', (e) => {
+                    // CRITICAL: Only handle left-click (button 0), allow right-click for context menu
+                    // Right-click (button 2) and middle-click (button 1) should work normally
+                    if (e.button !== 0) {
+                        // Allow right-click and middle-click to work normally (for context menu, etc.)
+                        return;
+                    }
+                    
                     // Prevent multiple clicks from firing
                     if (clickHandled) {
                         e.preventDefault();
@@ -1034,7 +1041,7 @@ export class CommentManager {
                     }, 300);
                     
                     e.stopPropagation(); // Prevent event bubbling
-                    e.preventDefault(); // Prevent default behavior
+                    e.preventDefault(); // Prevent default behavior (only for left-click)
                     
                     logger.log('Highlight clicked:', {
                         commentId: comment.id,
