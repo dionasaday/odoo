@@ -2230,6 +2230,11 @@ export class CommentOverlay extends Component {
      * Show comment button at selection position
      */
     showCommentButton(selection) {
+        // Always keep the latest selection snapshot so the click handler has it
+        if (selection && selection.text) {
+            this.currentSelection = selection;
+        }
+        
         // Try to get overlay element - use multiple methods to find it
         let overlay = this.overlayRef && this.overlayRef.el ? this.overlayRef.el : null;
         
@@ -2721,6 +2726,17 @@ export class CommentOverlay extends Component {
     }
 
     onCreateComment() {
+        // Try to recover selection if missing (e.g., browser clears selection on click)
+        if (!this.currentSelection && this.textSelectionHandler) {
+            const recovered = this.textSelectionHandler.getSelection();
+            if (recovered) {
+                this.currentSelection = recovered;
+                logger.log('Recovered selection for comment creation', {
+                    textLength: recovered.text.length
+                });
+            }
+        }
+
         if (!this.currentSelection) {
             this.notification.add('กรุณาเลือกข้อความก่อนสร้าง comment', { type: 'warning' });
             return;
