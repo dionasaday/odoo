@@ -2433,17 +2433,21 @@ export class CommentOverlay extends Component {
 
     /**
      * Hide comment button
+     * @param {boolean} force - If true, hide regardless of flags
      */
-    hideCommentButton() {
-        // Don't hide if prevent flag is set
-        if (this._preventHide) {
-            logger.log('Hide prevented by _preventHide flag');
-            return;
-        }
-        
-        // Only hide if not currently creating a comment
-        if (this.state.isCreating) {
-            return; // Don't hide if user is in the process of creating a comment
+    hideCommentButton(force = false) {
+        // If force is true, always hide regardless of flags
+        if (!force) {
+            // Don't hide if prevent flag is set
+            if (this._preventHide) {
+                logger.log('Hide prevented by _preventHide flag');
+                return;
+            }
+            
+            // Only hide if not currently creating a comment
+            if (this.state.isCreating) {
+                return; // Don't hide if user is in the process of creating a comment
+            }
         }
         
         // Check if temp highlight still exists - if it does, keep button visible
