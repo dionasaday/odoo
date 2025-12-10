@@ -3314,7 +3314,11 @@ export class KnowledgeDocumentController extends Component {
                 e.preventDefault();
 
                 // Get text to copy
-                const textToCopy = codeBlock.textContent || codeBlock.innerText || container.textContent || '';
+                const codeNode = container.querySelector('code') || codeBlock || container;
+                // Clone to strip out buttons/icons that live in the container
+                const clone = codeNode.cloneNode(true);
+                clone.querySelectorAll('button, i, .o_knowledge_copy_button_wrapper').forEach((n) => n.remove());
+                const textToCopy = clone.textContent || codeNode.textContent || '';
 
                 try {
                     // Try Clipboard API first
