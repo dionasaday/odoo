@@ -1576,14 +1576,14 @@ export class CommentManager {
                         this._lastReRenderTime = Date.now();
                         
                         // Re-render missing highlights only
-                        for (const comment of missingHighlights) {
+                        for (const comment of stillMissing) {
                             await this.renderHighlight(comment);
                             // Small delay between renders
                             await new Promise(resolve => requestAnimationFrame(resolve));
                         }
                         
                         logger.log('Missing highlights re-rendered', {
-                            reRenderedCount: missingHighlights.length
+                            reRenderedCount: stillMissing.length
                         });
                     } catch (error) {
                         logger.error('Error re-rendering missing highlights:', error);
@@ -1596,7 +1596,7 @@ export class CommentManager {
                         }, 2000);
                     }
                 }
-            }, 2000); // Wait 2 seconds after last mutation before checking
+            }, 3000); // Wait 3 seconds after last mutation before checking (increased from 2s)
         };
         
         // Watch for removed nodes (highlights being deleted)
