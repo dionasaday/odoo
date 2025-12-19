@@ -382,16 +382,14 @@ class HelpdeskTicket(models.Model):
         try:
             for ticket in self:
                 if ticket.partner_id:
-                    ticket._message_add_suggested_recipient(
-                        recipients,
-                        partner=ticket.partner_id,
-                        reason=self.env._("Customer"),
+                    # Add suggested recipient directly to recipients dictionary
+                    recipients.setdefault(ticket.id, []).append(
+                        (ticket.partner_id.id, ticket.partner_id.name, self.env._("Customer"))
                     )
                 elif ticket.partner_email:
-                    ticket._message_add_suggested_recipient(
-                        recipients,
-                        email=ticket.partner_email,
-                        reason=self.env._("Customer Email"),
+                    # Add suggested recipient by email
+                    recipients.setdefault(ticket.id, []).append(
+                        (False, ticket.partner_email, self.env._("Customer Email"))
                     )
         except AccessError:
             # no read access rights -> just ignore suggested recipients because this
