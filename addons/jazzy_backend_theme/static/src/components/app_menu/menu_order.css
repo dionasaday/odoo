@@ -85,6 +85,43 @@ o_setting_search {
     top: 40px;
     display:none;
     background: url("../../src/img/background.jpg"), linear-gradient(to bottom, #71639e, #b0adba);
+    /* Enable scrolling when content exceeds viewport */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    pointer-events: auto;
+}
+
+/* When app_components is hidden, ensure it doesn't block content */
+.app_components[style*="display: none"],
+.app_components[style*="display:none"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+}
+
+/* Ensure navbar dropdowns are always above app_components */
+body:has(.app_components[style*="display: block"]) .o_main_navbar,
+body:has(.app_components[style*="display:block"]) .o_main_navbar,
+body.has-app-components .o_main_navbar {
+    z-index: 100 !important;
+    position: relative !important;
+}
+
+body:has(.app_components[style*="display: block"]) .o_main_navbar .o_ActivityMenu,
+body:has(.app_components[style*="display:block"]) .o_main_navbar .o_ActivityMenu,
+body.has-app-components .o_main_navbar .o_ActivityMenu {
+    z-index: 107 !important;
+    position: relative !important;
+}
+
+body:has(.app_components[style*="display: block"]) .o_main_navbar .o_ActivityMenu .dropdown-menu,
+body:has(.app_components[style*="display:block"]) .o_main_navbar .o_ActivityMenu .dropdown-menu,
+body.has-app-components .o_main_navbar .o_ActivityMenu .dropdown-menu {
+    z-index: 108 !important;
+    pointer-events: auto !important;
 }
 .app-menu a{
     flex-basis: 19%;
@@ -168,6 +205,12 @@ o_setting_search {
     top: 40px;
     display:none;
     background: url("../../img/background.jpg"), linear-gradient(to bottom, #71639e, #b0adba);
+    /* Enable scrolling when content exceeds viewport */
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    /* Ensure navbar area (top 46px) is not blocked - allow clicks to pass through */
+    pointer-events: auto;
 }
 .app-menu a{
     flex-basis: 19%;

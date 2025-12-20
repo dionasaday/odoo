@@ -1,0 +1,109 @@
+/*!
+ * Website Frontend Override
+ * Override purple/blue colors from login.scss for website frontend
+ * ให้ปุ่มใน website frontend เป็นสีดำ เทา น้ำตาล ตาม theme
+ */
+
+/* Override btn-primary for website frontend only */
+.o_frontend .btn-primary,
+body.o_frontend .btn-primary,
+#wrapwrap .btn-primary:not(.oe_login_form .btn-primary) {
+    color: #FFFFFF !important;
+    background-color: #232222 !important; /* Dark Gray */
+    border-color: #232222 !important;
+}
+
+.o_frontend .btn-primary:hover,
+body.o_frontend .btn-primary:hover,
+#wrapwrap .btn-primary:hover:not(.oe_login_form .btn-primary:hover) {
+    color: #FFFFFF !important;
+    background-color: #623412 !important; /* Brown */
+    border-color: #623412 !important;
+}
+
+.o_frontend .btn-primary:active,
+.o_frontend .btn-primary.active,
+.o_frontend .btn-primary:focus,
+body.o_frontend .btn-primary:active,
+body.o_frontend .btn-primary.active,
+body.o_frontend .btn-primary:focus,
+#wrapwrap .btn-primary:active:not(.oe_login_form .btn-primary),
+#wrapwrap .btn-primary.active:not(.oe_login_form .btn-primary),
+#wrapwrap .btn-primary:focus:not(.oe_login_form .btn-primary) {
+    color: #FFFFFF !important;
+    background-color: #623412 !important; /* Brown */
+    border-color: #623412 !important;
+}
+
+/* Override btn-outline-primary */
+.o_frontend .btn-outline-primary,
+body.o_frontend .btn-outline-primary {
+    border-color: #232222 !important;
+    color: #232222 !important;
+    background-color: transparent !important;
+}
+
+.o_frontend .btn-outline-primary:hover,
+body.o_frontend .btn-outline-primary:hover {
+    color: #FFFFFF !important;
+    background-color: #232222 !important;
+    border-color: #232222 !important;
+}
+
+/* Override links */
+.o_frontend a:not(.oe_login_form a),
+body.o_frontend a:not(.oe_login_form a) {
+    color: #232222 !important;
+}
+
+.o_frontend a:hover:not(.oe_login_form a:hover),
+body.o_frontend a:hover:not(.oe_login_form a:hover) {
+    color: #623412 !important;
+}
+
+/* Override Odoo website builder buttons */
+.o_website_editor_wrap .btn-primary,
+.o_we_website_editor .btn-primary {
+    background-color: #232222 !important;
+    border-color: #232222 !important;
+    color: #FFFFFF !important;
+}
+
+.o_website_editor_wrap .btn-primary:hover,
+.o_we_website_editor .btn-primary:hover {
+    background-color: #623412 !important;
+    border-color: #623412 !important;
+    color: #FFFFFF !important;
+}
+
+/* Override navbar buttons */
+.navbar .btn-primary,
+.navbar-nav .btn-primary {
+    background-color: #232222 !important;
+    border-color: #232222 !important;
+    color: #FFFFFF !important;
+}
+
+.navbar .btn-primary:hover,
+.navbar-nav .btn-primary:hover {
+    background-color: #623412 !important;
+    border-color: #623412 !important;
+    color: #FFFFFF !important;
+}
+
+/* Override any purple/blue colors in inline styles */
+.o_frontend [style*="#556ee6"],
+.o_frontend [style*="#485ec4"],
+.o_frontend [style*="#4458b8"],
+.o_frontend [style*="rgb(85, 110, 230)"],
+.o_frontend [style*="rgb(72, 94, 196)"],
+.o_frontend [style*="rgb(68, 88, 184)"] {
+    background-color: #232222 !important;
+    color: #FFFFFF !important;
+}
+
+/* Override CSS variables for frontend */
+.o_frontend {
+    --o-brand-primary: #232222 !important;
+    --o-brand-secondary: #623412 !important;
+}

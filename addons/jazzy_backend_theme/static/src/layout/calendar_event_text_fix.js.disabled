@@ -1,0 +1,207 @@
+/**
+ * Premium Calendar Event Styling
+ * Fixes text visibility and applies premium gradients to events
+ * This is a standalone script that doesn't require Odoo module system
+ */
+(function() {
+    'use strict';
+    
+    // Safety check - only run if DOM is available
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+        return;
+    }
+    
+    // Premium gradient colors for events
+    const premiumGradients = [
+        'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+        'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+        'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+        'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+        'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+        'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+        'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)',
+        'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+        'linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%)'
+    ];
+    
+    // Function to apply premium styling to event
+    function applyPremiumStyling(eventElement) {
+        try {
+            // Skip background events
+            if (eventElement.classList && eventElement.classList.contains('fc-bg-event')) {
+                return;
+            }
+            
+            // Skip if already processed
+            if (eventElement.dataset && eventElement.dataset.premiumStyled === 'true') {
+                return;
+            }
+            
+            // Get color index from class or use hash of event ID
+            let colorIndex = 0;
+            if (eventElement.className) {
+                const colorClassMatch = eventElement.className.match(/o_calendar_color_(\d+)/);
+                if (colorClassMatch) {
+                    colorIndex = parseInt(colorClassMatch[1]) % premiumGradients.length;
+                } else {
+                    // Use hash of event ID or position for consistent colors
+                    const eventId = (eventElement.id || eventElement.textContent || '');
+                    const top = eventElement.offsetTop || 0;
+                    const left = eventElement.offsetLeft || 0;
+                    colorIndex = (eventId.length + top + left) % premiumGradients.length;
+                }
+            }
+            
+            // Always apply premium gradient - override inline styles by removing and setting
+            // Remove existing inline background styles
+            const existingStyle = eventElement.getAttribute('style') || '';
+            let newStyle = existingStyle
+                .replace(/background[^;]*/gi, '')
+                .replace(/background-color[^;]*/gi, '')
+                .replace(/background-image[^;]*/gi, '')
+                .replace(/;;+/g, ';')
+                .replace(/^;|;$/g, '');
+            
+            // Add premium gradient
+            newStyle = (newStyle ? newStyle + '; ' : '') + 
+                       'background: ' + premiumGradients[colorIndex] + ' !important; ' +
+                       'background-image: ' + premiumGradients[colorIndex] + ' !important; ' +
+                       'background-color: transparent !important;';
+            
+            eventElement.setAttribute('style', newStyle);
+            
+            // Force white text for all premium gradient events (they're all dark enough)
+            const textElements = eventElement.querySelectorAll('.fc-event-title, .fc-time, .fc-sticky, a, span, .fc-event-main, .fc-event-main-frame');
+            
+            textElements.forEach(function(textEl) {
+                try {
+                    // Remove existing color styles and add new ones
+                    const textStyle = textEl.getAttribute('style') || '';
+                    let newTextStyle = textStyle
+                        .replace(/color[^;]*/gi, '')
+                        .replace(/text-shadow[^;]*/gi, '')
+                        .replace(/font-weight[^;]*/gi, '')
+                        .replace(/;;+/g, ';')
+                        .replace(/^;|;$/g, '');
+                    
+                    // Add premium text styles
+                    newTextStyle = (newTextStyle ? newTextStyle + '; ' : '') +
+                                  'color: #ffffff !important; ' +
+                                  'text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 4px rgba(0, 0, 0, 0.2) !important; ' +
+                                  'font-weight: 500 !important;';
+                    
+                    textEl.setAttribute('style', newTextStyle);
+                } catch (e) {
+                    // Silently ignore errors for individual text elements
+                    console.debug('Error styling text element:', e);
+                }
+            });
+            
+            // Mark as processed to avoid unnecessary reprocessing
+            if (eventElement.dataset) {
+                eventElement.dataset.premiumStyled = 'true';
+            }
+        } catch (e) {
+            // Silently ignore errors to prevent breaking the page
+            console.debug('Error applying premium styling:', e);
+        }
+    }
+    
+    // Fix all calendar events
+    function fixAllEvents() {
+        try {
+            const calendarView = document.querySelector('.o_calendar_view');
+            if (!calendarView) return;
+            
+            const events = calendarView.querySelectorAll('.fc-event:not(.fc-bg-event)');
+            events.forEach(function(event) {
+                applyPremiumStyling(event);
+            });
+        } catch (e) {
+            console.debug('Error fixing events:', e);
+        }
+    }
+    
+    // Function to run fixes multiple times to catch all events
+    function runFixes() {
+        try {
+            fixAllEvents();
+            setTimeout(fixAllEvents, 100);
+            setTimeout(fixAllEvents, 300);
+            setTimeout(fixAllEvents, 500);
+        } catch (e) {
+            console.debug('Error running fixes:', e);
+        }
+    }
+    
+    // Run on various events to catch calendar updates
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', runFixes);
+    } else {
+        runFixes();
+    }
+    
+    // Use MutationObserver to fix events when calendar is updated
+    let observer;
+    function setupObserver() {
+        try {
+            const calendarContainer = document.querySelector('.o_calendar_view');
+            if (calendarContainer && !observer) {
+                observer = new MutationObserver(function() {
+                    setTimeout(fixAllEvents, 50);
+                    setTimeout(fixAllEvents, 200);
+                });
+                
+                observer.observe(calendarContainer, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['style', 'class'],
+                    attributeOldValue: false
+                });
+            }
+        } catch (e) {
+            console.debug('Error setting up observer:', e);
+        }
+    }
+    
+    // Setup observer after delays
+    setTimeout(setupObserver, 200);
+    setTimeout(setupObserver, 1000);
+    setTimeout(setupObserver, 2000);
+    
+    // Also observe when calendar is loaded via OWL - check periodically
+    let checkCount = 0;
+    const maxChecks = 20; // Check for 10 seconds
+    const checkInterval = setInterval(function() {
+        try {
+            checkCount++;
+            const calendarView = document.querySelector('.o_calendar_view');
+            if (calendarView) {
+                fixAllEvents();
+                setupObserver();
+            }
+            if (checkCount >= maxChecks) {
+                clearInterval(checkInterval);
+            }
+        } catch (e) {
+            clearInterval(checkInterval);
+        }
+    }, 500);
+    
+    // Run fixes multiple times to catch lazy-loaded content
+    setTimeout(runFixes, 500);
+    setTimeout(runFixes, 1000);
+    setTimeout(runFixes, 2000);
+    setTimeout(runFixes, 3000);
+    
+    // Listen for Odoo's DOM updates (if available)
+    if (typeof window !== 'undefined') {
+        // Listen for custom events that Odoo might fire
+        window.addEventListener('load', runFixes);
+        if (window.addEventListener) {
+            window.addEventListener('odoo-dom-ready', runFixes);
+        }
+    }
+})();

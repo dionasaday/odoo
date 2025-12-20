@@ -42,9 +42,12 @@
             'jazzy_backend_theme/static/src/layout/style/layout_style.scss',
             'jazzy_backend_theme/static/src/layout/style/sidebar.scss',
             'jazzy_backend_theme/static/src/components/app_menu/search_apps.js',
+            # Temporarily disabled to fix white screen issue
+            # 'jazzy_backend_theme/static/src/layout/calendar_event_text_fix.js',
         ],
         'web.assets_frontend': [
-            'jazzy_backend_theme/static/src/layout/style/login.scss'
+            'jazzy_backend_theme/static/src/layout/style/login.scss',
+            'jazzy_backend_theme/static/src/layout/style/website_frontend.scss',
         ],
     },
     'images': [

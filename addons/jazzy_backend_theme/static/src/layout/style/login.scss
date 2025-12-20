@@ -45,35 +45,48 @@ a:hover {
 .oe_login_form button.btn-link:hover {
     color: #171a1c;
 }
-// Login button starts
-.btn-primary {
+// Login button starts - Scope limited to login page only
+.oe_login_form .btn-primary,
+body:not(.o_frontend) .btn-primary {
     color: #fff;
     background-color: #556ee6;
     border-color: #556ee6;
 }
-.btn-primary:hover {
+.oe_login_form .btn-primary:hover,
+body:not(.o_frontend) .btn-primary:hover {
     color: #fff;
     background-color: #485ec4;
     border-color: #4458b8;
 }
-.btn-outline-primary {
+.oe_login_form .btn-outline-primary,
+body:not(.o_frontend) .btn-outline-primary {
     border-color: #556ee6;
     color: #556ee6;
 }
-.btn-outline-primary:hover {
+.oe_login_form .btn-outline-primary:hover,
+body:not(.o_frontend) .btn-outline-primary:hover {
     color: #fff;
     background-color: #556ee6;
     border-color: #556ee6;
 }
-.btn-check:active+.btn-primary,
-.btn-check:checked+.btn-primary,
-.btn-primary.active,.btn-primary:active,
-.show>.btn-primary.dropdown-toggle {
+.oe_login_form .btn-check:active+.btn-primary,
+.oe_login_form .btn-check:checked+.btn-primary,
+.oe_login_form .btn-primary.active,
+.oe_login_form .btn-primary:active,
+.oe_login_form .show>.btn-primary.dropdown-toggle,
+body:not(.o_frontend) .btn-check:active+.btn-primary,
+body:not(.o_frontend) .btn-check:checked+.btn-primary,
+body:not(.o_frontend) .btn-primary.active,
+body:not(.o_frontend) .btn-primary:active,
+body:not(.o_frontend) .show>.btn-primary.dropdown-toggle {
     color: #fff;
     background-color: #4458b8 !important;
     border-color: #4053ad !important;
 }
-.btn-check:focus+.btn-primary, .btn-primary:focus {
+.oe_login_form .btn-check:focus+.btn-primary,
+.oe_login_form .btn-primary:focus,
+body:not(.o_frontend) .btn-check:focus+.btn-primary,
+body:not(.o_frontend) .btn-primary:focus {
     color: #fff;
     background-color: #485ec4 !important;
     border-color: #4458b8 !important;

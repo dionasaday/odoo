@@ -26,6 +26,18 @@ patch(NavBar.prototype, {
         this.fetch_data()
         onMounted(() => {
             this.setClass()
+            this.toggleFullscreenBackground()
+            // Watch for fullscreen menu changes
+            const observer = new MutationObserver(() => {
+                this.toggleFullscreenBackground()
+            })
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            })
+            
+            // Close app menu when clicking ActivityMenu items
+            this.setupActivityMenuClickHandler()
         })
     },
     createDeferred() {
@@ -53,11 +65,16 @@ patch(NavBar.prototype, {
         }
         if (result.full_bg_img !== false) {
             var imageUrl = 'url(data:image/png;base64,' + result.full_bg_img + ')';
+            // Set CSS variable for body::before background
+            document.documentElement.style.setProperty("--full-screen-bg", imageUrl);
+            // Also set for app_components elements (backward compatibility)
             var appComponentsDivs = document.getElementsByClassName('app_components');
-
             for (var i = 0; i < appComponentsDivs.length; i++) {
                 appComponentsDivs[i].style.backgroundImage = imageUrl;
             }
+        } else {
+            // Reset to default if no custom image
+            document.documentElement.style.setProperty("--full-screen-bg", "url(/jazzy_backend_theme/static/src/img/background.jpg)");
         }
         if (result.appbar_text !== false){
             document.documentElement.style.setProperty("--app-menu-font-color",result.appbar_text)
@@ -120,6 +137,10 @@ patch(NavBar.prototype, {
     handleClick(menu) {
         this.app_components.el.nextSibling.style.display = "block";
         this.app_components.el.style.display = "none";
+        this.app_components.el.style.opacity = "0";
+        // Immediately update background visibility and remove class
+        document.body.classList.remove('has-app-components');
+        this.toggleFullscreenBackground()
 
         this.sidebar_panel.el.style.display = "block";
         this.app_menu.el.classList.remove('o_hidden');
@@ -174,11 +195,15 @@ patch(NavBar.prototype, {
             this.app_components.el.style.display = "block"
             this.app_components.el.nextSibling.style.display = "none"
             this.sidebar_panel.el.style.display = "none"
+            // Update background visibility
+            this.toggleFullscreenBackground()
         } else {
             this.app_components.el.style.transition = "opacity 0.05s";
             this.app_components.el.style.opacity = "0";
             setTimeout(() => {
                 this.app_components.el.style.display = "none";
+                // Update background visibility after hiding
+                this.toggleFullscreenBackground()
             }, 50);
             this.app_components.el.nextSibling.style.display = "block"
             this.sidebar_panel.el.style.display = "block"
@@ -202,10 +227,14 @@ patch(NavBar.prototype, {
         }
     },
     onNavBarDropdownItemSelection(app) {
-        // To go to app menu
+        // To go to app menu - hide app_components immediately
         this.app_components.el.style.display = "none";
+        this.app_components.el.style.opacity = "0";
         this.app_components.el.nextSibling.style.display = "block"
         this.sidebar_panel.el.style.display = "block"
+        // Immediately update background visibility and remove class
+        document.body.classList.remove('has-app-components');
+        this.toggleFullscreenBackground()
         let children = this.app_components.el.parentElement.children;
             let oNavbar = null;
             for (let i = 0; i < children.length; i++) {
@@ -265,5 +294,91 @@ patch(NavBar.prototype, {
      */
     hasWebIconExtension(webIcon, extension) {
         return webIcon && typeof webIcon === 'string' && webIcon.includes(extension);
+    },
+    toggleFullscreenBackground() {
+        // Toggle class on body based on app_components visibility
+        const appComponents = document.querySelector('.app_components')
+        if (appComponents) {
+            const style = window.getComputedStyle(appComponents)
+            // Check if app_components is visible (not display: none)
+            if (style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0') {
+                document.body.classList.add('has-app-components')
+            } else {
+                document.body.classList.remove('has-app-components')
+            }
+        } else {
+            document.body.classList.remove('has-app-components')
+        }
+    },
+    setupActivityMenuClickHandler() {
+        // Close app menu when clicking on ActivityMenu items
+        const closeAppMenuOnActivityClick = (event) => {
+            // Check if click is on ActivityMenu dropdown item
+            const activityMenu = event.target.closest('.o_ActivityMenu')
+            if (activityMenu) {
+                const activityItem = event.target.closest('.o-mail-ActivityGroup, .o-mail-ActivityGroup a, .o_activity_summary, .o_activity_summary_cell, [class*="activity"]')
+                if (activityItem && this.app_components && this.app_components.el) {
+                    const appComponentsStyle = window.getComputedStyle(this.app_components.el)
+                    // If app menu is open, close it immediately
+                    if (appComponentsStyle.display !== 'none' && appComponentsStyle.visibility !== 'hidden') {
+                        this.app_components.el.style.display = 'none'
+                        this.app_components.el.style.opacity = '0'
+                        if (this.app_components.el.nextSibling) {
+                            this.app_components.el.nextSibling.style.display = 'block'
+                        }
+                        if (this.sidebar_panel && this.sidebar_panel.el) {
+                            this.sidebar_panel.el.style.display = 'block'
+                        }
+                        document.body.classList.remove('has-app-components')
+                        this.toggleFullscreenBackground()
+                    }
+                }
+            }
+        }
+        
+        // Use event delegation on document body with capture phase
+        document.body.addEventListener('click', closeAppMenuOnActivityClick, true)
+        
+        // Watch for URL changes using popstate and pushState
+        let lastUrl = window.location.href
+        
+        // Override pushState to detect programmatic navigation
+        const originalPushState = history.pushState
+        history.pushState = (...args) => {
+            originalPushState.apply(history, args)
+            this.closeAppMenuIfOpen()
+        }
+        
+        // Listen to popstate (back/forward button)
+        window.addEventListener('popstate', () => {
+            this.closeAppMenuIfOpen()
+        })
+        
+        // Fallback: Check URL periodically
+        setInterval(() => {
+            const currentUrl = window.location.href
+            if (currentUrl !== lastUrl) {
+                lastUrl = currentUrl
+                this.closeAppMenuIfOpen()
+            }
+        }, 200)
+    },
+    closeAppMenuIfOpen() {
+        // Close app menu if it's open
+        if (this.app_components && this.app_components.el) {
+            const appComponentsStyle = window.getComputedStyle(this.app_components.el)
+            if (appComponentsStyle.display !== 'none' && appComponentsStyle.visibility !== 'hidden') {
+                this.app_components.el.style.display = 'none'
+                this.app_components.el.style.opacity = '0'
+                if (this.app_components.el.nextSibling) {
+                    this.app_components.el.nextSibling.style.display = 'block'
+                }
+                if (this.sidebar_panel && this.sidebar_panel.el) {
+                    this.sidebar_panel.el.style.display = 'block'
+                }
+                document.body.classList.remove('has-app-components')
+                this.toggleFullscreenBackground()
+            }
+        }
     }
 })
