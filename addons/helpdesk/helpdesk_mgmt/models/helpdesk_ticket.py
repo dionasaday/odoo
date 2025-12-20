@@ -379,16 +379,19 @@ class HelpdeskTicket(models.Model):
 
     def _message_get_suggested_recipients(self, **kwargs):
         recipients = super()._message_get_suggested_recipients(**kwargs)
+        # In Odoo 19, recipients is a list of tuples: (partner_id, name, reason)
+        if not isinstance(recipients, list):
+            recipients = list(recipients) if recipients else []
         try:
             for ticket in self:
                 if ticket.partner_id:
-                    # Add suggested recipient directly to recipients dictionary
-                    recipients.setdefault(ticket.id, []).append(
+                    # Add suggested recipient as tuple: (partner_id, name, reason)
+                    recipients.append(
                         (ticket.partner_id.id, ticket.partner_id.name, self.env._("Customer"))
                     )
                 elif ticket.partner_email:
-                    # Add suggested recipient by email
-                    recipients.setdefault(ticket.id, []).append(
+                    # Add suggested recipient by email: (False, email, reason)
+                    recipients.append(
                         (False, ticket.partner_email, self.env._("Customer Email"))
                     )
         except AccessError:
