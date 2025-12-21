@@ -266,11 +266,7 @@ body:has(.app_components[style*="display: block"]) .o_main_navbar .o_ActivityMen
     cursor: pointer !important;
     position: relative !important;
 }
-.dropdown-toggle {
-    &:hover{
-        background: var(--primary-hover) !important;
-    }
-}
+/* .dropdown-toggle:hover - use default Odoo behavior, no overrides */
 .o-menu-search-result.dropdown-item.col-12.ml-auto.mr-auto {
 
     background-repeat: no-repeat;
@@ -285,15 +281,7 @@ body:has(.app_components[style*="display: block"]) .o_main_navbar .o_ActivityMen
 .o_searchview .o_searchview_facet .o_searchview_facet_label {
     background-color: var(--primary-accent) !important;
 }
-.btn-secondary {
-    color: #fff !important;
-    background-color: var(--primary-accent) !important;
-    border-color: var(--primary-accent) !important;
-    margin:0 5px 0 0;
-    &:hover{
-        background-color: var(--primary-hover) !important;
-    }
-}
+/* .btn-secondary - use default Odoo behavior, no overrides */
 .btn-outline-primary {
     border-color: var(--primary-hover);
     color: var(--primary-hover);
@@ -361,13 +349,7 @@ body:has(.app_components[style*="display: block"]) .o_main_navbar .o_ActivityMen
     height: 32px;
     border-radius: 5px;
 }
-// Photo
-.o_kanban_view .o_kanban_record.o_kanban_record_has_image_fill .o_kanban_image_fill_left {
-    margin-top: -8px;
-    margin-bottom: -8px;
-    margin-left: -8px;
-    border-radius: 10px;
-}
+/* .o_kanban_view .o_kanban_record - use default Odoo behavior, no overrides */
 // Drowpdowm
 .o-dropdown.dropup > .o-dropdown--menu, .o-dropdown.dropdown > .o-dropdown--menu, .o-dropdown.dropleft > .o-dropdown--menu, .o-dropdown.dropright > .o-dropdown--menu {
     left: auto;
@@ -376,13 +358,7 @@ body:has(.app_components[style*="display: block"]) .o_main_navbar .o_ActivityMen
     margin-right: 0;
     border-radius: 10px;
 }
-// Kanban
-.o_kanban_view.o_kanban_grouped .o_kanban_record, .o_kanban_view.o_kanban_grouped .o_kanban_quick_create {
-    width: 100%;
-    margin-left: 0;
-    margin-right: 0;
-    border-radius: 10px;
-}
+/* .o_kanban_view - use default Odoo behavior, no overrides */
 .o_form_view .oe_button_box .btn.oe_stat_button {
     color: var(--primary-accent) !important;
     height: 44px;
@@ -409,24 +385,8 @@ body:has(.app_components[style*="display: block"]) .o_main_navbar .o_ActivityMen
     border-color: var(--primary-accent) !important;
     background-color: var(--primary-accent) !important;
 }
-// Current date calender - Premium styling
-.o_calendar_view .o_calendar_widget .fc-timeGridDay-view .fc-widget-header.fc-today, 
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-widget-header.fc-today {
-    border-radius: 12px !important;
-    background: linear-gradient(135deg, var(--primary-accent, #667eea) 0%, var(--primary-hover, #764ba2) 100%) !important;
-    color: var(--bg-white) !important;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3) !important;
-    font-weight: 600 !important;
-}
-// Tabs Start
-.nav-tabs .nav-link.active, .nav-tabs .nav-item.show .nav-link {
-    border: none;
-    border-bottom: solid;
-    font-weight: bold;
-    background: var(--primary-accent) !important;
-    color: var(--bg-white) !important;
-    border-radius: 5px,50px,5px,50px;
-}
+/* .o_calendar_view - use default Odoo behavior, no overrides */
+/* .nav-tabs .nav-link.active - use default Odoo behavior, no overrides */
 // Website
 .o_dashboards .o_website_dashboard .o_dashboard_common .o_inner_box {
     padding-top: 10px;
@@ -455,456 +415,7 @@ body:has(.app_components[style*="display: block"]) .o_main_navbar .o_ActivityMen
 .o_mail_preview .o_mail_preview_image.o_mail_preview_app > img {
     border-radius: 10px;
 }
-// ============================================
-// Clean & Minimalist Calendar Styling
-// ============================================
-
-// Clean, minimal calendar events - no heavy shadows or effects
-.o_calendar_view .fc-view .fc-event {
-    position: relative;
-    border: none !important;
-    border-radius: 4px !important;
-    padding: 3px 6px !important;
-    margin: 1px 0 !important;
-    box-shadow: none !important;
-    transition: opacity 0.15s ease !important;
-    font-weight: 400 !important;
-    overflow: hidden;
-    background: #fff8e1 !important; // Light yellow/beige default
-    
-    // Remove gradient overlay for clean look
-    &::before {
-        display: none !important;
-    }
-    
-    // Subtle hover effect
-    &:hover {
-        opacity: 0.85 !important;
-    }
-}
-
-// Clean, minimal color schemes - Light, subtle colors (not dark, not pastel)
-// Override inline styles with high specificity
-.o_calendar_view .fc-view .fc-event.o_calendar_color_0,
-.o_calendar_view .fc-view .fc-event.o_calendar_color_0[style] {
-    background: #fff8e1 !important; // Light yellow/beige
-    background-image: none !important;
-}
-
-.o_calendar_view .fc-view .fc-event.o_calendar_color_1,
-.o_calendar_view .fc-view .fc-event.o_calendar_color_1[style] {
-    background: #f3e5f5 !important; // Light purple
-    background-image: none !important;
-}
-
-.o_calendar_view .fc-view .fc-event.o_calendar_color_2,
-.o_calendar_view .fc-view .fc-event.o_calendar_color_2[style] {
-    background: #e8f5e9 !important; // Light green
-    background-image: none !important;
-}
-
-.o_calendar_view .fc-view .fc-event.o_calendar_color_3,
-.o_calendar_view .fc-view .fc-event.o_calendar_color_3[style] {
-    background: #fff3e0 !important; // Light orange
-    background-image: none !important;
-}
-
-.o_calendar_view .fc-view .fc-event.o_calendar_color_4,
-.o_calendar_view .fc-view .fc-event.o_calendar_color_4[style] {
-    background: #e1f5fe !important; // Light blue
-    background-image: none !important;
-}
-
-.o_calendar_view .fc-view .fc-event.o_calendar_color_5,
-.o_calendar_view .fc-view .fc-event.o_calendar_color_5[style] {
-    background: #fce4ec !important; // Light pink
-    background-image: none !important;
-}
-
-.o_calendar_view .fc-view .fc-event.o_calendar_color_6,
-.o_calendar_view .fc-view .fc-event.o_calendar_color_6[style] {
-    background: #f1f8e9 !important; // Light green-yellow
-    background-image: none !important;
-}
-
-.o_calendar_view .fc-view .fc-event.o_calendar_color_7,
-.o_calendar_view .fc-view .fc-event.o_calendar_color_7[style] {
-    background: #fff8e1 !important; // Light yellow
-    background-image: none !important;
-}
-
-.o_calendar_view .fc-view .fc-event.o_calendar_color_8,
-.o_calendar_view .fc-view .fc-event.o_calendar_color_8[style] {
-    background: #fafafa !important; // Very light gray
-    background-image: none !important;
-}
-
-.o_calendar_view .fc-view .fc-event.o_calendar_color_9,
-.o_calendar_view .fc-view .fc-event.o_calendar_color_9[style] {
-    background: #e0f2f1 !important; // Light teal
-    background-image: none !important;
-}
-
-// Fallback for events without specific color class - use light yellow/beige
-.o_calendar_view .fc-view .fc-event:not([class*="o_calendar_color_"]):not(.fc-bg-event),
-.o_calendar_view .fc-view .fc-event:not([class*="o_calendar_color_"]):not(.fc-bg-event)[style] {
-    background: #fff8e1 !important;
-    background-image: none !important;
-}
-
-// Force override ALL inline styles for calendar events with clean light colors
-// This uses maximum specificity to override Odoo's inline styles
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style] {
-    // Remove inline background and replace with clean light color
-    background: #fff8e1 !important;
-    background-image: none !important;
-    background-color: #fff8e1 !important;
-}
-
-// Override all inline styles to use clean light colors
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="rgb(255"]:not([style*="rgb(255, 0"]),
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="rgb(254"]:not([style*="rgb(254, 0"]),
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="rgb(253"]:not([style*="rgb(253, 0"]),
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="rgb(252"]:not([style*="rgb(252, 0"]),
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="rgb(251"]:not([style*="rgb(251, 0"]),
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="rgb(250"]:not([style*="rgb(250, 0"]),
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="rgba(255"]:not([style*="rgba(255, 0"]),
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="rgba(254"]:not([style*="rgba(254, 0"]),
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="rgba(253"]:not([style*="rgba(253, 0"]),
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="rgba(252"]:not([style*="rgba(252, 0"]),
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="rgba(251"]:not([style*="rgba(251, 0"]),
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="rgba(250"]:not([style*="rgba(250, 0"]) {
-    background: #fff8e1 !important; // Light yellow/beige
-    background-image: none !important;
-    background-color: #fff8e1 !important;
-}
-
-// Clean text styling - dark text on light backgrounds for readability
-// Override all text colors for events (except background events)
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event) .fc-event-title,
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event) .fc-time,
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event) .fc-sticky,
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event) a,
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event) span,
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event) .fc-event-main,
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event) .fc-event-main-frame {
-    color: #212121 !important; // Dark text for readability on light backgrounds
-    text-shadow: none !important; // No shadow for clean look
-    font-weight: 400 !important; // Normal weight, not bold
-    font-size: 0.875rem !important;
-    line-height: 1.4 !important;
-    letter-spacing: 0 !important; // No letter spacing for clean look
-    position: relative;
-    z-index: 1;
-}
-
-// Force override inline styles for text - highest priority
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="color"] .fc-event-title,
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="color"] .fc-time,
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="color"] .fc-sticky,
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="color"] a,
-.o_calendar_view .fc-view .fc-event:not(.fc-bg-event)[style*="color"] span {
-    color: #ffffff !important;
-}
-
-// Week view specific styling - Clear yellow background and small text
-.o_calendar_view .fc-timeGridWeek-view .fc-event:not(.fc-bg-event),
-.o_calendar_view .fc-timeGridWeek-view .fc-event:not(.fc-bg-event)[style] {
-    background: #fff176 !important; // Clearer yellow background (amber/yellow 200)
-    background-color: #fff176 !important;
-    background-image: none !important;
-    border: none !important;
-    border-radius: 4px !important;
-    padding: 3px 6px !important;
-    margin: 1px 0 !important;
-}
-
-// Week view - Force all color classes to use clearer yellow background
-.o_calendar_view .fc-timeGridWeek-view .fc-event.o_calendar_color_0,
-.o_calendar_view .fc-timeGridWeek-view .fc-event.o_calendar_color_1,
-.o_calendar_view .fc-timeGridWeek-view .fc-event.o_calendar_color_2,
-.o_calendar_view .fc-timeGridWeek-view .fc-event.o_calendar_color_3,
-.o_calendar_view .fc-timeGridWeek-view .fc-event.o_calendar_color_4,
-.o_calendar_view .fc-timeGridWeek-view .fc-event.o_calendar_color_5,
-.o_calendar_view .fc-timeGridWeek-view .fc-event.o_calendar_color_6,
-.o_calendar_view .fc-timeGridWeek-view .fc-event.o_calendar_color_7,
-.o_calendar_view .fc-timeGridWeek-view .fc-event.o_calendar_color_8,
-.o_calendar_view .fc-timeGridWeek-view .fc-event.o_calendar_color_9,
-.o_calendar_view .fc-timeGridWeek-view .fc-event[class*="o_calendar_color_"] {
-    background: #fff176 !important; // Clearer yellow for all events in week view
-    background-color: #fff176 !important;
-    background-image: none !important;
-}
-
-// Week view - Small text styling (like example image 1)
-.o_calendar_view .fc-timeGridWeek-view .fc-event:not(.fc-bg-event) .fc-event-title,
-.o_calendar_view .fc-timeGridWeek-view .fc-event:not(.fc-bg-event) .fc-time,
-.o_calendar_view .fc-timeGridWeek-view .fc-event:not(.fc-bg-event) .fc-sticky,
-.o_calendar_view .fc-timeGridWeek-view .fc-event:not(.fc-bg-event) a,
-.o_calendar_view .fc-timeGridWeek-view .fc-event:not(.fc-bg-event) span,
-.o_calendar_view .fc-timeGridWeek-view .fc-event:not(.fc-bg-event) .fc-event-main,
-.o_calendar_view .fc-timeGridWeek-view .fc-event:not(.fc-bg-event) .fc-event-main-frame,
-.o_calendar_view .fc-timeGridWeek-view .fc-event:not(.fc-bg-event) .fc-event-time {
-    color: #212121 !important; // Dark text for readability
-    text-shadow: none !important;
-    font-weight: 400 !important;
-    font-size: 0.75rem !important; // Smaller font size for week view (matching example)
-    line-height: 1.3 !important;
-    letter-spacing: 0 !important;
-}
-
-// Week view - Maximum specificity to override all inline styles
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event:not(.fc-bg-event),
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event:not(.fc-bg-event)[style*="background"],
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event:not(.fc-bg-event)[style*="rgb"],
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event:not(.fc-bg-event)[style*="rgba"] {
-    background: #fff176 !important; // Clearer yellow
-    background-color: #fff176 !important;
-    background-image: none !important;
-}
-
-// Week view - Override all calendar color classes with maximum specificity
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event.o_calendar_color_0[style],
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event.o_calendar_color_1[style],
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event.o_calendar_color_2[style],
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event.o_calendar_color_3[style],
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event.o_calendar_color_4[style],
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event.o_calendar_color_5[style],
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event.o_calendar_color_6[style],
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event.o_calendar_color_7[style],
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event.o_calendar_color_8[style],
-.o_calendar_view .o_calendar_widget .fc-timeGridWeek-view .fc-event.o_calendar_color_9[style] {
-    background: #fff176 !important; // Clearer yellow
-    background-color: #fff176 !important;
-    background-image: none !important;
-}
-
-// Week view - Ultimate override for ALL events regardless of inline styles
-.o_calendar_renderer .o_calendar_widget .fc-timeGridWeek-view .fc-event:not(.fc-bg-event):not(.o_event_allday),
-.o_calendar_renderer .o_calendar_widget .fc-timeGridWeek-view .fc-timegrid-event-harness .fc-event:not(.fc-bg-event) {
-    background: #fff176 !important; // Clearer yellow
-    background-color: #fff176 !important;
-    background-image: none !important;
-    border: none !important;
-}
-
-// Week view - Override inline style attribute directly
-.o_calendar_view .fc-timeGridWeek-view a.fc-event[style],
-.o_calendar_view .fc-timeGridWeek-view .fc-event[style*="background-color"],
-.o_calendar_view .fc-timeGridWeek-view .fc-event[style*="background:"] {
-    background: #fff176 !important; // Clearer yellow
-    background-color: #fff176 !important;
-    background-image: none !important;
-}
-
-// Week view - Override all possible inline styles with attribute selectors
-.o_calendar_view .fc-timeGridWeek-view .fc-event[style*="rgb("],
-.o_calendar_view .fc-timeGridWeek-view .fc-event[style*="rgba("],
-.o_calendar_view .fc-timeGridWeek-view .fc-event[style*="#"] {
-    background: #fff176 !important; // Clearer yellow
-    background-color: #fff176 !important;
-    background-image: none !important;
-}
-
-// Week view - Target event harness container
-.o_calendar_view .fc-timeGridWeek-view .fc-timegrid-event-harness .fc-event,
-.o_calendar_view .fc-timeGridWeek-view .fc-timegrid-event-harness .fc-event[style] {
-    background: #fff176 !important; // Clearer yellow
-    background-color: #fff176 !important;
-    background-image: none !important;
-}
-
-// Week view - Ultimate override with highest specificity
-.o_calendar_renderer .o_calendar_widget .fc-view.fc-timeGridWeek-view .fc-event:not(.fc-bg-event):not(.o_event_allday) {
-    background: #fff176 !important; // Clearer yellow
-    background-color: #fff176 !important;
-    background-image: none !important;
-    border: none !important;
-}
-
-// For light background events, use dark text
-.o_calendar_view .fc-view .fc-event.fc-bg-event {
-    background: rgba(240, 244, 248, 0.9) !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-    
-    .fc-event-title,
-    .fc-time,
-    .fc-sticky,
-    a,
-    span {
-        color: #2d3748 !important;
-        text-shadow: none !important;
-        font-weight: 500 !important;
-    }
-}
-
-// Enhanced calendar grid styling
-.o_calendar_view .fc-view-container {
-    border-radius: 12px !important;
-    overflow: hidden;
-}
-
-.o_calendar_view .fc-daygrid-day {
-    border-color: rgba(0, 0, 0, 0.06) !important;
-}
-
-.o_calendar_view .fc-col-header-cell {
-    background: rgba(247, 250, 252, 0.8) !important;
-    border-color: rgba(0, 0, 0, 0.06) !important;
-    padding: 12px 8px !important;
-    font-weight: 600 !important;
-    color: #4a5568 !important;
-    text-transform: uppercase;
-    font-size: 0.75rem !important;
-    letter-spacing: 0.05em !important;
-}
-
-// Today indicator - more prominent
-.o_calendar_view .fc-day-today {
-    background: rgba(237, 242, 247, 0.5) !important;
-}
-
-.o_calendar_view .fc-daygrid-day-top {
-    padding: 8px !important;
-}
-
-.o_calendar_view .fc-daygrid-day-number {
-    font-weight: 600 !important;
-    color: #2d3748 !important;
-    padding: 4px 8px !important;
-    border-radius: 6px !important;
-    transition: all 0.2s ease !important;
-    
-    &:hover {
-        background: rgba(0, 0, 0, 0.05) !important;
-    }
-}
-
-// Current date styling
-.o_calendar_view .fc-day-today .fc-daygrid-day-number {
-    background: linear-gradient(135deg, var(--primary-accent, #667eea) 0%, var(--primary-hover, #764ba2) 100%) !important;
-    color: #ffffff !important;
-    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3) !important;
-}
-
-// Calendar controls styling
-.o_calendar_view .fc-toolbar {
-    padding: 16px !important;
-    background: transparent !important;
-}
-
-.o_calendar_view .fc-button {
-    border-radius: 8px !important;
-    padding: 8px 16px !important;
-    font-weight: 500 !important;
-    text-transform: none !important;
-    transition: all 0.2s ease !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-    
-    &:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
-    }
-    
-    &:active {
-        transform: translateY(0);
-    }
-}
-
-.o_calendar_view .fc-button-primary {
-    background: linear-gradient(135deg, var(--primary-accent, #667eea) 0%, var(--primary-hover, #764ba2) 100%) !important;
-    border: none !important;
-    
-    &:hover {
-        background: linear-gradient(135deg, var(--primary-hover, #764ba2) 0%, var(--primary-accent, #667eea) 100%) !important;
-    }
-}
-
-// Event dots/badges styling
-.o_calendar_view .fc-event-main-frame {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.o_calendar_view .fc-event-time {
-    font-weight: 600 !important;
-    opacity: 0.95;
-}
-
-.o_calendar_view .fc-event-title-container {
-    flex: 1;
-}
-
-// Additional premium calendar enhancements
-.o_calendar_view {
-    background: #ffffff !important;
-    border-radius: 12px !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
-    overflow: hidden;
-}
-
-// Weekend styling - subtle differentiation
-.o_calendar_view .fc-daygrid-day.fc-day-sat,
-.o_calendar_view .fc-daygrid-day.fc-day-sun {
-    background: rgba(250, 251, 252, 0.5) !important;
-}
-
-// Calendar header/title styling
-.o_calendar_view .fc-toolbar-title {
-    font-size: 1.5rem !important;
-    font-weight: 700 !important;
-    color: #1a202c !important;
-    letter-spacing: -0.02em !important;
-}
-
-// Month view enhancements
-.o_calendar_view .fc-daygrid-body {
-    border-radius: 0 0 12px 12px !important;
-}
-
-// Event dots/badges for compact view
-.o_calendar_view .fc-event-dot {
-    width: 8px !important;
-    height: 8px !important;
-    border-radius: 50% !important;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
-}
-
-// More space between events
-.o_calendar_view .fc-daygrid-day-events {
-    margin-top: 4px !important;
-}
-
-// Better event padding
-.o_calendar_view .fc-daygrid-event {
-    margin: 3px 2px !important;
-}
-
-// Week number styling
-.o_calendar_view .fc-daygrid-week-number {
-    color: #a0aec0 !important;
-    font-weight: 600 !important;
-    font-size: 0.75rem !important;
-}
-
-// Month grid cell hover
-.o_calendar_view .fc-daygrid-day:hover {
-    background: rgba(237, 242, 247, 0.3) !important;
-    transition: background 0.2s ease !important;
-}
-
-// Selected day styling
-.o_calendar_view .fc-daygrid-day-selected {
-    background: rgba(102, 126, 234, 0.1) !important;
-}
-
-// Calendar popover/modal styling
-.o_calendar_view .fc-popover {
-    border-radius: 12px !important;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 4px 10px rgba(0, 0, 0, 0.1) !important;
-    border: 1px solid rgba(0, 0, 0, 0.08) !important;
-}
+/* .o_calendar_view - use default Odoo behavior, no overrides */
 
 //Event
 .text-center {
@@ -924,26 +435,7 @@ body:has(.app_components[style*="display: block"]) .o_main_navbar .o_ActivityMen
     background-color: var(--primary-accent) !important;
 }
 
-// Remove black hover effect from "+ Odoo meeting" button (btn-link) in calendar event form
-.o_field_widget button.btn-link:hover,
-.o_field_widget button.btn-link:focus,
-.o_field_widget button.btn-link:active,
-.o_form_view .o_field_widget button.btn-link:hover,
-.o_form_view .o_field_widget button.btn-link:focus,
-.o_form_view .o_field_widget button.btn-link:active,
-.o_form_view button.btn-link.btn-sm:hover,
-.o_form_view button.btn-link.btn-sm:focus,
-.o_form_view button.btn-link.btn-sm:active,
-.o_field_widget button.btn-link.btn-sm:hover,
-.o_field_widget button.btn-link.btn-sm:focus,
-.o_field_widget button.btn-link.btn-sm:active {
-    background-color: transparent !important;
-    background: transparent !important;
-    color: inherit !important;
-    opacity: 1 !important;
-    box-shadow: none !important;
-    border-color: transparent !important;
-}
+/* .o_field_widget button.btn-link - use default Odoo behavior, no overrides */
 
 // Remove hover effect from "+ Odoo meeting" button specifically - prevent black hover
 .o_field_many2manytags .badge-primary:hover,
@@ -971,57 +463,7 @@ body:has(.app_components[style*="display: block"]) .o_main_navbar .o_ActivityMen
     background: var(--primary-accent) !important;
 }
 
-// Remove black hover effect from "+ Odoo meeting" button (btn-link in calendar event form)
-// Target all btn-link buttons to prevent black hover background
-.o_form_view .btn-link:hover,
-.o_form_view .btn-link:focus,
-.o_form_view .btn-link:active,
-.o_form_view button.btn-link:hover,
-.o_form_view button.btn-link:focus,
-.o_form_view button.btn-link:active,
-.o_field_widget button.btn-link:hover,
-.o_field_widget button.btn-link:focus,
-.o_field_widget button.btn-link:active,
-.o_field_widget .btn-link:hover,
-.o_field_widget .btn-link:focus,
-.o_field_widget .btn-link:active {
-    background-color: transparent !important;
-    background: transparent !important;
-    color: inherit !important;
-    opacity: 1 !important;
-    box-shadow: none !important;
-    border-color: transparent !important;
-}
-
-// Specifically target "+ Odoo meeting" button with btn-sm class
-.o_form_view .btn-link.btn-sm:hover,
-.o_form_view .btn-link.btn-sm:focus,
-.o_form_view .btn-link.btn-sm:active,
-.o_form_view button.btn-link.btn-sm:hover,
-.o_form_view button.btn-link.btn-sm:focus,
-.o_form_view button.btn-link.btn-sm:active,
-.o_field_widget button.btn-link.btn-sm:hover,
-.o_field_widget button.btn-link.btn-sm:focus,
-.o_field_widget button.btn-link.btn-sm:active,
-.o_field_widget .btn-link.btn-sm:hover,
-.o_field_widget .btn-link.btn-sm:focus,
-.o_field_widget .btn-link.btn-sm:active {
-    background-color: transparent !important;
-    background: transparent !important;
-    color: inherit !important;
-    opacity: 1 !important;
-    box-shadow: none !important;
-    border-color: transparent !important;
-}
-
-// Override any inline styles that might set black background on hover
-.o_form_view button.btn-link:hover[style*="background"],
-.o_field_widget button.btn-link:hover[style*="background"],
-.o_form_view .btn-link:hover[style*="background"],
-.o_field_widget .btn-link:hover[style*="background"] {
-    background-color: transparent !important;
-    background: transparent !important;
-}
+/* .o_form_view .btn-link - use default Odoo behavior, no overrides */
 // Wizard
 .modal.o_technical_modal .modal-content {
     border-radius: 10px;
@@ -1064,22 +506,7 @@ body:has(.app_components[style*="display: block"]) .o_main_navbar .o_ActivityMen
     .o_cp_bottom{
         flex-wrap: wrap !important;
     }
-    .o_form_view .o_form_statusbar > .o_statusbar_status > .o_arrow_button.disabled {
-
-        margin-right: 10px;
-    }
-    .o_form_view .o_form_statusbar > .o_statusbar_status > .o_arrow_button.disabled:not(.btn-primary), .o_form_view .o_form_statusbar > .o_statusbar_status > .o_arrow_button.disabled:not(.btn-primary):hover, .o_form_view .o_form_statusbar > .o_statusbar_status > .o_arrow_button.disabled:not(.btn-primary):focus
-    {
-    margin-left:10px;
-    }
-    .o_form_view .o_form_statusbar > .o_field_widget {
-        margin-left: -24px !important;
-        margin-top: 1px !important;
-    }
-    .o_form_view .o_form_statusbar{
-        flex-direction: column !important;
-        padding-left: 0px !important;
-    }
+    /* .o_form_statusbar - use default Odoo behavior, no overrides */
 }
 @media (min-width: 768px){
     .o_form_view .o_form_sheet_bg > .o_form_sheet {
@@ -1207,9 +634,7 @@ body:has(.app_components[style*="display: block"]) .o_main_navbar .o_ActivityMen
     .search-container.has-results .search-results {
         margin-left: 60px !important;
     }
-    .o_field_statusbar > .o_statusbar_status {
-        width: 314px !important;
-    }
+    /* .o_field_statusbar > .o_statusbar_status - use default Odoo behavior, no overrides */
     .o_form_view .o_cp_buttons {
         overflow: auto !important;
     }
@@ -1221,161 +646,10 @@ body:has(.app_components[style*="display: block"]) .o_main_navbar .o_ActivityMen
     background: var(--primary-accent) !important;
     color: white !important;
 }
-.btn-primary:hover {
-    background: var(--primary-hover) !important;
-}
-.o_statusbar_status .o_arrow_button.btn-secondary {
-    margin: 0px !important;
-    color: var(--primary-accent) !important;
-    background-color: white !important;
-}
-.o_statusbar_status .o_arrow_button.btn-secondary.o_arrow_button_current {
-    color: white !important;
-    background-color: var(--primary-accent) !important;
-    font-family: inherit !important;
-}
+/* .btn-primary:hover - use default Odoo behavior, no overrides */
+/* .o_statusbar_status - use default Odoo behavior, no overrides */
 
-/* Force all text in current statusbar button - main text stays white, duration is light gray */
-.o_statusbar_status .o_arrow_button.btn-secondary.o_arrow_button_current *,
-.o_statusbar_status .o_arrow_button.btn-secondary.o_arrow_button_current span:first-child,
-.o_statusbar_status .o_arrow_button.btn-secondary.o_arrow_button_current div:first-child,
-.o_statusbar_status button.btn-secondary.o_arrow_button_current *,
-.o_statusbar_status button.btn-secondary.o_arrow_button_current span:first-child,
-.o_statusbar_status button.btn-secondary.o_arrow_button_current div:first-child {
-    color: #FFFFFF !important;
-    font-weight: 700 !important;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9) !important;
-}
-.o_statusbar_status .o_arrow_button.btn-secondary::after {
-    border-left-color: white !important;
-}
-.o_statusbar_status .o_arrow_button.btn-secondary.o_arrow_button_current::after {
-    border-left-color: var(--primary-accent) !important;
-}
-.o_statusbar_status .o_arrow_button.btn-secondary::before {
-    border-left-color: var(--primary-accent) !important;
-}
-
-/* Improve visibility of duration text (e.g., "9d") in statusbar - make it light gray */
-/* Target all possible duration text elements in statusbar */
-.o_statusbar_status .o_arrow_button .o_field_statusbar_duration,
-.o_statusbar_status .o_arrow_button .o_field_statusbar_duration span,
-.o_statusbar_status .o_arrow_button .o_field_statusbar_duration *,
-.o_statusbar_status .o_arrow_button .o_field_statusbar_duration div,
-.o_statusbar_status .o_arrow_button .o_field_rotting_statusbar_duration,
-.o_statusbar_status .o_arrow_button .o_field_rotting_statusbar_duration span,
-.o_statusbar_status .o_arrow_button .o_field_rotting_statusbar_duration *,
-.o_statusbar_status .o_arrow_button .o_field_rotting_statusbar_duration div,
-.o_statusbar_status button .o_field_statusbar_duration,
-.o_statusbar_status button .o_field_statusbar_duration *,
-.o_statusbar_status button .o_field_statusbar_duration span,
-.o_statusbar_status button .o_field_statusbar_duration div,
-.o_statusbar_status .btn .o_field_statusbar_duration,
-.o_statusbar_status .btn .o_field_statusbar_duration *,
-.o_statusbar_status .btn .o_field_statusbar_duration span,
-.o_statusbar_status .btn .o_field_statusbar_duration div,
-.o_statusbar_status .o_field_statusbar_duration,
-.o_statusbar_status .o_field_statusbar_duration *,
-.o_statusbar_status .o_field_statusbar_duration span,
-.o_statusbar_status .o_field_statusbar_duration div,
-.o_statusbar_status .o_field_rotting_statusbar_duration,
-.o_statusbar_status .o_field_rotting_statusbar_duration *,
-.o_statusbar_status .o_field_rotting_statusbar_duration span,
-.o_statusbar_status .o_field_rotting_statusbar_duration div {
-    color: #E3E4E5 !important; /* Light gray */
-    font-weight: 700 !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7) !important;
-    opacity: 1 !important;
-    -webkit-font-smoothing: antialiased !important;
-    -moz-osx-font-smoothing: grayscale !important;
-}
-
-/* More aggressive selectors - target text nodes directly in statusbar buttons */
-.o_statusbar_status .o_arrow_button button .o_field_statusbar_duration,
-.o_statusbar_status .o_arrow_button button .o_field_statusbar_duration *,
-.o_statusbar_status .o_arrow_button .o_field_statusbar_duration button,
-.o_statusbar_status .o_arrow_button .o_field_statusbar_duration button * {
-    color: #FFFFFF !important;
-}
-
-/* Ensure duration text is visible in active/current status button (dark background) - light gray */
-.o_statusbar_status .o_arrow_button.o_arrow_button_current .o_field_statusbar_duration,
-.o_statusbar_status .o_arrow_button.o_arrow_button_current .o_field_statusbar_duration span,
-.o_statusbar_status .o_arrow_button.o_arrow_button_current .o_field_statusbar_duration *,
-.o_statusbar_status .o_arrow_button.o_arrow_button_current .o_field_statusbar_duration div,
-.o_statusbar_status .o_arrow_button.o_arrow_button_current .o_field_rotting_statusbar_duration,
-.o_statusbar_status .o_arrow_button.o_arrow_button_current .o_field_rotting_statusbar_duration span,
-.o_statusbar_status .o_arrow_button.o_arrow_button_current .o_field_rotting_statusbar_duration *,
-.o_statusbar_status .o_arrow_button.o_arrow_button_current .o_field_rotting_statusbar_duration div,
-.o_statusbar_status button.o_arrow_button_current .o_field_statusbar_duration,
-.o_statusbar_status button.o_arrow_button_current .o_field_statusbar_duration *,
-.o_statusbar_status button.o_arrow_button_current .o_field_statusbar_duration span,
-.o_statusbar_status button.o_arrow_button_current .o_field_statusbar_duration div,
-.o_statusbar_status .btn.o_arrow_button_current .o_field_statusbar_duration,
-.o_statusbar_status .btn.o_arrow_button_current .o_field_statusbar_duration *,
-.o_statusbar_status .btn.o_arrow_button_current .o_field_statusbar_duration span,
-.o_statusbar_status .btn.o_arrow_button_current .o_field_statusbar_duration div {
-    color: #E3E4E5 !important; /* Light gray */
-    font-weight: 700 !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7) !important;
-    opacity: 1 !important;
-}
-
-/* Universal selector for any text in statusbar buttons that might be duration - use with caution */
-.o_statusbar_status button[class*="o_arrow_button"] .o_field_statusbar_duration,
-.o_statusbar_status button[class*="o_arrow_button"] .o_field_statusbar_duration *,
-.o_statusbar_status button[class*="o_arrow_button"] .o_field_statusbar_duration span {
-    color: #FFFFFF !important;
-    font-weight: 700 !important;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8) !important;
-}
-
-/* More aggressive: Target all text in statusbar buttons with dark background (current/active buttons) */
-.o_statusbar_status .o_arrow_button.o_arrow_button_current,
-.o_statusbar_status .o_arrow_button.o_arrow_button_current *,
-.o_statusbar_status button.o_arrow_button_current,
-.o_statusbar_status button.o_arrow_button_current * {
-    /* Override all text color to white in active statusbar buttons */
-}
-
-/* Specifically target any span or text element in active statusbar button that might contain duration - light gray */
-.o_statusbar_status .o_arrow_button.o_arrow_button_current > span:not(:first-child),
-.o_statusbar_status .o_arrow_button.o_arrow_button_current .d-flex > span:not(:first-child),
-.o_statusbar_status .o_arrow_button.o_arrow_button_current .align-items-baseline > span:not(:first-child),
-.o_statusbar_status button.o_arrow_button_current > span:not(:first-child),
-.o_statusbar_status button.o_arrow_button_current .d-flex > span:not(:first-child),
-.o_statusbar_status button.o_arrow_button_current .align-items-baseline > span:not(:first-child) {
-    color: #E0E0E0 !important; /* Light gray for duration text */
-    font-weight: 700 !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7) !important;
-}
-
-/* Main text in active statusbar button stays white, duration will be handled by specific selectors */
-.o_statusbar_status .o_arrow_button.btn-secondary.o_arrow_button_current,
-.o_statusbar_status button.btn-secondary.o_arrow_button_current {
-    color: #FFFFFF !important;
-}
-
-/* Specifically target flex containers and their children in active statusbar buttons */
-/* Duration text (second span) should be light gray, main text stays white */
-.o_statusbar_status .o_arrow_button.btn-secondary.o_arrow_button_current .d-flex > span:first-child,
-.o_statusbar_status .o_arrow_button.btn-secondary.o_arrow_button_current .align-items-baseline > span:first-child,
-.o_statusbar_status button.btn-secondary.o_arrow_button_current .d-flex > span:first-child,
-.o_statusbar_status button.btn-secondary.o_arrow_button_current .align-items-baseline > span:first-child {
-    color: #FFFFFF !important;
-    font-weight: 700 !important;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.9) !important;
-}
-
-/* Duration text (second span or element) should be light gray */
-.o_statusbar_status .o_arrow_button.btn-secondary.o_arrow_button_current .d-flex > span:not(:first-child),
-.o_statusbar_status .o_arrow_button.btn-secondary.o_arrow_button_current .align-items-baseline > span:not(:first-child),
-.o_statusbar_status button.btn-secondary.o_arrow_button_current .d-flex > span:not(:first-child),
-.o_statusbar_status button.btn-secondary.o_arrow_button_current .align-items-baseline > span:not(:first-child) {
-    color: #E0E0E0 !important; /* Light gray for duration */
-    font-weight: 700 !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7) !important;
-}
+/* Statusbar - use default Odoo behavior, no overrides */
 .search-results a{
     color: white !important;
     cursor: pointer !important;
@@ -1393,22 +667,48 @@ a, .btn {
     color: var(--primary-accent);
 
 }
-.btn:hover {
-    color: var(--primary-hover);
-    background-color: var(--primary-accent);
-}
+/* .btn:hover - use default Odoo behavior, no overrides */
 .text-bg-primary {
     background-color: var(--primary-accent) !important;
 }
 .btn-info {
     color: white !important;
 }
-.dropdown-toggle:hover {
-    color: white !important;
-}
+/* .dropdown-toggle:hover - use default Odoo behavior, no overrides */
 .o_searchview_icon {
     margin-left: 8px;
 }
 .text-action {
     color:  var(--primary-accent) !important;
 }
+
+/* Fix Search Conversations input height to match adjacent button */
+.o-mail-DiscussSearch-inputContainer,
+.o-mail-DiscussSearch-inputContainer > *,
+.o-mail-DiscussSearch-inputContainer .o-mail-DiscussSearch-inputClickable,
+.o-mail-DiscussSearch-inputContainer .o-mail-DiscussSearch-inputClickable > *,
+.o-mail-DiscussSearch-inputContainer input,
+.o-mail-DiscussSearch-inputContainer .o-mail-DiscussSearch-inputClickable input {
+    height: 100% !important;
+    min-height: 100% !important;
+}
+
+/* Ensure input container uses flexbox to align items properly */
+.o-mail-DiscussSearch-inputContainer {
+    display: flex !important;
+    align-items: stretch !important;
+}
+
+/* Message Composer - adjust textarea height to 38px and center text vertically */
+.o-mail-Composer-inputContainer .o-mail-Composer-input,
+.o-mail-Composer-inputContainer textarea.o-mail-Composer-input,
+.o-mail-Composer-inputContainer textarea[placeholder*="Message"],
+.o-mail-Composer-inputContainer .position-relative textarea,
+.o-mail-Composer-inputContainer textarea {
+    height: 38px !important;
+    min-height: 38px !important;
+    line-height: 38px !important; /* Set line-height equal to height for vertical centering */
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+

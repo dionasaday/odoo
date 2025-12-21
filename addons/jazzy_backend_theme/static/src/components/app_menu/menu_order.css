@@ -19,9 +19,7 @@ o_setting_search {
 .o_setting_search .searchIcon {
 	 color: gray('700');
 }
-.o_kanban_renderer{
-    background-color: var(--kanban-bg-color);
-}
+/* .o_kanban_renderer - use default Odoo behavior, no overrides */
 .oe_kanban_global_click{
     border-radius: 15px;
 }
