@@ -1155,6 +1155,61 @@ html {
                     }
                 }
 
+                .o_knowledge_children_block {
+                    margin-top: 24px;
+                    padding: 16px;
+                    border: 1px solid var(--knowledge-border);
+                    border-radius: var(--knowledge-radius);
+                    background-color: var(--knowledge-bg-secondary);
+                }
+
+                .o_knowledge_children_title {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: var(--knowledge-text);
+                    margin-bottom: 12px;
+                }
+
+                .o_knowledge_children_list {
+                    list-style: none;
+                    padding: 0;
+                    margin: 0;
+                }
+
+                .o_knowledge_children_item {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 6px 0;
+                    cursor: pointer;
+                    color: var(--knowledge-primary);
+                    font-size: 14px;
+
+                    &:hover {
+                        text-decoration: underline;
+                    }
+
+                    &:focus-visible {
+                        outline: 2px solid var(--knowledge-primary);
+                        outline-offset: 2px;
+                        border-radius: var(--knowledge-radius);
+                    }
+                }
+
+                .o_knowledge_children_icon {
+                    font-size: 16px;
+                    opacity: 0.8;
+                    flex-shrink: 0;
+                }
+
+                .o_knowledge_children_name {
+                    flex: 1;
+                    min-width: 0;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
                 /* Images */
                 img {
                     max-width: 100%;

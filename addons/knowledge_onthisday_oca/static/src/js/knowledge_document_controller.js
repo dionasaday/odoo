@@ -398,6 +398,17 @@ export class KnowledgeDocumentController extends Component {
         }
         
         const content = this.state.currentArticle.content;
+        const childArticles = this.state.currentArticle.children || [];
+        const hasChildArticles = Array.isArray(childArticles) && childArticles.length > 0;
+        const trimmedContent = typeof content === 'string' ? content.trim() : "";
+        if (!trimmedContent && hasChildArticles) {
+            this.contentRef.el.innerHTML = this._buildChildArticlesHtml(childArticles);
+            this._bindChildArticleClicks();
+            return;
+        }
+        const contentWithChildren = hasChildArticles
+            ? `${content}${this._buildChildArticlesHtml(childArticles)}`
+            : content;
         
         // Helper function to check if stylesheets are loaded
         const areStylesheetsLoaded = () => {
@@ -431,7 +442,7 @@ export class KnowledgeDocumentController extends Component {
         };
         
         // Render content with proper stylesheet loading check
-        if (content && typeof content === 'string' && content.trim().length > 0) {
+        if (contentWithChildren && typeof contentWithChildren === 'string' && contentWithChildren.trim().length > 0) {
             // Wait for stylesheets to load to prevent FOUC and layout warnings
             if (!areStylesheetsLoaded()) {
                 // Wait for stylesheets to be ready with multiple checks
@@ -447,7 +458,8 @@ export class KnowledgeDocumentController extends Component {
                             }
                         }
                         if (this.contentRef.el && this.state.currentArticle) {
-                            this.contentRef.el.innerHTML = content;
+                            this.contentRef.el.innerHTML = contentWithChildren;
+                            this._bindChildArticleClicks();
                             const activeQuery = (this.state.lastSearchQuery || "").trim();
                             if (activeQuery) {
                                 this._highlightQueryInContent(activeQuery);
@@ -484,7 +496,8 @@ export class KnowledgeDocumentController extends Component {
                 if (this.contentRef.el && this.state.currentArticle) {
                     // CRITICAL: Preserve all whitespace and line breaks in HTML content
                     // Don't normalize or trim - preserve exact formatting from editor
-                    this.contentRef.el.innerHTML = content;
+                    this.contentRef.el.innerHTML = contentWithChildren;
+                    this._bindChildArticleClicks();
                     const activeQuery = (this.state.lastSearchQuery || "").trim();
                     if (activeQuery) {
                         this._highlightQueryInContent(activeQuery);
@@ -1130,6 +1143,132 @@ export class KnowledgeDocumentController extends Component {
         return rootArticles;
     }
 
+    _findArticleNodeInState(articleId) {
+        const findInArticles = (articles = []) => {
+            for (const article of articles) {
+                if (article.id === articleId) {
+                    return article;
+                }
+                const found = findInArticles(article.children || []);
+                if (found) {
+                    return found;
+                }
+            }
+            return null;
+        };
+
+        const stateArticles = this.state.articles || [];
+        if (!stateArticles.length) {
+            return null;
+        }
+
+        if (this.state.activeSection === "workspace" || !this.state.activeSection) {
+            for (const category of stateArticles) {
+                const found = findInArticles(category.articles || []);
+                if (found) {
+                    return found;
+                }
+            }
+            return null;
+        }
+
+        return findInArticles(stateArticles);
+    }
+
+    async _loadChildArticles(articleId) {
+        const stateNode = this._findArticleNodeInState(articleId);
+        const stateChildren = stateNode?.children || [];
+        if (stateChildren.length) {
+            return stateChildren.map((child) => ({
+                id: child.id,
+                name: child.name,
+                category_icon: child.category_icon || '📝',
+            }));
+        }
+
+        try {
+            const children = await this.orm.searchRead(
+                "knowledge.article",
+                [["parent_id", "=", articleId], ["active", "=", true]],
+                ["id", "name", "category_id"],
+                { order: "name" }
+            );
+            if (!children || !children.length) {
+                return [];
+            }
+            const categoryIds = Array.from(new Set(
+                children
+                    .map((child) => Array.isArray(child.category_id) ? child.category_id[0] : null)
+                    .filter((id) => !!id)
+            ));
+            let categoryIconMap = new Map();
+            if (categoryIds.length) {
+                const categories = await this.orm.read(
+                    "knowledge.article.category",
+                    categoryIds,
+                    ["id", "icon"]
+                );
+                categoryIconMap = new Map(categories.map(cat => [cat.id, cat.icon || '📝']));
+            }
+            return children.map((child) => ({
+                id: child.id,
+                name: child.name,
+                category_icon: categoryIconMap.get(child.category_id?.[0]) || '📝',
+            }));
+        } catch (error) {
+            logger.error("Error loading child articles:", error);
+            return [];
+        }
+    }
+
+    _buildChildArticlesHtml(childArticles) {
+        const items = childArticles.map((child) => `
+            <li class="o_knowledge_children_item" data-article-id="${child.id}" tabindex="0">
+                <span class="o_knowledge_children_icon">${child.category_icon || '📝'}</span>
+                <span class="o_knowledge_children_name">${child.name}</span>
+            </li>
+        `).join("");
+
+        return `
+            <div class="o_knowledge_children_block">
+                <div class="o_knowledge_children_title">บทความในหมวดนี้</div>
+                <ul class="o_knowledge_children_list">
+                    ${items}
+                </ul>
+            </div>
+        `;
+    }
+
+    _bindChildArticleClicks() {
+        if (!this.contentRef.el) {
+            return;
+        }
+        const items = this.contentRef.el.querySelectorAll('.o_knowledge_children_item[data-article-id]');
+        if (!items.length) {
+            return;
+        }
+        items.forEach((item) => {
+            item.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                const articleId = parseInt(item.getAttribute('data-article-id'));
+                if (articleId) {
+                    this.onArticleClick(articleId, ev);
+                }
+            });
+            item.addEventListener('keydown', (ev) => {
+                if (ev.key === 'Enter' || ev.key === ' ') {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    const articleId = parseInt(item.getAttribute('data-article-id'));
+                    if (articleId) {
+                        this.onArticleClick(articleId, ev);
+                    }
+                }
+            });
+        });
+    }
+
     async onArticleClick(articleId, event) {
         // If coming from search results, remember the query for highlight then clear for view
         if (this.state.searchQuery) {
@@ -1403,6 +1542,25 @@ export class KnowledgeDocumentController extends Component {
                     this.state.currentArticle.content = "";
                 } else if (typeof this.state.currentArticle.content !== 'string') {
                     this.state.currentArticle.content = String(this.state.currentArticle.content || "");
+                }
+                
+                // Load child articles for parent display (from state first, then fallback RPC)
+                try {
+                    const childArticles = await this._loadChildArticles(articleId);
+                    if (this._loadingArticleId === articleId &&
+                        this.state.currentArticle &&
+                        this.state.currentArticle.id === articleId) {
+                        this.state.currentArticle.children = childArticles;
+                        this.state.currentArticle.hasChildren = childArticles.length > 0;
+                    }
+                } catch (childError) {
+                    logger.error("Error setting child articles:", childError);
+                    if (this._loadingArticleId === articleId &&
+                        this.state.currentArticle &&
+                        this.state.currentArticle.id === articleId) {
+                        this.state.currentArticle.children = [];
+                        this.state.currentArticle.hasChildren = false;
+                    }
                 }
                 
                 // Load PDF attachment if available
