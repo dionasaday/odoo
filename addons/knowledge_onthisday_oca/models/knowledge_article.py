@@ -266,6 +266,25 @@ class KnowledgeArticle(models.Model):
         import logging
         _logger = logging.getLogger(__name__)
         
+        attachment_model = self.env['ir.attachment']
+        has_datas_fname = 'datas_fname' in attachment_model._fields
+        has_access_token = 'access_token' in attachment_model._fields
+
+        def _or_domain(conditions):
+            if not conditions:
+                return []
+            if len(conditions) == 1:
+                return conditions
+            return ['|'] * (len(conditions) - 1) + conditions
+
+        def _is_pdf_attachment(attachment):
+            if not attachment:
+                return False
+            mimetype = (attachment.mimetype or '').lower()
+            name = (attachment.name or '').lower()
+            datas_fname = (attachment.datas_fname or '').lower() if has_datas_fname else ''
+            return ('pdf' in mimetype) or name.endswith('.pdf') or datas_fname.endswith('.pdf')
+        
         self.ensure_one()
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         
@@ -276,11 +295,11 @@ class KnowledgeArticle(models.Model):
         if hasattr(self, 'message_main_attachment_id') and self.message_main_attachment_id:
             main_attachment = self.message_main_attachment_id
             _logger.info(f"Found message_main_attachment_id: {main_attachment.id}, mimetype: {main_attachment.mimetype}")
-            if main_attachment.mimetype == 'application/pdf':
+            if _is_pdf_attachment(main_attachment):
                 result = {
                     'id': main_attachment.id,
                     'name': main_attachment.name,
-                    'mimetype': main_attachment.mimetype,
+                    'mimetype': main_attachment.mimetype or 'application/pdf',
                     'url': f"{base_url}/web/content/{main_attachment.id}?download=true",
                     'access_url': f"{base_url}/web/content/{main_attachment.id}",
                 }
@@ -288,11 +307,17 @@ class KnowledgeArticle(models.Model):
                 return result
         
         # Search for PDF attachments linked to this article (from messages/chatter)
-        pdf_attachments = self.env['ir.attachment'].search([
+        pdf_filters = [
+            ('mimetype', 'ilike', 'pdf'),
+            ('name', 'ilike', '%.pdf'),
+        ]
+        if has_datas_fname:
+            pdf_filters.append(('datas_fname', 'ilike', '%.pdf'))
+
+        pdf_attachments = attachment_model.search([
             ('res_model', '=', 'knowledge.article'),
             ('res_id', '=', self.id),
-            ('mimetype', '=', 'application/pdf'),
-        ], limit=1, order='create_date desc')
+        ] + _or_domain(pdf_filters), limit=1, order='create_date desc')
         
         _logger.info(f"Found {len(pdf_attachments)} PDF attachments with res_model='knowledge.article'")
         
@@ -301,7 +326,7 @@ class KnowledgeArticle(models.Model):
             result = {
                 'id': attachment.id,
                 'name': attachment.name,
-                'mimetype': attachment.mimetype,
+                'mimetype': attachment.mimetype or 'application/pdf',
                 'url': f"{base_url}/web/content/{attachment.id}?download=true",
                 'access_url': f"{base_url}/web/content/{attachment.id}",
             }
@@ -313,11 +338,10 @@ class KnowledgeArticle(models.Model):
             message_ids = self.message_ids.ids
             _logger.info(f"Searching in {len(message_ids)} messages for PDF attachments")
             if message_ids:
-                message_attachments = self.env['ir.attachment'].search([
+                message_attachments = attachment_model.search([
                     ('res_model', '=', 'mail.message'),
                     ('res_id', 'in', message_ids),
-                    ('mimetype', '=', 'application/pdf'),
-                ], limit=1, order='create_date desc')
+                ] + _or_domain(pdf_filters), limit=1, order='create_date desc')
                 
                 _logger.info(f"Found {len(message_attachments)} PDF attachments in messages")
                 
@@ -326,7 +350,7 @@ class KnowledgeArticle(models.Model):
                     result = {
                         'id': attachment.id,
                         'name': attachment.name,
-                        'mimetype': attachment.mimetype,
+                        'mimetype': attachment.mimetype or 'application/pdf',
                         'url': f"{base_url}/web/content/{attachment.id}?download=true",
                         'access_url': f"{base_url}/web/content/{attachment.id}",
                     }
@@ -335,7 +359,7 @@ class KnowledgeArticle(models.Model):
         
         # Search all attachments linked to this article (any mimetype, then filter)
         # Try with and without res_model to catch all possible attachment locations
-        all_attachments = self.env['ir.attachment'].search([
+        all_attachments = attachment_model.search([
             ('res_id', '=', self.id),
             '|',
             ('res_model', '=', 'knowledge.article'),
@@ -347,13 +371,13 @@ class KnowledgeArticle(models.Model):
             _logger.info(f"  - Attachment {att.id}: {att.name} (mimetype: {att.mimetype}, res_model: {att.res_model})")
         
         # Check if any attachment is PDF
-        pdf_from_all = all_attachments.filtered(lambda a: a.mimetype == 'application/pdf')
+        pdf_from_all = all_attachments.filtered(lambda a: _is_pdf_attachment(a))
         if pdf_from_all:
             attachment = pdf_from_all[0]
             result = {
                 'id': attachment.id,
                 'name': attachment.name,
-                'mimetype': attachment.mimetype,
+                'mimetype': attachment.mimetype or 'application/pdf',
                 'url': f"{base_url}/web/content/{attachment.id}?download=true",
                 'access_url': f"{base_url}/web/content/{attachment.id}",
             }
@@ -361,16 +385,20 @@ class KnowledgeArticle(models.Model):
             return result
         
         # Also try searching by name pattern (PDF files often have .pdf extension)
-        pdf_by_name = self.env['ir.attachment'].search([
-            '|',
-            ('res_id', '=', self.id),
-            ('res_model', '=', 'knowledge.article'),
+        pdf_name_filters = [
             ('name', 'ilike', '%.pdf'),
-        ], limit=10, order='create_date desc')
+        ]
+        if has_datas_fname:
+            pdf_name_filters.append(('datas_fname', 'ilike', '%.pdf'))
+
+        pdf_by_name = attachment_model.search([
+            ('res_id', '=', self.id),
+            ('res_model', 'in', ['knowledge.article', False]),
+        ] + _or_domain(pdf_name_filters), limit=10, order='create_date desc')
         
         if pdf_by_name:
             attachment = pdf_by_name[0]
-            if attachment.mimetype == 'application/pdf' or attachment.name.lower().endswith('.pdf'):
+            if _is_pdf_attachment(attachment):
                 result = {
                     'id': attachment.id,
                     'name': attachment.name,
@@ -381,35 +409,173 @@ class KnowledgeArticle(models.Model):
                 _logger.info(f"Returning PDF attachment found by name pattern: {result}")
                 return result
         
-        # Last resort: Check if content field contains PDF attachment URL
+        # Last resort: Check if content field contains PDF attachment references
         if self.content:
             import re
+            import json
+            import html as html_lib
+            try:
+                from html.parser import HTMLParser
+
+                class _AttachmentParser(HTMLParser):
+                    def __init__(self):
+                        super().__init__()
+                        self.matches = []
+                        self.embedded_files = []
+                        self._current_anchor = None
+
+                    def handle_starttag(self, tag, attrs):
+                        attr = dict(attrs)
+                        embedded_props = attr.get('data-embedded-props')
+                        if attr.get('data-embedded') == 'file' and embedded_props:
+                            self.embedded_files.append({
+                                'props': embedded_props,
+                                'mimetype': attr.get('data-mimetype') or '',
+                                'title': attr.get('title') or '',
+                            })
+                        attachment_id = (
+                            attr.get('data-oe-id')
+                            or attr.get('data-oe-attachment-id')
+                            or attr.get('data-attachment-id')
+                        )
+                        if not attachment_id:
+                            return
+                        candidate = {
+                            'id': attachment_id,
+                            'file_hint': attr.get('data-oe-file') or attr.get('data-file') or attr.get('title') or '',
+                            'href': attr.get('href') or '',
+                            'text': '',
+                        }
+                        self.matches.append(candidate)
+                        if tag == 'a':
+                            self._current_anchor = candidate
+
+                    def handle_data(self, data):
+                        if self._current_anchor is not None:
+                            self._current_anchor['text'] += data
+
+                    def handle_endtag(self, tag):
+                        if tag == 'a':
+                            self._current_anchor = None
+
+                parser = _AttachmentParser()
+                parser.feed(self.content)
+                for embedded in parser.embedded_files:
+                    props_raw = embedded.get('props') or ''
+                    try:
+                        props = json.loads(html_lib.unescape(props_raw))
+                    except (ValueError, json.JSONDecodeError) as e:
+                        _logger.warn(f"Error parsing embedded file props JSON: {e}")
+                        continue
+                    file_data = props.get('fileData') or {}
+                    filename = (file_data.get('filename') or embedded.get('title') or '').strip()
+                    mimetype_hint = (file_data.get('mimetype') or embedded.get('mimetype') or '').lower()
+                    is_pdf_hint = filename.lower().endswith('.pdf') or ('pdf' in mimetype_hint)
+                    if not is_pdf_hint:
+                        continue
+                    attachment_id = (
+                        file_data.get('id')
+                        or file_data.get('attachment_id')
+                        or file_data.get('attachmentId')
+                    )
+                    url_hint = file_data.get('url') or ''
+                    access_token = file_data.get('access_token') or file_data.get('accessToken')
+                    if attachment_id:
+                        try:
+                            attachment_id = int(attachment_id)
+                        except (ValueError, TypeError):
+                            attachment_id = None
+                    if not attachment_id and url_hint:
+                        match = re.search(r'/web/content/(\d+)', url_hint)
+                        if match:
+                            attachment_id = int(match.group(1))
+                    if attachment_id:
+                        attachment = attachment_model.browse(attachment_id)
+                        if attachment.exists():
+                            token = attachment.access_token if has_access_token else None
+                            access_suffix = f"?access_token={token}" if token else ""
+                            download_suffix = f"?access_token={token}&download=true" if token else "?download=true"
+                            result = {
+                                'id': attachment.id,
+                                'name': attachment.name or filename or f"Attachment {attachment.id}",
+                                'mimetype': attachment.mimetype or 'application/pdf',
+                                'url': f"{base_url}/web/content/{attachment.id}{download_suffix}",
+                                'access_url': f"{base_url}/web/content/{attachment.id}{access_suffix}",
+                            }
+                            _logger.info(f"Returning PDF attachment found from embedded file ID: {result}")
+                            return result
+                    if access_token and has_access_token:
+                        attachment = attachment_model.search([
+                            ('access_token', '=', access_token),
+                        ], limit=1)
+                        if attachment and (is_pdf_hint or _is_pdf_attachment(attachment)):
+                            token = attachment.access_token or access_token
+                            access_suffix = f"?access_token={token}" if token else ""
+                            download_suffix = f"?access_token={token}&download=true" if token else "?download=true"
+                            result = {
+                                'id': attachment.id,
+                                'name': attachment.name or filename or f"Attachment {attachment.id}",
+                                'mimetype': attachment.mimetype or 'application/pdf',
+                                'url': f"{base_url}/web/content/{attachment.id}{download_suffix}",
+                                'access_url': f"{base_url}/web/content/{attachment.id}{access_suffix}",
+                            }
+                            _logger.info(f"Returning PDF attachment found from embedded file access token: {result}")
+                            return result
+                for candidate in parser.matches:
+                    try:
+                        attachment_id = int(candidate['id'])
+                    except (ValueError, TypeError):
+                        continue
+                    pdf_hint = f"{candidate['file_hint']} {candidate['href']} {candidate['text']}".lower()
+                    if '.pdf' not in pdf_hint:
+                        continue
+                    attachment = attachment_model.browse(attachment_id)
+                    if attachment.exists():
+                        name_hint = candidate['file_hint'].strip() or candidate['text'].strip()
+                        result = {
+                            'id': attachment.id,
+                            'name': attachment.name or name_hint or f"Attachment {attachment.id}",
+                            'mimetype': attachment.mimetype or 'application/pdf',
+                            'url': f"{base_url}/web/content/{attachment.id}?download=true",
+                            'access_url': f"{base_url}/web/content/{attachment.id}",
+                        }
+                        _logger.info(f"Returning PDF attachment found in HTML metadata: {result}")
+                        return result
+            except Exception as e:
+                _logger.warn(f"Error parsing HTML content for attachment metadata: {e}")
             # Look for attachment URLs in HTML content
             # Pattern: /web/content/\d+ or similar attachment URLs
             pdf_url_patterns = [
                 r'/web/content/(\d+)[^"\'>\s]*\.pdf',
                 r'/web/content/(\d+)',
+                r'data-oe-id=["\'](\d+)["\']',
+                r'data-oe-attachment-id=["\'](\d+)["\']',
+                r'data-attachment-id=["\'](\d+)["\']',
             ]
-            
+            checked_ids = set()
             for pattern in pdf_url_patterns:
                 matches = re.findall(pattern, self.content, re.IGNORECASE)
                 if matches:
-                    try:
-                        attachment_id = int(matches[0])
-                        attachment = self.env['ir.attachment'].browse(attachment_id)
-                        if attachment.exists() and (attachment.mimetype == 'application/pdf' or attachment.name.lower().endswith('.pdf')):
-                            result = {
-                                'id': attachment.id,
-                                'name': attachment.name,
-                                'mimetype': attachment.mimetype or 'application/pdf',
-                                'url': f"{base_url}/web/content/{attachment.id}?download=true",
-                                'access_url': f"{base_url}/web/content/{attachment.id}",
-                            }
-                            _logger.info(f"Returning PDF attachment found in HTML content: {result}")
-                            return result
-                    except (ValueError, TypeError) as e:
-                        _logger.warn(f"Error parsing attachment ID from content: {e}")
-                        continue
+                    for match in matches:
+                        try:
+                            attachment_id = int(match)
+                            if attachment_id in checked_ids:
+                                continue
+                            checked_ids.add(attachment_id)
+                            attachment = self.env['ir.attachment'].browse(attachment_id)
+                            if attachment.exists() and _is_pdf_attachment(attachment):
+                                result = {
+                                    'id': attachment.id,
+                                    'name': attachment.name,
+                                    'mimetype': attachment.mimetype or 'application/pdf',
+                                    'url': f"{base_url}/web/content/{attachment.id}?download=true",
+                                    'access_url': f"{base_url}/web/content/{attachment.id}",
+                                }
+                                _logger.info(f"Returning PDF attachment found in HTML content: {result}")
+                                return result
+                        except (ValueError, TypeError) as e:
+                            _logger.warn(f"Error parsing attachment ID from content: {e}")
+                            continue
         
         _logger.info(f"No PDF attachment found for article {self.id}")
         _logger.info(f"Total attachments checked: {len(all_attachments)}")

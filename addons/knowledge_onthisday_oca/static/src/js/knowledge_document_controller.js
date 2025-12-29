@@ -50,6 +50,7 @@ export class KnowledgeDocumentController extends Component {
         this.action = useService("action");
         this.contentRef = useRef("content");
         this._userHistoryKeyPrefix = "knowledge_onthisday_history";
+        this._loadingArticleId = null; // Track which article ID is currently being loaded
         
         this.state = useState({
             selectedArticleId: null,
@@ -182,53 +183,218 @@ export class KnowledgeDocumentController extends Component {
     }
 
     renderContent() {
+        logger.log("renderContent() called", {
+            hasContentRef: !!this.contentRef.el,
+            hasCurrentArticle: !!this.state.currentArticle,
+            currentArticleId: this.state.currentArticle?.id,
+            hasPdfAttachment: !!(this.state.currentArticle?.pdfAttachment?.id)
+        });
+        
         if (!this.contentRef.el) {
+            logger.warn("renderContent() called but contentRef.el is null");
             return;
         }
         
         if (!this.state.currentArticle) {
+            logger.log("renderContent() called but currentArticle is null, clearing content");
             this.contentRef.el.innerHTML = "";
             return;
         }
         
         // Check if there's a PDF attachment - if yes, show PDF viewer instead of HTML content
-        if (this.state.currentArticle.pdfAttachment && this.state.currentArticle.pdfAttachment.id) {
-            const pdfAttachment = this.state.currentArticle.pdfAttachment;
-            logger.log("Rendering PDF viewer with attachment:", pdfAttachment);
+        // CRITICAL: Always check currentArticle exists and has the expected ID before rendering PDF
+        if (!this.state.currentArticle || !this.state.currentArticle.id) {
+            logger.log("No current article, clearing content");
+            // Remove any PDF viewer that might be lingering
+            const existingPdfViewer = this.contentRef.el?.querySelector('.o_knowledge_pdf_viewer_container');
+            if (existingPdfViewer) {
+                existingPdfViewer.remove();
+            }
+            this.contentRef.el.innerHTML = "";
+            return;
+        }
+        
+        const currentArticleId = this.state.currentArticle.id;
+        const pdfAttachment = this.state.currentArticle.pdfAttachment;
+        
+        logger.log("renderContent() processing article:", {
+            articleId: currentArticleId,
+            hasPdfAttachment: !!pdfAttachment,
+            pdfAttachmentId: pdfAttachment?.id,
+            pdfAttachmentName: pdfAttachment?.name
+        });
+        
+        // CRITICAL: Always check and remove PDF viewer from different article first
+        const existingPdfViewer = this.contentRef.el?.querySelector('.o_knowledge_pdf_viewer_container');
+        if (existingPdfViewer) {
+            const existingArticleId = existingPdfViewer.getAttribute('data-article-id');
+            if (existingArticleId && parseInt(existingArticleId) !== currentArticleId) {
+                logger.log("Removing PDF viewer from different article:", existingArticleId, "for current article:", currentArticleId);
+                existingPdfViewer.remove();
+            }
+        }
+        
+        // CRITICAL: If no PDF attachment, remove any existing PDF viewer first
+        if (!pdfAttachment || !pdfAttachment.id) {
+            if (existingPdfViewer) {
+                const existingArticleId = existingPdfViewer.getAttribute('data-article-id');
+                logger.log("No PDF attachment for article:", currentArticleId, "- removing existing PDF viewer from article:", existingArticleId);
+                existingPdfViewer.remove();
+            }
+            // Fall through to render HTML content
+        } else if (this._loadingArticleId !== null && this._loadingArticleId !== currentArticleId) {
+            // CRITICAL: Check if we're still loading the same article (prevent showing PDF from different article)
+            logger.warn("Article ID mismatch in renderContent. Loading article ID:", this._loadingArticleId, "Current article ID:", currentArticleId, "- Not rendering PDF");
+            // Remove PDF viewer if article ID doesn't match
+            if (existingPdfViewer) {
+                existingPdfViewer.remove();
+            }
+            // Fall through to render HTML content instead
+        } else if (pdfAttachment && pdfAttachment.id) {
+            logger.log("Rendering PDF viewer with attachment ID:", pdfAttachment.id, "for article:", currentArticleId, "contentRef.el exists:", !!this.contentRef.el);
+            
+            if (!this.contentRef.el) {
+                logger.error("Cannot render PDF viewer: contentRef.el is null!");
+                return;
+            }
             
             // Use access_url for inline viewing (without download parameter)
             let pdfUrl = pdfAttachment.access_url || pdfAttachment.url;
             const pdfName = pdfAttachment.name || 'PDF Document';
             
+            if (!pdfUrl) {
+                logger.error("Cannot render PDF viewer: PDF URL is empty!", pdfAttachment);
+                return;
+            }
+            
             // Remove download parameter to enable inline viewing
             pdfUrl = pdfUrl.replace('?download=true', '').replace('&download=true', '');
             
-            logger.log("PDF URL for viewer:", pdfUrl);
+            // Add unique parameter with article ID and timestamp to force browser to reload PDF
+            // This prevents browser from caching and showing PDF from previous article
+            const separator = pdfUrl.includes('?') ? '&' : '?';
+            const uniqueParam = `article=${currentArticleId}&_t=${Date.now()}`;
+            pdfUrl = `${pdfUrl}${separator}${uniqueParam}`;
+            
+            logger.log("PDF URL for viewer (with cache buster):", pdfUrl);
             
             // Use iframe for PDF viewer (works in modern browsers)
             // Most browsers will display PDF inline with toolbar by default
-            this.contentRef.el.innerHTML = `
-                <div class="o_knowledge_pdf_viewer_container">
-                    <iframe 
-                        src="${pdfUrl}" 
-                        class="o_knowledge_pdf_viewer"
-                        title="${pdfName}"
-                        type="application/pdf"
-                        allow="fullscreen">
-                        <p class="o_knowledge_pdf_fallback_message">
-                            เบราว์เซอร์ของคุณไม่รองรับการแสดง PDF ในหน้าเว็บ 
-                            <a href="${pdfAttachment.url || pdfUrl}" target="_blank" download="${pdfName}" class="btn btn-primary" style="margin-top: 10px; display: inline-block;">
-                                ดาวน์โหลด PDF
-                            </a>
-                        </p>
-                    </iframe>
-                </div>
-            `;
-            // Setup text selection listener for PDF viewer (may not work in iframe, but try anyway)
-            this.setupTextSelectionListener();
-            return;
-        } else {
-            logger.log("No PDF attachment found, rendering HTML content instead");
+            // CRITICAL: Triple-check article ID before rendering to prevent showing wrong PDF
+            if (this.state.currentArticle && 
+                this.state.currentArticle.id === currentArticleId &&
+                (this._loadingArticleId === null || this._loadingArticleId === currentArticleId)) {
+                
+                // CRITICAL: Remove any existing PDF viewer from different article before rendering new one
+                // Search in entire document to catch all PDF viewers (not just in contentRef.el)
+                const allPdfViewersBeforeRender = document.querySelectorAll('.o_knowledge_pdf_viewer_container');
+                if (allPdfViewersBeforeRender.length > 0) {
+                    logger.log("Found", allPdfViewersBeforeRender.length, "PDF viewer(s) before render, checking...");
+                    let shouldSkipRender = false;
+                    
+                    allPdfViewersBeforeRender.forEach((viewer) => {
+                        const viewerArticleId = viewer.getAttribute('data-article-id');
+                        const viewerAttachmentId = viewer.getAttribute('data-attachment-id');
+                        
+                        if (viewerArticleId && parseInt(viewerArticleId) !== currentArticleId) {
+                            // Different article - always remove
+                            logger.log("Removing PDF viewer from different article:", viewerArticleId, "before rendering new article:", currentArticleId);
+                            
+                            // CRITICAL: Clear iframe src first to stop loading and clear browser cache
+                            const iframe = viewer.querySelector('.o_knowledge_pdf_viewer');
+                            if (iframe) {
+                                iframe.src = 'about:blank';
+                                logger.log(`Cleared iframe src for PDF viewer from article ${viewerArticleId}`);
+                            }
+                            
+                            viewer.remove();
+                        } else if (viewerArticleId && parseInt(viewerArticleId) === currentArticleId) {
+                            // Same article, check if attachment ID matches
+                            if (viewerAttachmentId && parseInt(viewerAttachmentId) === pdfAttachment.id) {
+                                logger.log("PDF viewer already rendered for same article and attachment, will skip re-render");
+                                shouldSkipRender = true;
+                                // Don't remove, keep it
+                            } else {
+                                logger.log("PDF attachment changed for same article, removing old viewer (old attachment:", viewerAttachmentId, "new attachment:", pdfAttachment.id);
+                                
+                                // CRITICAL: Clear iframe src first
+                                const iframe = viewer.querySelector('.o_knowledge_pdf_viewer');
+                                if (iframe) {
+                                    iframe.src = 'about:blank';
+                                }
+                                
+                                viewer.remove();
+                            }
+                        }
+                    });
+                    
+                    // If we found a matching viewer, skip re-render
+                    if (shouldSkipRender) {
+                        logger.log("Skipping PDF viewer re-render - already exists for article:", currentArticleId, "attachment:", pdfAttachment.id);
+                        return;
+                    }
+                }
+                
+                try {
+                    this.contentRef.el.innerHTML = `
+                        <div class="o_knowledge_pdf_viewer_container" data-article-id="${currentArticleId}" data-attachment-id="${pdfAttachment.id}">
+                            <iframe 
+                                src="${pdfUrl}" 
+                                class="o_knowledge_pdf_viewer"
+                                title="${pdfName}"
+                                type="application/pdf"
+                                allow="fullscreen"
+                                data-article-id="${currentArticleId}">
+                                <p class="o_knowledge_pdf_fallback_message">
+                                    เบราว์เซอร์ของคุณไม่รองรับการแสดง PDF ในหน้าเว็บ 
+                                    <a href="${pdfAttachment.url || pdfUrl}" target="_blank" download="${pdfName}" class="btn btn-primary" style="margin-top: 10px; display: inline-block;">
+                                        ดาวน์โหลด PDF
+                                    </a>
+                                </p>
+                            </iframe>
+                        </div>
+                    `;
+                    logger.log("PDF viewer iframe created for article:", currentArticleId, "attachment ID:", pdfAttachment.id, "contentRef.el.innerHTML length:", this.contentRef.el.innerHTML.length);
+                    
+                    // Verify PDF viewer was actually inserted
+                    const insertedViewer = this.contentRef.el.querySelector('.o_knowledge_pdf_viewer_container');
+                    if (insertedViewer) {
+                        logger.log("PDF viewer successfully inserted into DOM");
+                    } else {
+                        logger.error("PDF viewer was NOT inserted into DOM! innerHTML may have been cleared.");
+                    }
+                    
+                    // Setup text selection listener for PDF viewer (may not work in iframe, but try anyway)
+                    this.setupTextSelectionListener();
+                    return;
+                } catch (renderError) {
+                    logger.error("Error rendering PDF viewer:", renderError);
+                    // Fall through to render HTML content if PDF viewer fails
+                }
+            } else {
+                logger.warn("Article ID mismatch - not rendering PDF viewer. Current article ID:", this.state.currentArticle?.id, "Expected:", currentArticleId, "Loading article ID:", this._loadingArticleId);
+                // Fall through to render HTML content instead
+            }
+        }
+        
+        // No PDF attachment or article ID mismatch - render HTML content
+        // CRITICAL: If we reached here, there's no PDF attachment or article ID mismatch
+        // Check again for PDF viewer (existingPdfViewer might have been removed already)
+        const remainingPdfViewer = this.contentRef.el?.querySelector('.o_knowledge_pdf_viewer_container');
+        if (remainingPdfViewer) {
+            const remainingArticleId = remainingPdfViewer.getAttribute('data-article-id');
+            if (remainingArticleId && parseInt(remainingArticleId) !== currentArticleId) {
+                logger.log("Removing remaining PDF viewer from different article:", remainingArticleId, "for current article:", currentArticleId);
+                remainingPdfViewer.remove();
+            } else if (remainingArticleId && parseInt(remainingArticleId) === currentArticleId) {
+                // Same article but no PDF attachment - remove PDF viewer
+                logger.log("No PDF attachment for article:", currentArticleId, "- removing remaining PDF viewer");
+                remainingPdfViewer.remove();
+            }
+        }
+        
+        if (!pdfAttachment || !pdfAttachment.id) {
+            logger.log("No PDF attachment found for article:", currentArticleId, "- rendering HTML content instead");
         }
         
         const content = this.state.currentArticle.content;
@@ -271,6 +437,15 @@ export class KnowledgeDocumentController extends Component {
                 // Wait for stylesheets to be ready with multiple checks
                 const checkAndRender = () => {
                     if (areStylesheetsLoaded()) {
+                        // CRITICAL: Check if PDF viewer is already rendered - don't render HTML content if PDF viewer exists
+                        const existingPdfViewer = this.contentRef.el?.querySelector('.o_knowledge_pdf_viewer_container');
+                        if (existingPdfViewer) {
+                            const existingArticleId = existingPdfViewer.getAttribute('data-article-id');
+                            if (existingArticleId && parseInt(existingArticleId) === this.state.currentArticle?.id) {
+                                logger.log("PDF viewer already rendered, skipping HTML content render in checkAndRender");
+                                return;
+                            }
+                        }
                         if (this.contentRef.el && this.state.currentArticle) {
                             this.contentRef.el.innerHTML = content;
                             const activeQuery = (this.state.lastSearchQuery || "").trim();
@@ -297,6 +472,15 @@ export class KnowledgeDocumentController extends Component {
             
             // Use requestAnimationFrame to ensure layout is ready
             requestAnimationFrame(() => {
+                // CRITICAL: Check if PDF viewer is already rendered - don't render HTML content if PDF viewer exists
+                const existingPdfViewer = this.contentRef.el?.querySelector('.o_knowledge_pdf_viewer_container');
+                if (existingPdfViewer) {
+                    const existingArticleId = existingPdfViewer.getAttribute('data-article-id');
+                    if (existingArticleId && parseInt(existingArticleId) === this.state.currentArticle?.id) {
+                        logger.log("PDF viewer already rendered, skipping HTML content render in requestAnimationFrame");
+                        return;
+                    }
+                }
                 if (this.contentRef.el && this.state.currentArticle) {
                     // CRITICAL: Preserve all whitespace and line breaks in HTML content
                     // Don't normalize or trim - preserve exact formatting from editor
@@ -968,6 +1152,38 @@ export class KnowledgeDocumentController extends Component {
             }
         }
         
+        // CRITICAL: Log article click for debugging
+        const currentArticleId = this.state.currentArticle?.id;
+        logger.log("Article clicked. Current article ID:", currentArticleId, "New article ID:", articleId);
+        
+        // CRITICAL: If clicking the same article, don't reload
+        if (currentArticleId === articleId) {
+            logger.log("Same article clicked, skipping reload");
+            return;
+        }
+        
+        // CRITICAL: Remove any existing PDF viewer BEFORE calling openArticle
+        // This ensures PDF viewer is removed even if openArticle fails or is async
+        const allPdfViewersBeforeClick = document.querySelectorAll('.o_knowledge_pdf_viewer_container');
+        if (allPdfViewersBeforeClick.length > 0) {
+            logger.log("Found", allPdfViewersBeforeClick.length, "PDF viewer(s) before article click, removing all");
+            allPdfViewersBeforeClick.forEach((viewer, index) => {
+                const viewerArticleId = viewer.getAttribute('data-article-id');
+                logger.log(`Removing PDF viewer ${index + 1} (article: ${viewerArticleId}) before opening article: ${articleId}`);
+                
+                // CRITICAL: Clear iframe src first to stop loading and clear browser cache
+                const iframe = viewer.querySelector('.o_knowledge_pdf_viewer');
+                if (iframe) {
+                    iframe.src = 'about:blank';
+                    logger.log(`Cleared iframe src for PDF viewer ${index + 1}`);
+                }
+                
+                // Remove the viewer container
+                viewer.remove();
+                logger.log(`Removed PDF viewer ${index + 1}`);
+            });
+        }
+        
         this.state.selectedArticleId = articleId;
         await this.openArticle(articleId);
     }
@@ -1019,6 +1235,79 @@ export class KnowledgeDocumentController extends Component {
     async openArticle(articleId) {
         try {
             this.state.loading = true;
+            
+            // CRITICAL: Track which article ID we're loading to prevent race conditions
+            this._loadingArticleId = articleId;
+            
+            // CRITICAL: Set currentArticle to null first to completely clear previous state
+            // This ensures PDF attachment and all previous article data is cleared
+            const previousArticleId = this.state.currentArticle?.id;
+            this.state.currentArticle = null;
+            
+            // Clear content area immediately to prevent showing old content
+            // Also remove any existing PDF viewer to prevent showing cached PDF
+            if (this.contentRef.el) {
+                // CRITICAL: Remove any existing PDF viewer container (includes iframe) FIRST
+                // Search in the entire document, not just contentRef.el, to catch PDF viewers that might be outside
+                const allPdfViewers = document.querySelectorAll('.o_knowledge_pdf_viewer_container');
+                if (allPdfViewers.length > 0) {
+                    logger.log("Found", allPdfViewers.length, "PDF viewer(s) in document, removing all");
+                    allPdfViewers.forEach((viewer, index) => {
+                        const viewerArticleId = viewer.getAttribute('data-article-id');
+                        logger.log(`Removing PDF viewer ${index + 1} (article: ${viewerArticleId}) before loading new article: ${articleId}`);
+                        
+                        // CRITICAL: Clear iframe src first to stop loading and clear browser cache
+                        const iframe = viewer.querySelector('.o_knowledge_pdf_viewer');
+                        if (iframe) {
+                            iframe.src = 'about:blank';
+                            logger.log(`Cleared iframe src for PDF viewer ${index + 1}`);
+                        }
+                        
+                        // Remove the viewer container
+                        viewer.remove();
+                        logger.log(`Removed PDF viewer ${index + 1}`);
+                    });
+                }
+                
+                // Also remove any orphaned iframe (fallback) - search in entire document
+                const allOrphanedIframes = document.querySelectorAll('.o_knowledge_pdf_viewer:not(.o_knowledge_pdf_viewer_container .o_knowledge_pdf_viewer)');
+                if (allOrphanedIframes.length > 0) {
+                    logger.log("Found", allOrphanedIframes.length, "orphaned PDF iframe(s), removing");
+                    allOrphanedIframes.forEach((iframe, index) => {
+                        logger.log(`Clearing and removing orphaned PDF iframe ${index + 1}`);
+                        iframe.src = 'about:blank';
+                        iframe.remove();
+                    });
+                }
+                
+                // CRITICAL: Clear all content to ensure no PDF viewer remains
+                this.contentRef.el.innerHTML = "";
+                
+                // Double-check: Remove any remaining PDF viewer elements (search in entire document)
+                const remainingPdfViewers = document.querySelectorAll('.o_knowledge_pdf_viewer_container');
+                if (remainingPdfViewers.length > 0) {
+                    logger.warn("PDF viewer(s) still exist after innerHTML clear, force removing", remainingPdfViewers.length, "viewer(s)");
+                    remainingPdfViewers.forEach((viewer) => {
+                        const iframe = viewer.querySelector('.o_knowledge_pdf_viewer');
+                        if (iframe) {
+                            iframe.src = 'about:blank';
+                        }
+                        viewer.remove();
+                    });
+                }
+            }
+            
+            logger.log("Cleared previous article state. Previous article ID:", previousArticleId, "Loading new article ID:", articleId);
+            
+            // Small delay to ensure state is cleared and UI updates
+            await new Promise(resolve => setTimeout(resolve, 10));
+            
+            // CRITICAL: Check if article ID changed during delay (user clicked another article)
+            if (this._loadingArticleId !== articleId) {
+                logger.log("Article ID changed during clear delay, aborting load. Expected:", articleId, "Current:", this._loadingArticleId);
+                return;
+            }
+            
             // Use searchRead to get article with all fields including content
             // Use basic fields first, then extend if needed
             let articles = [];
@@ -1063,8 +1352,18 @@ export class KnowledgeDocumentController extends Component {
                     { context: { safe_eval: true } }
                 );
             }
+            // CRITICAL: Check if article ID changed (user clicked another article)
+            if (this._loadingArticleId !== articleId) {
+                logger.log("Article ID changed before setting currentArticle, aborting. Expected:", articleId, "Current:", this._loadingArticleId);
+                return;
+            }
+            
             if (article && article.length > 0) {
-                this.state.currentArticle = article[0];
+                // Create new article object and explicitly set pdfAttachment to null first
+                this.state.currentArticle = {
+                    ...article[0],
+                    pdfAttachment: null, // Explicitly clear PDF attachment when loading new article
+                };
                 
                 // Load category icon
                 if (this.state.currentArticle.category_id && this.state.currentArticle.category_id.length > 0) {
@@ -1107,50 +1406,81 @@ export class KnowledgeDocumentController extends Component {
                 }
                 
                 // Load PDF attachment if available
+                // CRITICAL: Store article ID and loading article ID before async call to prevent race condition
+                const currentArticleIdForPdf = this.state.currentArticle.id;
+                const loadingArticleIdForPdf = this._loadingArticleId;
+                
+                // CRITICAL: Verify we're still loading the same article
+                if (loadingArticleIdForPdf !== articleId || currentArticleIdForPdf !== articleId) {
+                    logger.warn("Article ID mismatch before loading PDF attachment. Aborting. Expected:", articleId, "Current article:", currentArticleIdForPdf, "Loading:", loadingArticleIdForPdf);
+                    return;
+                }
+                
                 try {
-                    logger.log("Calling get_pdf_attachment for article:", this.state.currentArticle.id);
+                    logger.log("Calling get_pdf_attachment for article:", currentArticleIdForPdf);
                     const pdfAttachment = await this.orm.call(
                         "knowledge.article",
                         "get_pdf_attachment",
-                        [this.state.currentArticle.id]
+                        [currentArticleIdForPdf]
                     );
-                    logger.log("PDF attachment loaded:", pdfAttachment);
-                    // Check if pdfAttachment is not empty (has id property)
-                    if (pdfAttachment && pdfAttachment.id) {
-                        this.state.currentArticle.pdfAttachment = pdfAttachment;
-                        logger.log("PDF attachment set in state:", pdfAttachment);
+                    logger.log("PDF attachment loaded for article:", currentArticleIdForPdf, "Result:", pdfAttachment, "Type:", typeof pdfAttachment, "Has id:", !!pdfAttachment?.id, "Keys:", pdfAttachment ? Object.keys(pdfAttachment) : []);
+                    
+                    // CRITICAL: Triple-check that we're still loading the same article before setting PDF attachment
+                    // Check both state article ID and loading article ID
+                    if (this._loadingArticleId === articleId && 
+                        this.state.currentArticle && 
+                        this.state.currentArticle.id === currentArticleIdForPdf &&
+                        this.state.currentArticle.id === articleId) {
+                        // Check if pdfAttachment is not empty (has id property)
+                        if (pdfAttachment && pdfAttachment.id) {
+                            this.state.currentArticle.pdfAttachment = pdfAttachment;
+                            logger.log("PDF attachment set in state for article:", currentArticleIdForPdf, "attachment ID:", pdfAttachment.id);
+                        } else {
+                            this.state.currentArticle.pdfAttachment = null;
+                            logger.log("No PDF attachment found (empty result or no id) for article:", currentArticleIdForPdf);
+                        }
                     } else {
-                        this.state.currentArticle.pdfAttachment = null;
-                        logger.log("No PDF attachment found (empty result or no id)");
+                        logger.warn("Article ID changed during PDF attachment load. Ignoring PDF attachment. Expected:", articleId, "Current article ID:", this.state.currentArticle?.id, "Loading article ID:", this._loadingArticleId);
                     }
                 } catch (pdfError) {
-                    logger.error("Error loading PDF attachment:", pdfError);
-                    this.state.currentArticle.pdfAttachment = null;
+                    logger.error("Error loading PDF attachment for article:", currentArticleIdForPdf, pdfError);
+                    // Only clear PDF attachment if we're still on the same article
+                    if (this._loadingArticleId === articleId && 
+                        this.state.currentArticle && 
+                        this.state.currentArticle.id === currentArticleIdForPdf) {
+                        this.state.currentArticle.pdfAttachment = null;
+                    }
                 }
                 
                 // Force trigger render after setting content and PDF attachment
+                // Store article ID to prevent race condition when switching articles
+                const currentArticleIdForRender = this.state.currentArticle.id;
                 this.state.currentArticle = { ...this.state.currentArticle }; // Trigger reactivity
                 
                 // Wait for DOM to be ready, then render content
                 await new Promise(resolve => setTimeout(resolve, 100));
                 
                 // Render content using innerHTML (this will check for PDF attachment)
-                if (this.contentRef.el) {
+                // Only render if article ID still matches (prevent race condition)
+                if (this.contentRef.el && this.state.currentArticle && this.state.currentArticle.id === currentArticleIdForRender) {
                     this.renderContent();
                 }
                 
-                // Also trigger via useEffect by updating state
-                this.state.currentArticle = { ...this.state.currentArticle };
+                // Also trigger via useEffect by updating state (only if article ID matches)
+                if (this.state.currentArticle && this.state.currentArticle.id === currentArticleIdForRender) {
+                    this.state.currentArticle = { ...this.state.currentArticle };
+                }
                 
                 // Retry after delays to ensure content is rendered (including PDF)
+                // Check article ID to prevent showing wrong article's content
                 setTimeout(() => {
-                    if (this.contentRef.el && this.state.currentArticle) {
+                    if (this.contentRef.el && this.state.currentArticle && this.state.currentArticle.id === currentArticleIdForRender) {
                         this.renderContent();
                     }
                 }, 100);
                 
                 setTimeout(() => {
-                    if (this.contentRef.el && this.state.currentArticle) {
+                    if (this.contentRef.el && this.state.currentArticle && this.state.currentArticle.id === currentArticleIdForRender) {
                         this.renderContent();
                     }
                 }, 300);
@@ -1175,6 +1505,10 @@ export class KnowledgeDocumentController extends Component {
                 `;
             }
         } finally {
+            // Clear loading article ID if we finished loading the expected article
+            if (this._loadingArticleId === articleId) {
+                this._loadingArticleId = null;
+            }
             this.state.loading = false;
             // Track view for current user
             if (this.state.currentArticle && this.state.currentArticle.id) {
