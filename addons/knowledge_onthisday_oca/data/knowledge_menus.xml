@@ -4,7 +4,8 @@
         <!-- Top-level menu -->
         <menuitem id="menu_knowledge_root"
                   name="Knowledge"
-                  sequence="50"/>
+                  sequence="50"
+                  web_icon="knowledge_onthisday_oca,static/description/icon.svg"/>
 
                <!-- Submenu: Knowledge Base (Document View) -->
                <menuitem id="menu_knowledge_base"

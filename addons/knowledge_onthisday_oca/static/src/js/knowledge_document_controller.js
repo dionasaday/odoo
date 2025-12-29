@@ -147,7 +147,7 @@ export class KnowledgeDocumentController extends Component {
                     }
                 }, 50);
             }
-        }, () => [this.state.currentArticle?.id, this.state.currentArticle?.content]);
+        }, () => [this.state.currentArticle?.id, this.state.currentArticle?.content, this.state.currentArticle?.pdfAttachment]);
 
         // Scroll listener for floating TOC highlight
         onMounted(() => {
@@ -189,6 +189,46 @@ export class KnowledgeDocumentController extends Component {
         if (!this.state.currentArticle) {
             this.contentRef.el.innerHTML = "";
             return;
+        }
+        
+        // Check if there's a PDF attachment - if yes, show PDF viewer instead of HTML content
+        if (this.state.currentArticle.pdfAttachment && this.state.currentArticle.pdfAttachment.id) {
+            const pdfAttachment = this.state.currentArticle.pdfAttachment;
+            logger.log("Rendering PDF viewer with attachment:", pdfAttachment);
+            
+            // Use access_url for inline viewing (without download parameter)
+            let pdfUrl = pdfAttachment.access_url || pdfAttachment.url;
+            const pdfName = pdfAttachment.name || 'PDF Document';
+            
+            // Remove download parameter to enable inline viewing
+            pdfUrl = pdfUrl.replace('?download=true', '').replace('&download=true', '');
+            
+            logger.log("PDF URL for viewer:", pdfUrl);
+            
+            // Use iframe for PDF viewer (works in modern browsers)
+            // Most browsers will display PDF inline with toolbar by default
+            this.contentRef.el.innerHTML = `
+                <div class="o_knowledge_pdf_viewer_container">
+                    <iframe 
+                        src="${pdfUrl}" 
+                        class="o_knowledge_pdf_viewer"
+                        title="${pdfName}"
+                        type="application/pdf"
+                        allow="fullscreen">
+                        <p class="o_knowledge_pdf_fallback_message">
+                            เบราว์เซอร์ของคุณไม่รองรับการแสดง PDF ในหน้าเว็บ 
+                            <a href="${pdfAttachment.url || pdfUrl}" target="_blank" download="${pdfName}" class="btn btn-primary" style="margin-top: 10px; display: inline-block;">
+                                ดาวน์โหลด PDF
+                            </a>
+                        </p>
+                    </iframe>
+                </div>
+            `;
+            // Setup text selection listener for PDF viewer (may not work in iframe, but try anyway)
+            this.setupTextSelectionListener();
+            return;
+        } else {
+            logger.log("No PDF attachment found, rendering HTML content instead");
         }
         
         const content = this.state.currentArticle.content;
@@ -1066,13 +1106,35 @@ export class KnowledgeDocumentController extends Component {
                     this.state.currentArticle.content = String(this.state.currentArticle.content || "");
                 }
                 
-                // Force trigger render after setting content
+                // Load PDF attachment if available
+                try {
+                    logger.log("Calling get_pdf_attachment for article:", this.state.currentArticle.id);
+                    const pdfAttachment = await this.orm.call(
+                        "knowledge.article",
+                        "get_pdf_attachment",
+                        [this.state.currentArticle.id]
+                    );
+                    logger.log("PDF attachment loaded:", pdfAttachment);
+                    // Check if pdfAttachment is not empty (has id property)
+                    if (pdfAttachment && pdfAttachment.id) {
+                        this.state.currentArticle.pdfAttachment = pdfAttachment;
+                        logger.log("PDF attachment set in state:", pdfAttachment);
+                    } else {
+                        this.state.currentArticle.pdfAttachment = null;
+                        logger.log("No PDF attachment found (empty result or no id)");
+                    }
+                } catch (pdfError) {
+                    logger.error("Error loading PDF attachment:", pdfError);
+                    this.state.currentArticle.pdfAttachment = null;
+                }
+                
+                // Force trigger render after setting content and PDF attachment
                 this.state.currentArticle = { ...this.state.currentArticle }; // Trigger reactivity
                 
                 // Wait for DOM to be ready, then render content
                 await new Promise(resolve => setTimeout(resolve, 100));
                 
-                // Render content using innerHTML
+                // Render content using innerHTML (this will check for PDF attachment)
                 if (this.contentRef.el) {
                     this.renderContent();
                 }
@@ -1080,7 +1142,7 @@ export class KnowledgeDocumentController extends Component {
                 // Also trigger via useEffect by updating state
                 this.state.currentArticle = { ...this.state.currentArticle };
                 
-                // Retry after delays to ensure content is rendered
+                // Retry after delays to ensure content is rendered (including PDF)
                 setTimeout(() => {
                     if (this.contentRef.el && this.state.currentArticle) {
                         this.renderContent();

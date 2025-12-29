@@ -256,3 +256,162 @@ class KnowledgeArticle(models.Model):
         for article in self:
             article.comment_count = len(article.comment_ids)
             article.unresolved_comment_count = len(article.comment_ids.filtered(lambda c: not c.resolved))
+    
+    def get_pdf_attachment(self):
+        """Get the first PDF attachment associated with this article
+        
+        Returns:
+            dict: Attachment data with id, name, mimetype, and url, or empty dict if no PDF found
+        """
+        import logging
+        _logger = logging.getLogger(__name__)
+        
+        self.ensure_one()
+        base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+        
+        _logger.info(f"Getting PDF attachment for article {self.id} ({self.name})")
+        
+        # First, check message_main_attachment_id if available (Odoo 13+)
+        # This is the main attachment shown in chatter
+        if hasattr(self, 'message_main_attachment_id') and self.message_main_attachment_id:
+            main_attachment = self.message_main_attachment_id
+            _logger.info(f"Found message_main_attachment_id: {main_attachment.id}, mimetype: {main_attachment.mimetype}")
+            if main_attachment.mimetype == 'application/pdf':
+                result = {
+                    'id': main_attachment.id,
+                    'name': main_attachment.name,
+                    'mimetype': main_attachment.mimetype,
+                    'url': f"{base_url}/web/content/{main_attachment.id}?download=true",
+                    'access_url': f"{base_url}/web/content/{main_attachment.id}",
+                }
+                _logger.info(f"Returning PDF attachment from message_main_attachment_id: {result}")
+                return result
+        
+        # Search for PDF attachments linked to this article (from messages/chatter)
+        pdf_attachments = self.env['ir.attachment'].search([
+            ('res_model', '=', 'knowledge.article'),
+            ('res_id', '=', self.id),
+            ('mimetype', '=', 'application/pdf'),
+        ], limit=1, order='create_date desc')
+        
+        _logger.info(f"Found {len(pdf_attachments)} PDF attachments with res_model='knowledge.article'")
+        
+        if pdf_attachments:
+            attachment = pdf_attachments[0]
+            result = {
+                'id': attachment.id,
+                'name': attachment.name,
+                'mimetype': attachment.mimetype,
+                'url': f"{base_url}/web/content/{attachment.id}?download=true",
+                'access_url': f"{base_url}/web/content/{attachment.id}",
+            }
+            _logger.info(f"Returning PDF attachment: {result}")
+            return result
+        
+        # Also search in message attachments (attachments posted in chatter messages)
+        if hasattr(self, 'message_ids'):
+            message_ids = self.message_ids.ids
+            _logger.info(f"Searching in {len(message_ids)} messages for PDF attachments")
+            if message_ids:
+                message_attachments = self.env['ir.attachment'].search([
+                    ('res_model', '=', 'mail.message'),
+                    ('res_id', 'in', message_ids),
+                    ('mimetype', '=', 'application/pdf'),
+                ], limit=1, order='create_date desc')
+                
+                _logger.info(f"Found {len(message_attachments)} PDF attachments in messages")
+                
+                if message_attachments:
+                    attachment = message_attachments[0]
+                    result = {
+                        'id': attachment.id,
+                        'name': attachment.name,
+                        'mimetype': attachment.mimetype,
+                        'url': f"{base_url}/web/content/{attachment.id}?download=true",
+                        'access_url': f"{base_url}/web/content/{attachment.id}",
+                    }
+                    _logger.info(f"Returning PDF attachment from messages: {result}")
+                    return result
+        
+        # Search all attachments linked to this article (any mimetype, then filter)
+        # Try with and without res_model to catch all possible attachment locations
+        all_attachments = self.env['ir.attachment'].search([
+            ('res_id', '=', self.id),
+            '|',
+            ('res_model', '=', 'knowledge.article'),
+            ('res_model', '=', False),  # Some attachments may have res_model=False
+        ], limit=50, order='create_date desc')
+        
+        _logger.info(f"Found {len(all_attachments)} total attachments for article {self.id} (including res_model=False)")
+        for att in all_attachments[:10]:  # Log first 10 only
+            _logger.info(f"  - Attachment {att.id}: {att.name} (mimetype: {att.mimetype}, res_model: {att.res_model})")
+        
+        # Check if any attachment is PDF
+        pdf_from_all = all_attachments.filtered(lambda a: a.mimetype == 'application/pdf')
+        if pdf_from_all:
+            attachment = pdf_from_all[0]
+            result = {
+                'id': attachment.id,
+                'name': attachment.name,
+                'mimetype': attachment.mimetype,
+                'url': f"{base_url}/web/content/{attachment.id}?download=true",
+                'access_url': f"{base_url}/web/content/{attachment.id}",
+            }
+            _logger.info(f"Returning PDF attachment from filtered attachments: {result}")
+            return result
+        
+        # Also try searching by name pattern (PDF files often have .pdf extension)
+        pdf_by_name = self.env['ir.attachment'].search([
+            '|',
+            ('res_id', '=', self.id),
+            ('res_model', '=', 'knowledge.article'),
+            ('name', 'ilike', '%.pdf'),
+        ], limit=10, order='create_date desc')
+        
+        if pdf_by_name:
+            attachment = pdf_by_name[0]
+            if attachment.mimetype == 'application/pdf' or attachment.name.lower().endswith('.pdf'):
+                result = {
+                    'id': attachment.id,
+                    'name': attachment.name,
+                    'mimetype': attachment.mimetype or 'application/pdf',
+                    'url': f"{base_url}/web/content/{attachment.id}?download=true",
+                    'access_url': f"{base_url}/web/content/{attachment.id}",
+                }
+                _logger.info(f"Returning PDF attachment found by name pattern: {result}")
+                return result
+        
+        # Last resort: Check if content field contains PDF attachment URL
+        if self.content:
+            import re
+            # Look for attachment URLs in HTML content
+            # Pattern: /web/content/\d+ or similar attachment URLs
+            pdf_url_patterns = [
+                r'/web/content/(\d+)[^"\'>\s]*\.pdf',
+                r'/web/content/(\d+)',
+            ]
+            
+            for pattern in pdf_url_patterns:
+                matches = re.findall(pattern, self.content, re.IGNORECASE)
+                if matches:
+                    try:
+                        attachment_id = int(matches[0])
+                        attachment = self.env['ir.attachment'].browse(attachment_id)
+                        if attachment.exists() and (attachment.mimetype == 'application/pdf' or attachment.name.lower().endswith('.pdf')):
+                            result = {
+                                'id': attachment.id,
+                                'name': attachment.name,
+                                'mimetype': attachment.mimetype or 'application/pdf',
+                                'url': f"{base_url}/web/content/{attachment.id}?download=true",
+                                'access_url': f"{base_url}/web/content/{attachment.id}",
+                            }
+                            _logger.info(f"Returning PDF attachment found in HTML content: {result}")
+                            return result
+                    except (ValueError, TypeError) as e:
+                        _logger.warn(f"Error parsing attachment ID from content: {e}")
+                        continue
+        
+        _logger.info(f"No PDF attachment found for article {self.id}")
+        _logger.info(f"Total attachments checked: {len(all_attachments)}")
+        # Return empty dict instead of False for JSON serialization
+        return {}
