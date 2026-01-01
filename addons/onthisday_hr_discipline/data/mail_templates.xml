@@ -1,0 +1,338 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+
+    <!-- แจ้งหัวหน้า เมื่อเคสถูกยืนยัน -->
+    <record id="mail_tmpl_case_confirmed_to_manager" model="mail.template">
+      <field name="name">Discipline: Confirmed (to Manager)</field>
+      <field name="model_id" ref="model_hr_discipline_case"/>
+      <field name="subject">[คะแนนความประพฤติ] {{ object.employee_id.name }} – {{ object.offense_id.name }} | {{ object.name }}</field>
+      <field name="email_to">{{ object.employee_id.parent_id and (object.employee_id.parent_id.work_email or (object.employee_id.parent_id.user_id and object.employee_id.parent_id.user_id.email) or (object.employee_id.parent_id.address_id and object.employee_id.parent_id.address_id.email)) or '' }}</field>
+      <field name="body_html" type="html">
+        <div>
+          <p>เรียนหัวหน้างาน,</p>
+          <p>มีการยืนยันเคสความประพฤติของพนักงาน <b><t t-out="object.employee_id.name"/></b></p>
+          <ul>
+            <li>ความผิด: <t t-out="object.offense_id.name"/></li>
+            <li>คะแนน: <t t-out="object.points"/></li>
+            <li>เลขที่เคส: <t t-out="object.name"/></li>
+          </ul>
+        </div>
+      </field>
+    </record>
+
+    <!-- แจ้งพนักงาน เมื่อเคสถูกยืนยัน/บันทึกคะแนน -->
+    <record id="mail_tmpl_points_to_employee" model="mail.template">
+      <field name="name">Discipline: Points Notice (to Employee)</field>
+      <field name="model_id" ref="model_hr_discipline_case"/>
+      <field name="subject">[คะแนนความประพฤติ] {{ object.offense_id.name }} | {{ object.name }}</field>
+      <field name="email_to">{{ object.employee_id.work_email or (object.employee_id.user_id and object.employee_id.user_id.email) or (object.employee_id.address_id and object.employee_id.address_id.email) or '' }}</field>
+      <field name="body_html" type="html">
+        <div>
+          <p>เรียน <t t-out="object.employee_id.name"/>,</p>
+          <p>มีการบันทึกคะแนนความประพฤติจากเหตุการณ์ <b><t t-out="object.offense_id.name"/></b></p>
+          <ul>
+            <li>คะแนนรอบนี้: <t t-out="object.points"/></li>
+            <li>เลขที่เคส: <t t-out="object.name"/></li>
+          </ul>
+        </div>
+      </field>
+    </record>
+
+    <!-- แจ้งพนักงาน เมื่อมีการสรุปบทลงโทษ -->
+    <record id="mail_tmpl_punishment_to_employee" model="mail.template">
+      <field name="name">Discipline: Punishment Summary (to Employee)</field>
+      <field name="model_id" ref="model_hr_discipline_case"/>
+      <field name="subject">[บทลงโทษทางวินัย] {{ object.action_taken_id.name or 'ไม่ระบุ' }} | {{ object.name }}</field>
+      <field name="email_to">{{ object.employee_id.work_email or (object.employee_id.user_id and object.employee_id.user_id.email) or (object.employee_id.address_id and object.employee_id.address_id.email) or '' }}</field>
+      <field name="body_html" type="html">
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <p>เรียน <t t-out="object.employee_id.name"/>,</p>
+          <p>ระบบได้บันทึกผลการสรุปบทลงโทษทางวินัยเรียบร้อยแล้ว รายละเอียดดังนี้:</p>
+          <table style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+            <tr style="background-color: #ecf0f1;">
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><b>เลขที่เคส</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="object.name"/></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><b>ความผิด</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="object.offense_id.name"/></td>
+            </tr>
+            <tr style="background-color: #ecf0f1;">
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><b>คะแนนที่บันทึก</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="object.points"/></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><b>บทลงโทษ</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="object.action_taken_id and object.action_taken_id.name or '-'"/></td>
+            </tr>
+            <tr style="background-color: #ecf0f1;">
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><b>วันที่สรุปบทลงโทษ</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="format_datetime(object.punishment_at) if object.punishment_at else '-'"/></td>
+            </tr>
+          </table>
+          <t t-if="object.punishment_note">
+            <p><b>ข้อความเพิ่มเติม:</b></p>
+            <div style="white-space: pre-wrap; padding: 8px; border: 1px solid #bdc3c7; background-color: #f8f9fa;">
+              <t t-out="object.punishment_note"/>
+            </div>
+          </t>
+          <p style="margin-top: 15px;">
+            หากมีข้อสงสัย โปรดติดต่อฝ่าย HR ของบริษัท <t t-out="object.company_id.name"/>.
+          </p>
+        </div>
+      </field>
+    </record>
+
+    <!-- แจ้งเตือน milestone การมาสาย (ผูกกับ hr.lateness.log) - แจ้งเบาทุกครั้ง -->
+    <record id="mail_template_lateness_milestone" model="mail.template">
+      <field name="name">Discipline: Lateness Milestone</field>
+      <field name="model_id" ref="model_hr_lateness_log"/>
+      <field name="subject">[ความประพฤติ] แจ้งเตือนการมาสาย | {{ object.employee_id.name }}</field>
+      <field name="email_to">{{ object.employee_id.work_email or (object.employee_id.user_id and object.employee_id.user_id.email) or (object.employee_id.address_id and object.employee_id.address_id.email) or '' }}</field>
+      <field name="body_html" type="html">
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <p>เรียน <t t-out="object.employee_id.name"/>,</p>
+          <p>ระบบบันทึกว่าคุณมาสายเมื่อวันที่ <b><t t-out="format_date(object.date)"/></b></p>
+          
+          <table style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+            <tr>
+              <td style="padding: 8px; border: 1px solid #bdc3c7; background-color: #ecf0f1; width: 150px;"><b>วันที่:</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="format_date(object.date)"/></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #bdc3c7; background-color: #ecf0f1;"><b>เวลาเข้างาน:</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="object.check_in_time or '-'"/></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #bdc3c7; background-color: #ecf0f1;"><b>เวลาออกงาน:</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="object.check_out_time or '-'"/></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #bdc3c7; background-color: #ecf0f1;"><b>สาย:</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7; color: #e74c3c; font-weight: bold;"><t t-out="object.minutes"/> นาที</td>
+            </tr>
+          </table>
+          
+          <p style="margin-top: 15px;">โปรดรักษาวินัยการเข้างานอย่างสม่ำเสมอและเข้างานให้ตรงเวลา</p>
+          <p style="color: #7f8c8d; font-size: 12px; margin-top: 15px;">
+            <i>หมายเหตุ: ระบบจะส่งการแจ้งเตือนอย่างเป็นทางการเมื่อมีการมาสายครบตามจำนวนครั้งที่กำหนด</i>
+          </p>
+        </div>
+      </field>
+    </record>
+
+    <!-- แจ้งหัวหน้าเมื่อพนักงานมาสายครบชุด (bundle) -->
+    <record id="mail_tmpl_lateness_bundle_to_manager" model="mail.template">
+      <field name="name">Lateness Bundle (to Manager)</field>
+      <field name="model_id" ref="model_hr_discipline_case"/>
+      <field name="subject">[ความประพฤติ] พนักงานมาสายถึงเกณฑ์แจ้งเตือน | {{ object.employee_id.name }}</field>
+      <field name="email_to">{{ object.employee_id.parent_id and (object.employee_id.parent_id.work_email or (object.employee_id.parent_id.user_id and object.employee_id.parent_id.user_id.email) or (object.employee_id.parent_id.address_id and object.employee_id.parent_id.address_id.email)) or '' }}</field>
+      <field name="body_html" type="html">
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <p>เรียนหัวหน้างาน,</p>
+          <p>พนักงาน <b><t t-out="object.employee_id.name"/></b> มีการมาสายถึงเกณฑ์แจ้งเตือน</p>
+          
+          <t t-if="object.lateness_log_ids">
+            <h3 style="color: #34495e; margin-top: 20px;">รายละเอียดการมาสาย</h3>
+            <table style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+              <thead>
+                <tr style="background-color: #ecf0f1;">
+                  <th style="padding: 10px; border: 1px solid #bdc3c7; text-align: left;">วันที่</th>
+                  <th style="padding: 10px; border: 1px solid #bdc3c7; text-align: left;">เวลาเข้างาน</th>
+                  <th style="padding: 10px; border: 1px solid #bdc3c7; text-align: left;">เวลาออกงาน</th>
+                  <th style="padding: 10px; border: 1px solid #bdc3c7; text-align: center;">สาย (นาที)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <t t-foreach="object.lateness_log_ids.sorted(lambda l: l.date, reverse=True)" t-as="log">
+                  <tr>
+                    <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="format_date(log.date)"/></td>
+                    <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="log.check_in_time or '-'"/></td>
+                    <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="log.check_out_time or '-'"/></td>
+                    <td style="padding: 8px; border: 1px solid #bdc3c7; text-align: center;"><t t-out="log.minutes"/></td>
+                  </tr>
+                </t>
+              </tbody>
+              <tfoot>
+                <tr style="background-color: #f8f9fa;">
+                  <td colspan="3" style="padding: 8px; border: 1px solid #bdc3c7; text-align: right; font-weight: bold;">รวมสายทั้งหมด:</td>
+                  <td style="padding: 8px; border: 1px solid #bdc3c7; text-align: center; font-weight: bold;"><t t-out="sum(log.minutes for log in object.lateness_log_ids)"/> นาที</td>
+                </tr>
+              </tfoot>
+            </table>
+            <p style="margin-top: 10px; color: #7f8c8d; font-size: 12px;">
+              <i>จำนวนครั้งที่มาสาย: <t t-out="len(object.lateness_log_ids)"/> ครั้ง</i>
+            </p>
+          </t>
+        </div>
+      </field>
+    </record>
+
+    <!-- แจ้งพนักงานเมื่อมาสายถึงเกณฑ์แจ้งเตือน -->
+    <record id="mail_tmpl_lateness_bundle_to_employee" model="mail.template">
+      <field name="name">Lateness Bundle (to Employee)</field>
+      <field name="model_id" ref="model_hr_discipline_case"/>
+      <field name="subject">[ความประพฤติ] คุณมาสายถึงเกณฑ์แจ้งเตือน | {{ object.employee_id.name }}</field>
+      <field name="email_to">{{ object.employee_id.work_email or (object.employee_id.user_id and object.employee_id.user_id.email) or (object.employee_id.address_id and object.employee_id.address_id.email) or '' }}</field>
+      <field name="body_html" type="html">
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <p>เรียน <t t-out="object.employee_id.name"/>,</p>
+          <p>คุณมาสายถึงเกณฑ์แจ้งเตือน โปรดปรับปรุงการเข้างานให้ตรงเวลา</p>
+          
+          <t t-if="object.lateness_log_ids">
+            <h3 style="color: #34495e; margin-top: 20px;">รายละเอียดการมาสาย</h3>
+            <table style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+              <thead>
+                <tr style="background-color: #ecf0f1;">
+                  <th style="padding: 10px; border: 1px solid #bdc3c7; text-align: left;">วันที่</th>
+                  <th style="padding: 10px; border: 1px solid #bdc3c7; text-align: left;">เวลาเข้างาน</th>
+                  <th style="padding: 10px; border: 1px solid #bdc3c7; text-align: left;">เวลาออกงาน</th>
+                  <th style="padding: 10px; border: 1px solid #bdc3c7; text-align: center;">สาย (นาที)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <t t-foreach="object.lateness_log_ids.sorted(lambda l: l.date, reverse=True)" t-as="log">
+                  <tr>
+                    <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="format_date(log.date)"/></td>
+                    <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="log.check_in_time or '-'"/></td>
+                    <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="log.check_out_time or '-'"/></td>
+                    <td style="padding: 8px; border: 1px solid #bdc3c7; text-align: center;"><t t-out="log.minutes"/></td>
+                  </tr>
+                </t>
+              </tbody>
+              <tfoot>
+                <tr style="background-color: #f8f9fa;">
+                  <td colspan="3" style="padding: 8px; border: 1px solid #bdc3c7; text-align: right; font-weight: bold;">รวมสายทั้งหมด:</td>
+                  <td style="padding: 8px; border: 1px solid #bdc3c7; text-align: center; font-weight: bold;"><t t-out="sum(log.minutes for log in object.lateness_log_ids)"/> นาที</td>
+                </tr>
+              </tfoot>
+            </table>
+            <p style="margin-top: 10px; color: #7f8c8d; font-size: 12px;">
+              <i>จำนวนครั้งที่มาสาย: <t t-out="len(object.lateness_log_ids)"/> ครั้ง</i>
+            </p>
+          </t>
+        </div>
+      </field>
+    </record>
+
+    <!-- ประกาศผลรางวัล Attendance Award ประจำเดือน -->
+    <record id="mail_template_attendance_award_monthly" model="mail.template">
+      <field name="name">Attendance Award Monthly</field>
+      <field name="model_id" ref="model_hr_attendance_award"/>
+      <field name="subject">ประกาศผลรางวัลเข้า-งานดีเด่น ประจำเดือน {{ format_date(object.date_from, 'MM/yyyy') }}</field>
+      <field name="body_html" type="html">
+        <div>
+          <p><b>ประกาศผลรางวัลเข้า-งานดีเด่น</b> ประจำเดือน <t t-out="format_date(object.date_from, 'MM/yyyy')"/></p>
+          <p>จำนวนเงินรางวัล: <t t-out="format_amount(object.amount, object.currency_id)"/></p>
+          <t t-set="winners" t-value="object.line_ids.filtered('is_winner')"/>
+          <t t-if="winners">
+            <p>รายชื่อผู้ได้รับรางวัล:</p>
+            <ul>
+              <t t-foreach="winners" t-as="l">
+                <li><t t-out="l.employee_id.name"/> — รางวัล <t t-out="format_amount(object.amount, object.currency_id)"/></li>
+              </t>
+            </ul>
+          </t>
+          <t t-else="">
+            <p><i>เดือนนี้ยังไม่มีผู้ผ่านเกณฑ์</i></p>
+          </t>
+          <p>เกณฑ์: ไม่มาสาย, ไม่ลา, ไม่ขาดงาน ตลอดทั้งเดือน</p>
+        </div>
+      </field>
+    </record>
+
+    <!-- สรุปการมาสายรายเดือน (ส่งให้หัวหน้า HR) -->
+    <record id="mail_template_lateness_monthly_summary" model="mail.template">
+      <field name="name">Lateness Monthly Summary (HR Manager)</field>
+      <field name="model_id" ref="model_hr_lateness_monthly_summary"/>
+      <field name="subject">สรุปการมาสายรายเดือน {{ object.period_display }} | {{ object.company_id.name }}</field>
+      <field name="body_html" type="html">
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2 style="color: #2c3e50;">สรุปการมาสายรายเดือน</h2>
+          
+          <p><b>บริษัท:</b> <t t-out="object.company_id.name"/></p>
+          <p><b>ระยะเวลา:</b> <t t-out="object.period_display"/> (<t t-out="format_date(object.date_from)"/> - <t t-out="format_date(object.date_to)"/>)</p>
+          
+          <h3 style="color: #34495e; margin-top: 20px;">สถิติโดยรวม</h3>
+          <table style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+            <tr style="background-color: #ecf0f1;">
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><b>จำนวนพนักงานทั้งหมด</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7; text-align: right;"><t t-out="object.total_employees"/></td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><b>จำนวนพนักงานที่มีการมาสาย</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7; text-align: right;"><t t-out="object.employees_with_lateness"/></td>
+            </tr>
+            <tr style="background-color: #ecf0f1;">
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><b>จำนวนครั้งของการมาสายรวม</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7; text-align: right;"><t t-out="object.total_lateness_count"/> ครั้ง</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><b>จำนวนนาทีรวมของการมาสาย</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7; text-align: right;"><t t-out="object.total_lateness_minutes"/> นาที</td>
+            </tr>
+            <tr style="background-color: #ecf0f1;">
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><b>ค่าเฉลี่ยการมาสายต่อพนักงาน</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7; text-align: right;"><t t-out="format(float(object.avg_lateness_per_employee), '.2f')"/> ครั้ง/คน</td>
+            </tr>
+          </table>
+
+          <t t-if="object.line_ids and object.employees_with_lateness > 0">
+            <h3 style="color: #34495e; margin-top: 30px;">รายละเอียดตามพนักงาน (Top 10)</h3>
+            <table style="border-collapse: collapse; width: 100%; margin: 10px 0;">
+              <thead>
+                <tr style="background-color: #3498db; color: white;">
+                  <th style="padding: 10px; border: 1px solid #2980b9; text-align: left;">ชื่อพนักงาน</th>
+                  <th style="padding: 10px; border: 1px solid #2980b9; text-align: left;">แผนก</th>
+                  <th style="padding: 10px; border: 1px solid #2980b9; text-align: center;">จำนวนครั้ง</th>
+                  <th style="padding: 10px; border: 1px solid #2980b9; text-align: center;">รวมนาที</th>
+                  <th style="padding: 10px; border: 1px solid #2980b9; text-align: center;">เฉลี่ย/ครั้ง</th>
+                </tr>
+              </thead>
+              <tbody>
+                <t t-set="sorted_lines" t-value="object.line_ids.sorted(lambda l: (l.lateness_count, l.lateness_minutes), reverse=True)[:10]"/>
+                <t t-foreach="sorted_lines" t-as="line">
+                  <tr>
+                    <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="line.employee_id.name or ''"/></td>
+                    <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="line.department_id.name or '-'"/></td>
+                    <td style="padding: 8px; border: 1px solid #bdc3c7; text-align: center;"><t t-out="line.lateness_count"/></td>
+                    <td style="padding: 8px; border: 1px solid #bdc3c7; text-align: center;"><t t-out="line.lateness_minutes"/></td>
+                    <td style="padding: 8px; border: 1px solid #bdc3c7; text-align: center;"><t t-out="format(float(line.avg_minutes_per_lateness), '.1f')"/></td>
+                  </tr>
+                </t>
+              </tbody>
+            </table>
+            
+            <t t-if="object.line_ids and len(object.line_ids) > 10">
+              <p style="color: #7f8c8d; font-size: 12px; margin-top: 10px;">
+                <i>แสดงเฉพาะ 10 อันดับแรก | จำนวนพนักงานที่มีการมาสายทั้งหมด: <t t-out="len(object.line_ids.filtered(lambda l: l.lateness_count > 0))"/> คน</i>
+              </p>
+            </t>
+          </t>
+          <t t-else="">
+            <p style="color: #27ae60; font-style: italic; margin-top: 20px;">
+              ✅ เดือนนี้ไม่มีพนักงานมาสาย หรือยังไม่มีข้อมูล
+            </p>
+          </t>
+
+          <hr style="margin: 30px 0; border: none; border-top: 2px solid #ecf0f1;"/>
+
+          <p style="color: #7f8c8d; font-size: 12px;">
+            สรุปนี้ถูกสร้างอัตโนมัติจากระบบ HR Discipline<br/>
+            ระยะเวลา: <t t-out="format_date(object.date_from)"/> ถึง <t t-out="format_date(object.date_to)"/><br/>
+            สร้างเมื่อ: <t t-out="format_datetime(object.create_date)"/>
+          </p>
+
+          <p style="margin-top: 20px;">
+            <a t-attf-href="/web#id={{object.id}}&amp;model=hr.lateness.monthly_summary&amp;view_type=form" 
+               style="background-color: #3498db; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+              ดูรายละเอียดเพิ่มเติม
+            </a>
+          </p>
+        </div>
+      </field>
+    </record>
+
+  </data>
+</odoo>

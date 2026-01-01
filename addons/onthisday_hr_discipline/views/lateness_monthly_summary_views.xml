@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Server Actions สำหรับสร้าง Summary -->
+    <record id="action_create_last_month_summary" model="ir.actions.server">
+        <field name="name">สร้างสรุปเดือนที่แล้ว</field>
+        <field name="model_id" ref="model_hr_lateness_monthly_summary"/>
+        <field name="state">code</field>
+        <field name="code">
+action = model.action_create_last_month_summary()
+        </field>
+    </record>
+
+    <record id="action_create_current_month_summary" model="ir.actions.server">
+        <field name="name">สร้างสรุปเดือนปัจจุบัน</field>
+        <field name="model_id" ref="model_hr_lateness_monthly_summary"/>
+        <field name="state">code</field>
+        <field name="code">
+action = model.action_create_current_month_summary()
+        </field>
+    </record>
+
+    <!-- Action สำหรับสรุปรายเดือน - แสดงข้อมูลแบบ real-time จาก lateness logs -->
+    <!-- Note: ไม่ระบุ views field เพื่อให้ Odoo สร้าง views อัตโนมัติจาก view_mode -->
+    <record id="action_hr_lateness_monthly_summary" model="ir.actions.act_window">
+        <field name="name">สรุปการมาสายรายเดือน</field>
+        <field name="res_model">hr.lateness.log</field>
+        <field name="view_mode">graph,pivot,list</field>
+        <field name="context">{
+            'search_default_group_by_month': 1,
+            'group_by': ['date:month'],
+        }</field>
+        <field name="domain">[]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                ยังไม่มีข้อมูลการมาสาย
+            </p>
+            <p>
+                ข้อมูลจะแสดงอัตโนมัติจาก lateness logs แบบ real-time<br/>
+                ใช้ <b>Graph View</b> เพื่อดูกราฟสรุปตามเดือน<br/>
+                ใช้ <b>Pivot View</b> เพื่อดูตารางสรุปตามเดือน/พนักงาน<br/>
+                ใช้ <b>List View</b> เพื่อดูรายละเอียดแต่ละครั้ง
+            </p>
+        </field>
+    </record>
+
+    <!-- Tree View -->
+    <record id="view_lateness_monthly_summary_tree" model="ir.ui.view">
+        <field name="name">hr.lateness.monthly_summary.tree</field>
+        <field name="model">hr.lateness.monthly_summary</field>
+        <field name="arch" type="xml">
+            <list string="สรุปการมาสายรายเดือน" decoration-info="state == 'draft'" decoration-success="state == 'sent'">
+                <field name="period_display"/>
+                <field name="company_id"/>
+                <field name="date_from"/>
+                <field name="date_to"/>
+                <field name="total_employees"/>
+                <field name="employees_with_lateness"/>
+                <field name="total_lateness_count"/>
+                <field name="total_lateness_minutes"/>
+                <field name="state" widget="badge" decoration-info="state == 'draft'" decoration-success="state == 'sent'"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_lateness_monthly_summary_form" model="ir.ui.view">
+        <field name="name">hr.lateness.monthly_summary.form</field>
+        <field name="model">hr.lateness.monthly_summary</field>
+        <field name="arch" type="xml">
+            <form string="สรุปการมาสายรายเดือน">
+                <header>
+                    <button name="action_confirm" string="Confirm" type="object" class="oe_highlight" 
+                            invisible="state != 'draft'"/>
+                    <button name="action_send_email" string="Send Email" type="object" 
+                            invisible="state == 'sent'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,sent"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_lines" type="object" 
+                                class="oe_stat_button" icon="fa-users"
+                                invisible="not line_ids">
+                            <field name="line_ids" widget="statinfo" string="Employees"/>
+                        </button>
+                    </div>
+                    
+                    <group>
+                        <group>
+                            <field name="period_display" readonly="1"/>
+                            <field name="company_id" readonly="1"/>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                        </group>
+                        <group>
+                            <field name="email_sent_date" readonly="1" invisible="not email_sent_date"/>
+                            <field name="email_sent_to" readonly="1" invisible="not email_sent_to"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page string="สรุปสถิติ">
+                            <group>
+                                <group string="ภาพรวม">
+                                    <field name="total_employees" readonly="1"/>
+                                    <field name="employees_with_lateness" readonly="1"/>
+                                    <field name="total_lateness_count" readonly="1"/>
+                                    <field name="total_lateness_minutes" readonly="1"/>
+                                    <field name="avg_lateness_per_employee" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="รายละเอียดตามพนักงาน" name="lines">
+                            <field name="line_ids" nolabel="1">
+                                <list string="รายละเอียดพนักงาน" default_order="lateness_count desc">
+                                    <field name="employee_id"/>
+                                    <field name="department_id"/>
+                                    <field name="job_id"/>
+                                    <field name="lateness_count"/>
+                                    <field name="lateness_minutes"/>
+                                    <field name="avg_minutes_per_lateness"/>
+                                    <button name="action_view_lateness_logs" string="View Logs" type="object" class="oe_link"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Search View -->
+    <record id="view_lateness_monthly_summary_search" model="ir.ui.view">
+        <field name="name">hr.lateness.monthly_summary.search</field>
+        <field name="model">hr.lateness.monthly_summary</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="period_date"/>
+                <field name="company_id"/>
+                <field name="state"/>
+                <filter string="Draft" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="Confirmed" name="confirmed" domain="[('state', '=', 'confirmed')]"/>
+                <filter string="Email Sent" name="sent" domain="[('state', '=', 'sent')]"/>
+                <separator/>
+                <filter string="Period Date" name="period_date_filter" date="period_date"/>
+                <separator/>
+                    <filter string="Company" name="group_company" context="{'group_by': 'company_id'}"/>
+                    <filter string="Period" name="group_period" context="{'group_by': 'period_date'}"/>
+                    <filter string="Status" name="group_state" context="{'group_by': 'state'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Line Views -->
+    <record id="view_lateness_monthly_summary_line_tree" model="ir.ui.view">
+        <field name="name">hr.lateness.monthly_summary.line.tree</field>
+        <field name="model">hr.lateness.monthly_summary.line</field>
+        <field name="arch" type="xml">
+            <list string="รายละเอียดพนักงาน" default_order="lateness_count desc, lateness_minutes desc">
+                <field name="employee_id"/>
+                <field name="department_id"/>
+                <field name="job_id"/>
+                <field name="lateness_count" sum="Total"/>
+                <field name="lateness_minutes" sum="Total"/>
+                <field name="avg_minutes_per_lateness"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_lateness_monthly_summary_line_form" model="ir.ui.view">
+        <field name="name">hr.lateness.monthly_summary.line.form</field>
+        <field name="model">hr.lateness.monthly_summary.line</field>
+        <field name="arch" type="xml">
+            <form string="รายละเอียดพนักงาน">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="summary_id" readonly="1"/>
+                            <field name="employee_id"/>
+                            <field name="department_id"/>
+                            <field name="job_id"/>
+                        </group>
+                        <group>
+                            <field name="lateness_count"/>
+                            <field name="lateness_minutes"/>
+                            <field name="avg_minutes_per_lateness"/>
+                        </group>
+                    </group>
+                    <button name="action_view_lateness_logs" string="View Lateness Logs" type="object" class="oe_link"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>
+

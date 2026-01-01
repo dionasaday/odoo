@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+    <!-- Cron สำหรับสร้างสรุปการมาสายรายเดือนอัตโนมัติ -->
+    <record id="ir_cron_lateness_monthly_summary" model="ir.cron">
+      <field name="name">Lateness Monthly Summary - Create &amp; Send</field>
+      <field name="model_id" ref="model_hr_lateness_monthly_summary"/>
+      <field name="state">code</field>
+      <field name="code">model._cron_create_monthly_summaries()</field>
+      <field name="interval_number">1</field>
+      <field name="interval_type">days</field>
+      <field name="active">True</field>
+      <!-- รันทุกวันเช้า 08:00 และเช็คว่าเป็นวันที่ 1 ของเดือนหรือไม่ -->
+      <field name="nextcall"
+             eval="(datetime.now() + relativedelta(days=1, hour=8, minute=0, second=0)).strftime('%Y-%m-%d %H:%M:%S')"/>
+      <field name="user_id" ref="base.user_root"/>
+    </record>
+  </data>
+</odoo>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Force update menu name and parent -->
+        <record id="menu_hr_discipline_root" model="ir.ui.menu">
+            <field name="name">วินัยและมาตรฐานการทำงาน</field>
+            <field name="parent_id" ref="hr.menu_hr_root"/>
+        </record>
+    </data>
+</odoo>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- หมวด Lateness -->
+  <record id="offense_cat_lateness" model="hr.discipline.offense.category">
+    <field name="name">Lateness</field>
+  </record>
+
+  <!-- Offense แยกตามช่วงนาที -->
+  <record id="offense_late_1_5" model="hr.discipline.offense">
+    <field name="name">Late 1–5 min</field>
+    <field name="category_id" ref="offense_cat_lateness"/>
+    <field name="points">0</field>
+  </record>
+
+  <record id="offense_late_6_15" model="hr.discipline.offense">
+    <field name="name">Late 6–15 min</field>
+    <field name="category_id" ref="offense_cat_lateness"/>
+    <field name="points">1</field>
+  </record>
+
+  <record id="offense_late_16_30" model="hr.discipline.offense">
+    <field name="name">Late 16–30 min</field>
+    <field name="category_id" ref="offense_cat_lateness"/>
+    <field name="points">2</field>
+  </record>
+
+  <record id="offense_late_31_60" model="hr.discipline.offense">
+    <field name="name">Late 31–60 min</field>
+    <field name="category_id" ref="offense_cat_lateness"/>
+    <field name="points">3</field>
+  </record>
+
+  <record id="offense_late_over_60" model="hr.discipline.offense">
+    <field name="name">Late &gt; 60 min</field>
+    <field name="category_id" ref="offense_cat_lateness"/>
+    <field name="points">5</field>
+  </record>
+
+  <!-- แมปช่วงนาทีกับ Offense (ค่าเริ่มต้น แก้ภายหลังได้ในเมนู Config) -->
+  <record id="lateness_rule_1" model="hr.discipline.lateness.rule">
+    <field name="name">1–5</field>
+    <field name="min_minute">1</field>
+    <field name="max_minute">5</field>
+    <field name="offense_xmlid">onthisday_hr_discipline.offense_late_1_5</field>
+  </record>
+  <record id="lateness_rule_2" model="hr.discipline.lateness.rule">
+    <field name="name">6–15</field>
+    <field name="min_minute">6</field>
+    <field name="max_minute">15</field>
+    <field name="offense_xmlid">onthisday_hr_discipline.offense_late_6_15</field>
+  </record>
+  <record id="lateness_rule_3" model="hr.discipline.lateness.rule">
+    <field name="name">16–30</field>
+    <field name="min_minute">16</field>
+    <field name="max_minute">30</field>
+    <field name="offense_xmlid">onthisday_hr_discipline.offense_late_16_30</field>
+  </record>
+  <record id="lateness_rule_4" model="hr.discipline.lateness.rule">
+    <field name="name">31–60</field>
+    <field name="min_minute">31</field>
+    <field name="max_minute">60</field>
+    <field name="offense_xmlid">onthisday_hr_discipline.offense_late_31_60</field>
+  </record>
+  <record id="lateness_rule_5" model="hr.discipline.lateness.rule">
+    <field name="name">&gt;60</field>
+    <field name="min_minute">61</field>
+    <field name="max_minute">9999</field>
+    <field name="offense_xmlid">onthisday_hr_discipline.offense_late_over_60</field>
+  </record>
+</odoo>

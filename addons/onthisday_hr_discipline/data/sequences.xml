@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="seq_hr_discipline_case" model="ir.sequence">
+        <field name="name">Discipline Case</field>
+        <field name="code">hr.discipline.case</field>
+        <field name="prefix">DISC/%(year)s/</field>
+        <field name="padding">4</field>
+    </record>
+</odoo>

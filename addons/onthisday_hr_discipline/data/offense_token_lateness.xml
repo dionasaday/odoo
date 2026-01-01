@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+    <!-- Policy 002/2025: Token-based lateness offenses -->
+    <!-- Points are NEGATIVE to represent token deduction -->
+    
+    <!-- Ensure Lateness category exists -->
+    <record id="offense_cat_lateness_token" model="hr.discipline.offense.category">
+      <field name="name">Lateness (Token-based)</field>
+      <field name="note">Policy 002/2025: Token deduction system. Negative points = tokens deducted.</field>
+    </record>
+
+    <!-- Tier 1: Late ≤10 min with notification => -1 token -->
+    <record id="offense_late_tier1" model="hr.discipline.offense">
+      <field name="name">Late (Tier 1: ≤10 min with notice)</field>
+      <field name="category_id" ref="offense_cat_lateness_token"/>
+      <field name="points">-1</field>
+      <field name="description">Lateness ≤10 minutes beyond grace period, with prior notification. Deducts 1 token.</field>
+      <field name="active">True</field>
+    </record>
+
+    <!-- Tier 2: Late >10 min with notification => -2 tokens -->
+    <record id="offense_late_tier2" model="hr.discipline.offense">
+      <field name="name">Late (Tier 2: >10 min with notice)</field>
+      <field name="category_id" ref="offense_cat_lateness_token"/>
+      <field name="points">-2</field>
+      <field name="description">Lateness >10 minutes beyond grace period, with prior notification. Deducts 2 tokens.</field>
+      <field name="active">True</field>
+    </record>
+
+    <!-- No Notice: Late without notification => -3 tokens -->
+    <record id="offense_late_no_notice" model="hr.discipline.offense">
+      <field name="name">Late (No Notice)</field>
+      <field name="category_id" ref="offense_cat_lateness_token"/>
+      <field name="points">-3</field>
+      <field name="description">Lateness without notifying manager beforehand. Deducts 3 tokens regardless of duration.</field>
+      <field name="active">True</field>
+    </record>
+
+  </data>
+</odoo>
+

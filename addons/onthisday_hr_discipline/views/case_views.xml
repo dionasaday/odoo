@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+  <!-- VIEW: Tree -->
+  <record id="view_case_tree" model="ir.ui.view">
+    <field name="name">hr.discipline.case.tree</field>
+    <field name="model">hr.discipline.case</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="name"/>
+        <field name="date"/>
+        <field name="employee_id"/>
+        <field name="offense_id"/>
+        <field name="points"/>
+        <field name="status"/>
+        <field name="total_points_after"/>
+      </list>
+    </field>
+  </record>
+
+  <!-- VIEW: Form (ใส่ groups ให้ field status ตรง ๆ) -->
+  <record id="view_case_form" model="ir.ui.view">
+    <field name="name">hr.discipline.case.form</field>
+    <field name="model">hr.discipline.case</field>
+    <field name="arch" type="xml">
+      <form>
+        <header>
+          <button name="action_confirm"
+                  type="object"
+                  string="ยืนยันและหักคะแนน"
+                  class="btn-primary"
+                  groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"
+                  invisible="status == 'confirmed' or requires_hr_confirmation"/>
+          <button name="action_confirm"
+                  type="object"
+                  string="ยืนยันและหักคะแนน"
+                  class="btn-primary"
+                  confirm="กรณีแจ้งล่วงหน้า ระบบจะหักตาม Tier2 หากไม่แจ้งจะหักตาม No-notice ต้องการยืนยันหรือไม่?"
+                  groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"
+                  invisible="status == 'confirmed' or not requires_hr_confirmation"/>
+          <button name="action_open_punishment_wizard"
+                  type="object"
+                  string="สรุปบทลงโทษ"
+                  class="btn-secondary"
+                  groups="onthisday_hr_discipline.group_discipline_hr"
+                  invisible="status not in ('confirmed', 'appeal')"/>
+        </header>
+
+        <sheet>
+          <group>
+            <field name="name" readonly="1"/>
+            <field name="date"/>
+            <field name="employee_id"/>
+            <field name="attendance_id" invisible="not is_attendance_auto"/>
+            <field name="offense_id"/>
+            <field name="severity" readonly="1"/>
+            <field name="points" readonly="1"/>
+            <!-- ให้เห็นเฉพาะกลุ่ม user ตามที่ต้องการ -->
+            <field name="status" groups="onthisday_hr_discipline.group_discipline_user,onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+            <field name="total_points_after" readonly="1"/>
+          </group>
+
+          <group string="การยืนยันจาก HR"
+                 groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"
+                 invisible="not requires_hr_confirmation">
+            <field name="requires_hr_confirmation" invisible="1"/>
+            <field name="hr_confirmed_notification"/>
+            <field name="hr_confirmed_by" readonly="1"/>
+            <field name="hr_confirmed_at" readonly="1"/>
+          </group>
+
+          <group string="การยืนยันเคส"
+                 groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager">
+            <field name="confirmed_by" readonly="1"/>
+            <field name="confirmed_at" readonly="1"/>
+          </group>
+
+          <group string="การบันทึกบทลงโทษ"
+                 groups="onthisday_hr_discipline.group_discipline_hr">
+            <field name="punishment_by" readonly="1"/>
+            <field name="punishment_at" readonly="1"/>
+            <field name="punishment_note" readonly="1"/>
+          </group>
+
+          <group>
+            <field name="description"/>
+            <field name="action_suggested_id"
+                   options="{'no_open': False, 'no_quick_create': False, 'no_create_edit': False}"/>
+            <field name="action_taken_id"
+                   options="{'no_open': False, 'no_quick_create': False, 'no_create_edit': False}"/>
+            <field name="reset_points" readonly="1"/>
+          </group>
+
+          <chatter/>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <!-- ACTION -->
+  <record id="action_hr_discipline_case" model="ir.actions.act_window">
+    <field name="name">กรณีความผิด</field>
+    <field name="res_model">hr.discipline.case</field>
+    <field name="view_mode">list,form</field>
+    <field name="views" eval="[(ref('view_case_tree'), 'tree'), (ref('view_case_form'), 'form')]"/>
+  </record>
+
+  <!-- ลบ/เลิกใช้ view inherit เดิม (ถ้ามี record นี้อยู่แล้ว ให้ลบออกจากไฟล์) -->
+  <!-- ไม่มี view_case_form_user_readonly อีกต่อไป -->
+
+</odoo>

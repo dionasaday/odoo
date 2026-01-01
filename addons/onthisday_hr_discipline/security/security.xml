@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Odoo 19: Create privilege first, then groups use privilege_id -->
+    <record id="res_groups_privilege_discipline" model="res.groups.privilege">
+        <field name="name">Discipline</field>
+        <field name="sequence">10</field>
+        <field name="category_id" ref="base.module_category_human_resources"/>
+    </record>
+
+    <!-- Groups -->
+    <record id="group_discipline_user" model="res.groups">
+        <field name="name">Discipline User</field>
+        <field name="privilege_id" ref="res_groups_privilege_discipline"/>
+    </record>
+
+    <record id="group_discipline_hr" model="res.groups">
+        <field name="name">Discipline HR</field>
+        <field name="privilege_id" ref="res_groups_privilege_discipline"/>
+    </record>
+
+    <record id="group_discipline_manager" model="res.groups">
+        <field name="name">Discipline Manager</field>
+        <field name="privilege_id" ref="res_groups_privilege_discipline"/>
+    </record>
+
+    <!-- ให้ผู้ใช้ภายในทุกคนมีสิทธิ Discipline User (เห็นข้อมูลของตัวเองเท่านั้น) -->
+    <record id="base.group_user" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('onthisday_hr_discipline.group_discipline_user'))]"/>
+    </record>
+    <!-- ใช้ function เพื่อบังคับ implied_ids แม้ base.group_user จะเป็น noupdate -->
+    <function model="res.groups" name="write">
+        <value eval="[ref('base.group_user')]"/>
+        <value eval="{'implied_ids': [(4, ref('onthisday_hr_discipline.group_discipline_user'))]}"/>
+    </function>
+</odoo>

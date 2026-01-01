@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- 
+    ลบ ir.asset records จากโมดูล om_account_asset ที่ถูก disable แล้ว
+    เพื่อแก้ปัญหา SCSS compilation error
+    
+    ใช้ Python post_init_hook แทน (ดูที่ __init__.py)
+  -->
+</odoo>
+

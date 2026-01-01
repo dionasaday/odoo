@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="hr.hr_employee_print_badge" model="ir.actions.report">
+        <field name="group_ids" eval="[(6, 0, [ref('hr.group_hr_user'), ref('hr.group_hr_manager'), ref('base.group_system')])]"/>
+    </record>
+
+    <record id="hr.action_hr_employee_create_users" model="ir.actions.server">
+        <field name="group_ids" eval="[(6, 0, [ref('hr.group_hr_user'), ref('hr.group_hr_manager'), ref('base.group_system')])]"/>
+    </record>
+
+    <record id="hr.action_hr_employee_create_users_confirmation" model="ir.actions.server">
+        <field name="group_ids" eval="[(6, 0, [ref('hr.group_hr_user'), ref('hr.group_hr_manager'), ref('base.group_system')])]"/>
+    </record>
+
+</odoo>

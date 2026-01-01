@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+
+    <!-- ROOT: ต้องมาก่อนเมนูย่อยทุกตัว -->
+    <!-- Note: Attach to Employees app so it shows on the top bar -->
+    <menuitem id="menu_hr_discipline_root"
+              name="วินัยและมาตรฐานการทำงาน"
+              parent="hr.menu_hr_root"
+              sequence="90"/>
+
+    <!-- Action: คะแนนของฉัน -->
+    <!-- <record id="action_my_discipline_cases" model="ir.actions.act_window">
+      <field name="name">คะแนนความประพฤติของฉัน</field>
+      <field name="res_model">hr.discipline.case</field>
+      <field name="view_mode">list,form</field>
+      <field name="domain">[('employee_id.user_id', '=', uid)]</field>
+    </record> -->
+
+    <!-- เมนู "วินัยของฉัน" (อยู่ใต้ ROOT) -->
+    <!-- Note: No groups restriction - sub-menus handle their own access control via action domains -->
+    <menuitem id="menu_my_discipline_root"
+              name="วินัยของฉัน"
+              parent="onthisday_hr_discipline.menu_hr_discipline_root"
+              sequence="5"/>
+
+    <!-- <menuitem id="menu_my_discipline_cases"
+              parent="menu_my_discipline_root"
+              action="onthisday_hr_discipline.action_my_discipline_cases"
+              sequence="10"
+              groups="onthisday_hr_discipline.group_discipline_user"/> -->
+
+    <!-- Token Balance Menu -->
+    <!-- Note: No groups restriction - action already filters by user_id, so all employees can see their own token balance -->
+    <menuitem id="menu_my_token_balance"
+              name="Token Balance ของฉัน"
+              parent="onthisday_hr_discipline.menu_my_discipline_root"
+              action="onthisday_hr_discipline.action_my_token_balance"
+              sequence="10"/>
+
+    <!-- Main entries -->
+    <menuitem id="menu_hr_discipline_ledger"
+              name="สมุดคะแนน"
+              parent="menu_hr_discipline_root"
+              action="onthisday_hr_discipline.action_hr_discipline_ledger"
+              sequence="1"
+              groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+
+    <menuitem id="menu_hr_discipline_case"
+              name="กรณีความผิด"
+              parent="menu_hr_discipline_root"
+              action="onthisday_hr_discipline.action_hr_discipline_case"
+              sequence="2"
+              groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+
+
+    <!-- Configuration -->
+    <menuitem id="menu_hr_discipline_config"
+              name="Configuration"
+              parent="menu_hr_discipline_root"
+              sequence="20"
+              groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+
+    <menuitem id="menu_hr_discipline_offense_cat"
+              name="ประเภทความผิด"
+              parent="menu_hr_discipline_config"
+              action="onthisday_hr_discipline.action_hr_offense_category"
+              sequence="1"
+              groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+
+    <menuitem id="menu_hr_discipline_offense"
+              name="รายการความผิด (Catalog)"
+              parent="menu_hr_discipline_config"
+              action="onthisday_hr_discipline.action_hr_offense"
+              sequence="2"
+              groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+
+    <menuitem id="menu_hr_discipline_action_rules"
+              name="เกณฑ์บทลงโทษ"
+              parent="menu_hr_discipline_config"
+              action="onthisday_hr_discipline.action_hr_discipline_action"
+              sequence="3"
+              groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+
+    <!-- Action เปิดหน้ารางวัล -->
+    <record id="action_attendance_award" model="ir.actions.act_window">
+      <field name="name">Attendance Awards</field>
+      <field name="res_model">hr.attendance.award</field>
+      <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ลบเมนูซ้ำ (ถ้าเคยสร้างไว้ก่อนหน้า) -->
+    <delete id="menu_attendance_award" model="ir.ui.menu"/>
+
+    <!-- เมนูหลัก (วางใต้ ROOT ของโมดูลวินัย) -->
+    <menuitem id="menu_attendance_award_root"
+              name="Attendance Awards"
+              parent="onthisday_hr_discipline.menu_hr_discipline_root"
+              action="onthisday_hr_discipline.action_attendance_award"
+              sequence="15"
+              groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+
+    <!-- เมนูเปิดแอ็กชัน (รวมเป็นเมนูเดียวกับ root เพื่อลดความซ้ำซ้อน) -->
+
+    <!-- บังคับอัปเดต action ให้เมนูหลัก -->
+    <record id="menu_attendance_award_root" model="ir.ui.menu">
+      <field name="action" ref="onthisday_hr_discipline.action_attendance_award"/>
+    </record>
+
+    <!-- เมนูสรุปการมาสายรายเดือน -->
+    <menuitem id="menu_lateness_monthly_summary"
+              name="สรุปการมาสายรายเดือน"
+              parent="menu_hr_discipline_root"
+              action="onthisday_hr_discipline.action_hr_lateness_monthly_summary"
+              sequence="3"
+              groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+  </data>
+</odoo>

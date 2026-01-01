@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_discipline_punishment_wizard_form" model="ir.ui.view">
+    <field name="name">hr.discipline.punishment.wizard.form</field>
+    <field name="model">hr.discipline.punishment.wizard</field>
+    <field name="arch" type="xml">
+      <form string="สรุปบทลงโทษ">
+        <group>
+          <field name="case_id" readonly="1"/>
+          <field name="action_taken_id"
+                 options="{'no_open': False, 'no_quick_create': False, 'no_create_edit': False}"/>
+          <field name="punishment_note" placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)"/>
+        </group>
+        <footer>
+          <button name="action_confirm" string="บันทึก" type="object" class="btn-primary"/>
+          <button string="ยกเลิก" special="cancel" class="btn-secondary"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+</odoo>

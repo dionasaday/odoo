@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="1">
+    <!-- Cron สำหรับสร้างและประกาศผลรางวัล Attendance Award ประจำเดือน -->
+    <record id="ir_cron_attendance_award_monthly" model="ir.cron">
+      <field name="name">Attendance Award: Monthly Announce</field>
+      <field name="model_id" ref="model_hr_attendance_award"/>
+      <field name="state">code</field>
+      <field name="code">model.cron_compute_and_announce()</field>
+      <field name="interval_number">1</field>
+      <field name="interval_type">days</field>
+      <field name="active">True</field>
+      <!-- รันทุกวันเช้า 08:00 และเช็คว่าเป็นวันที่ที่กำหนดไว้ใน company.attendance_award_announce_dom หรือไม่ -->
+      <!-- nextcall จะถูกตั้งอัตโนมัติเมื่อ upgrade module -->
+      <field name="user_id" ref="base.user_root"/>
+    </record>
+  </data>
+</odoo>

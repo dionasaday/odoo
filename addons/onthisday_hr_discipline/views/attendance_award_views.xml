@@ -1,0 +1,53 @@
+<odoo>
+  <record id="view_attendance_award_tree" model="ir.ui.view">
+    <field name="name">hr.attendance.award.tree</field>
+    <field name="model">hr.attendance.award</field>
+    <field name="arch" type="xml">
+      <list>
+        <field name="date_from"/>
+        <field name="date_to"/>
+        <field name="company_id"/>
+        <field name="amount"/>
+        <field name="state"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_attendance_award_form" model="ir.ui.view">
+    <field name="name">hr.attendance.award.form</field>
+    <field name="model">hr.attendance.award</field>
+    <field name="arch" type="xml">
+      <form>
+        <header>
+        <button name="action_recompute" type="object" string="Recompute"
+                invisible="state == 'announced'"/>
+        <button name="action_mark_winners" type="object" string="Mark Winners"
+                invisible="state == 'announced'"/>
+        <button name="action_send_announcement" type="object" string="Send Announcement"
+                invisible="state == 'announced'"/>
+        <field name="state" widget="statusbar" statusbar_visible="draft,announced"/>
+        </header>
+        <sheet>
+          <group>
+            <field name="company_id"/>
+            <field name="date_from"/>
+            <field name="date_to"/>
+            <field name="amount"/>
+          </group>
+          <field name="line_ids">
+            <list editable="bottom">
+              <field name="employee_id"/>
+              <field name="eligible_full_month"/>
+              <field name="scheduled_days"/>
+              <field name="worked_days"/>
+              <field name="leave_days"/>
+              <field name="lateness_count"/>
+              <field name="avg_on_time_delta_minutes" widget="float_time"/>
+              <field name="is_winner"/>
+            </list>
+          </field>
+        </sheet>
+      </form>
+    </field>
+  </record>
+</odoo>

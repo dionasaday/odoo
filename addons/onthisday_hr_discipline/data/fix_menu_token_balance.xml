@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+    <!-- Force update menu and clear any existing group restrictions -->
+    <record id="menu_my_token_balance" model="ir.ui.menu">
+      <field name="name">Token Balance ของฉัน</field>
+      <field name="parent_id" ref="onthisday_hr_discipline.menu_my_discipline_root"/>
+      <field name="action" ref="onthisday_hr_discipline.action_my_token_balance"/>
+      <field name="sequence">10</field>
+    </record>
+
+    <function model="ir.ui.menu" name="action_clear_menu_groups">
+      <value eval="[ref('onthisday_hr_discipline.menu_my_token_balance')]"/>
+    </function>
+
+    <!-- Clear legacy group restrictions so root/employee menus stay visible -->
+    <function model="ir.ui.menu" name="action_clear_menu_groups">
+      <value eval="[
+        ref('onthisday_hr_discipline.menu_hr_discipline_root'),
+        ref('onthisday_hr_discipline.menu_my_discipline_root')
+      ]"/>
+    </function>
+  </data>
+</odoo>

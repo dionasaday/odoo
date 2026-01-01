@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="act_pts_1" model="hr.discipline.action">
+        <field name="name">ออกหนังสือเตือน (Warning Letter)</field>
+        <field name="min_points">1</field>
+        <field name="max_points">1</field>
+        <field name="auto_reset">True</field>
+    </record>
+    <record id="act_pts_2" model="hr.discipline.action">
+        <field name="name">หักเงินสวัสดิการพิเศษ/พักงาน 1 วัน (ไม่จ่ายค่าจ้าง)</field>
+        <field name="min_points">2</field>
+        <field name="max_points">2</field>
+        <field name="auto_reset">True</field>
+    </record>
+    <record id="act_pts_3" model="hr.discipline.action">
+        <field name="name">พักงานไม่เกิน 3 วัน (ไม่จ่ายค่าจ้าง)</field>
+        <field name="min_points">3</field>
+        <field name="max_points">3</field>
+        <field name="auto_reset">True</field>
+    </record>
+    <record id="act_pts_4" model="hr.discipline.action">
+        <field name="name">พักงาน 7 วัน (ไม่จ่ายค่าจ้าง) + ทำบันทึกชี้แจง</field>
+        <field name="min_points">4</field>
+        <field name="max_points">4</field>
+        <field name="auto_reset">True</field>
+    </record>
+    <record id="act_pts_5" model="hr.discipline.action">
+        <field name="name">เลิกจ้างโดยไม่จ่ายค่าชดเชย (หากเข้าข่ายตามกฎหมายแรงงาน)</field>
+        <field name="min_points">5</field>
+        <field name="max_points">99</field>
+        <field name="auto_reset">True</field>
+    </record>
+</odoo>

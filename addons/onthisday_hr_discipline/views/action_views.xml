@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_hr_discipline_action" model="ir.actions.act_window">
+        <field name="name">เกณฑ์บทลงโทษ</field>
+        <field name="res_model">hr.discipline.action</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
+    </record>
+
+    <record id="view_discipline_action_tree" model="ir.ui.view">
+        <field name="name">hr.discipline.action.tree</field>
+        <field name="model">hr.discipline.action</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="min_points"/>
+                <field name="max_points"/>
+                <field name="auto_reset"/>
+                <field name="send_punishment_email"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_discipline_action_form" model="ir.ui.view">
+        <field name="name">hr.discipline.action.form</field>
+        <field name="model">hr.discipline.action</field>
+        <field name="arch" type="xml">
+            <form string="เกณฑ์บทลงโทษ">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <group>
+                            <field name="min_points"/>
+                            <field name="max_points"/>
+                            <field name="auto_reset"/>
+                            <field name="send_punishment_email"/>
+                        </group>
+                        <field name="note"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

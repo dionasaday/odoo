@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Categories -->
+    <record id="off_cat_minor" model="hr.discipline.offense.category">
+        <field name="name">ความผิดเล็กน้อย</field>
+    </record>
+    <record id="off_cat_medium" model="hr.discipline.offense.category">
+        <field name="name">ความผิดปานกลาง</field>
+    </record>
+    <record id="off_cat_severe" model="hr.discipline.offense.category">
+        <field name="name">ความผิดร้ายแรง</field>
+    </record>
+
+    <!-- Minor (1 point) -->
+    <record id="off_minor_late" model="hr.discipline.offense">
+        <field name="name">เข้างานสาย (ครบ 5 ครั้ง/เดือน) หรือออกก่อนเวลา</field>
+        <field name="category_id" ref="off_cat_minor"/>
+        <field name="points">1</field>
+    </record>
+    <record id="off_minor_absent" model="hr.discipline.offense">
+        <field name="name">ขาดงานโดยไม่แจ้งล่วงหน้า</field>
+        <field name="category_id" ref="off_cat_minor"/>
+        <field name="points">1</field>
+    </record>
+    <record id="off_minor_disobey" model="hr.discipline.offense">
+        <field name="name">ไม่ปฏิบัติตามคำสั่งโดยไม่มีเหตุผลอันสมควร</field>
+        <field name="category_id" ref="off_cat_minor"/>
+        <field name="points">1</field>
+    </record>
+    <record id="off_minor_asset_misuse" model="hr.discipline.offense">
+        <field name="name">ใช้ทรัพย์สินบริษัทฯ ไปในทางมิชอบ (เล็กน้อย)</field>
+        <field name="category_id" ref="off_cat_minor"/>
+        <field name="points">1</field>
+    </record>
+    <record id="off_minor_misbehavior" model="hr.discipline.offense">
+        <field name="name">ประพฤติตนไม่เหมาะสม เสียหายต่อชื่อเสียงบริษัทฯ</field>
+        <field name="category_id" ref="off_cat_minor"/>
+        <field name="points">1</field>
+    </record>
+    <record id="off_minor_policy" model="hr.discipline.offense">
+        <field name="name">ฝ่าฝืนข้อบังคับ/ระเบียบ/นโยบายบริษัทฯ</field>
+        <field name="category_id" ref="off_cat_minor"/>
+        <field name="points">1</field>
+    </record>
+
+    <!-- Medium (2 points) -->
+    <record id="off_medium_repeat" model="hr.discipline.offense">
+        <field name="name">ทำผิดซ้ำในเรื่องที่เคยได้รับการตักเตือน</field>
+        <field name="category_id" ref="off_cat_medium"/>
+        <field name="points">2</field>
+    </record>
+    <record id="off_medium_client_issue" model="hr.discipline.offense">
+        <field name="name">ทำงานผิดพลาดกระทบลูกค้า แต่สามารถแก้ไขได้</field>
+        <field name="category_id" ref="off_cat_medium"/>
+        <field name="points">2</field>
+    </record>
+    <record id="off_medium_asset_purpose" model="hr.discipline.offense">
+        <field name="name">ใช้ทรัพย์สินบริษัทฯ ผิดวัตถุประสงค์</field>
+        <field name="category_id" ref="off_cat_medium"/>
+        <field name="points">2</field>
+    </record>
+
+    <!-- Severe (3 points default) -->
+    <record id="off_severe_conceal" model="hr.discipline.offense">
+        <field name="name">เจตนาปกปิดความผิด/บิดเบือนข้อมูล</field>
+        <field name="category_id" ref="off_cat_severe"/>
+        <field name="points">3</field>
+    </record>
+    <record id="off_severe_disclose" model="hr.discipline.offense">
+        <field name="name">เปิดเผยข้อมูลบริษัทฯ หรือข้อมูลลูกค้าโดยไม่อนุญาต</field>
+        <field name="category_id" ref="off_cat_severe"/>
+        <field name="points">3</field>
+    </record>
+    <record id="off_severe_damage" model="hr.discipline.offense">
+        <field name="name">ก่อให้เกิดความเสียหายทางการเงินหรือภาพลักษณ์อย่างรุนแรง</field>
+        <field name="category_id" ref="off_cat_severe"/>
+        <field name="points">3</field>
+    </record>
+    <record id="off_severe_drugs" model="hr.discipline.offense">
+        <field name="name">ใช้สารเสพติด/ดื่มสุราในเวลางาน/ทำร้ายร่างกายในที่ทำงาน</field>
+        <field name="category_id" ref="off_cat_severe"/>
+        <field name="points">3</field>
+    </record>
+</odoo>

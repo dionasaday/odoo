@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_case_form_user_readonly" model="ir.ui.view">
+    <field name="name">hr.discipline.case.form.user.readonly</field>
+    <field name="model">hr.discipline.case</field>
+    <field name="inherit_id" ref="onthisday_hr_discipline.view_case_form"/>
+    <field name="arch" type="xml">
+
+      <!-- ทำฟอร์มของ User เป็น read-only + ห้าม create/edit/delete -->
+      <xpath expr="//form" position="attributes" groups="onthisday_hr_discipline.group_discipline_user">
+        <attribute name="create">false</attribute>
+        <attribute name="edit">false</attribute>
+        <attribute name="delete">false</attribute>
+      </xpath>
+
+      <xpath expr="//form/sheet//field" position="attributes" groups="onthisday_hr_discipline.group_discipline_user">
+        <attribute name="readonly">1</attribute>
+      </xpath>
+
+    </field>
+  </record>
+</odoo>

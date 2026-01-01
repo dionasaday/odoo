@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_hr_discipline_case_form" model="ir.ui.view">
+    <field name="name">hr.discipline.case.form</field>
+    <field name="model">hr.discipline.case</field>
+    <field name="arch" type="xml">
+      <form string="Discipline Case">
+        <header>
+          <!-- แสดงเฉพาะตอน draft -->
+          <button name="action_confirm"
+                  string="ยืนยันและหักคะแนน"
+                  type="object"
+                  class="btn-primary"
+                  groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"
+                  invisible="status == 'confirmed' or requires_hr_confirmation"/>
+          <button name="action_confirm"
+                  string="ยืนยันและหักคะแนน"
+                  type="object"
+                  class="btn-primary"
+                  confirm="กรณีแจ้งล่วงหน้า ระบบจะหักตาม Tier2 หากไม่แจ้งจะหักตาม No-notice ต้องการยืนยันหรือไม่?"
+                  groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"
+                  invisible="status == 'confirmed' or not requires_hr_confirmation"/>
+
+          <!-- แสดงเฉพาะตอน confirmed -->
+          <button name="action_open_punishment_wizard"
+                  string="สรุปบทลงโทษ"
+                  type="object"
+                  class="oe_highlight"
+                  groups="onthisday_hr_discipline.group_discipline_hr"
+                  invisible="status not in ('confirmed', 'appeal')"/>
+
+          <field name="status" widget="statusbar" statusbar_visible="draft,confirmed,resolved"/>
+        </header>
+
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="employee_id"/>
+            <field name="date"/>
+            <field name="offense_id"/>
+            <field name="points"/>
+            <field name="requires_hr_confirmation" invisible="1"/>
+            <!-- ถ้ามีฟิลด์ปี -->
+            <field name="calendar_year" invisible="1"/>
+          </group>
+
+          <group string="Preview (Draft Only)" invisible="status != 'draft'">
+            <field name="preview_points_before" readonly="1"/>
+            <field name="preview_points_after" readonly="1"/>
+          </group>
+
+          <notebook>
+            <page string="Chatter">
+              <field name="message_follower_ids" widget="mail_followers"/>
+              <field name="message_ids" widget="mail_thread"/>
+            </page>
+          </notebook>
+        </sheet>
+      </form>
+    </field>
+  </record>
+</odoo>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_company_form_inherit_discipline_start" model="ir.ui.view">
+    <field name="name">res.company.form.onthisday_discipline_start</field>
+    <field name="model">res.company</field>
+    <field name="inherit_id" ref="base.view_company_form"/>
+    <field name="arch" type="xml">
+      <!-- แทรกฟิลด์ใต้แท็บใดก็ได้ในฟอร์มบริษัท (ใช้ตัวเลือกที่ปลอดภัย) -->
+      <xpath expr="//sheet//group[1]" position="after">
+        <group string="Discipline">
+          <field name="discipline_start_date"/>
+        </group>
+      </xpath>
+    </field>
+  </record>
+    <!-- แทรกบล็อกตั้งค่าลง Company Form -->
+  <record id="view_company_form_inherit_attendance_award" model="ir.ui.view">
+    <field name="name">res.company.form.onthisday.attendance_award</field>
+    <field name="model">res.company</field>
+    <field name="inherit_id" ref="base.view_company_form"/>
+    <field name="arch" type="xml">
+      <!-- แทรกท้ายหน้า sheet (ปลอดภัย ไม่อิงตำแหน่งเฉพาะ) -->
+      <xpath expr="//sheet" position="inside">
+        <group string="Attendance Award" name="onthisday_attendance_award" colspan="2">
+          <group>
+            <field name="attendance_award_amount" groups="hr.group_hr_manager"/>
+            <field name="attendance_award_tie_policy" groups="hr.group_hr_manager"/>
+            <field name="attendance_award_announce_dom" groups="hr.group_hr_manager"/>
+          </group>
+          <group>
+            <field name="attendance_award_create_payslip_input" groups="hr.group_hr_manager"/>
+            <field name="attendance_award_salary_rule_code"
+                    invisible="not attendance_award_create_payslip_input"
+                    groups="hr.group_hr_manager"/>
+            <field name="attendance_award_disqualify_leave_types"
+                    widget="many2many_tags" groups="hr.group_hr_manager"/>
+          </group>
+        </group>
+      </xpath>
+    </field>
+  </record>
+</odoo>

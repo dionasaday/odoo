@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- View for employee to see their token balance -->
+  <!-- Use a standalone view that doesn't inherit from default form view to avoid loading restricted fields -->
+  <record id="view_employee_my_token_balance" model="ir.ui.view">
+    <field name="name">hr.employee.my.token.balance</field>
+    <field name="model">hr.employee</field>
+    <field name="arch" type="xml">
+      <form string="Token Balance ของฉัน" create="0" edit="0" delete="0">
+        <header>
+          <!-- No buttons needed for read-only view -->
+        </header>
+        <sheet>
+          <!-- Header Section with Employee Name -->
+          <div class="oe_title" style="margin-bottom: 20px;">
+            <h1 style="display: flex; align-items: center; gap: 20px;">
+              <!-- Profile Picture Container -->
+              <div style="position: relative; width: 80px; height: 80px; flex-shrink: 0;">
+                <!-- Profile Image -->
+                <div style="width: 80px; height: 80px; border-radius: 50%; overflow: hidden; border: 4px solid var(--primary-accent, #004589); box-shadow: 0 4px 12px rgba(0,0,0,0.15); background: var(--light-hover, #f8f9fa);">
+                  <field name="image_128" widget="image" 
+                         style="width: 100%; height: 100%; object-fit: cover; display: block;"
+                         options="{'preview_image': 'image_128', 'no_quick_upload': True}" readonly="1" nolabel="1"/>
+                </div>
+                <!-- Fallback icon if no image (shown when image_128 is empty) -->
+                <div style="position: absolute; top: 0; left: 0; width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-accent, #004589) 0%, var(--primary-hover, #00376e) 100%); display: flex; align-items: center; justify-content: center; border: 4px solid var(--primary-accent, #004589); box-shadow: 0 4px 12px rgba(0,0,0,0.15);" invisible="image_128">
+                  <i class="fa fa-user" style="font-size: 2.5em; color: var(--color-white, #ffffff);"/>
+                </div>
+              </div>
+              <!-- Employee Name -->
+              <field name="name" readonly="1" style="font-size: 1.8em; font-weight: 600; color: var(--f-color, #212529); margin: 0; line-height: 1.2;"/>
+            </h1>
+          </div>
+
+          <!-- Token Balance Card Section -->
+          <div class="o_notebook" style="margin-top: 20px;">
+            <div class="o_notebook_content">
+              <!-- Token Balance Section -->
+              <div class="card" style="background: linear-gradient(135deg, var(--primary-accent, #004589) 0%, var(--primary-hover, #00376e) 100%); border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <div style="display: flex; align-items: center; margin-bottom: 20px;">
+                  <i class="fa fa-coins" style="font-size: 2em; color: var(--color-white, #ffffff); margin-right: 12px;"></i>
+                  <h2 style="color: var(--color-white, #ffffff); margin: 0; font-weight: 600;">Token Balance (Policy 002/2025)</h2>
+                </div>
+                
+                <div class="row" style="margin: 0;">
+                  <!-- Current Token Balance - Large Display -->
+                  <div class="col-12" style="margin-bottom: 20px;">
+                    <div style="background: rgba(255,255,255,0.15); border-radius: 8px; padding: 20px; text-align: center; backdrop-filter: blur(10px);">
+                      <div class="o_form_label" style="color: rgba(255,255,255,0.9); font-size: 0.9em; font-weight: 500; margin-bottom: 8px; display: block;">
+                        <i class="fa fa-wallet" style="margin-right: 6px;"></i>
+                        Current Token Balance
+                      </div>
+                      <div style="font-size: 3em; font-weight: 700; color: var(--color-white, #ffffff); line-height: 1;">
+                        <field name="current_token_balance" widget="integer" readonly="1" nolabel="1" style="text-align: center; background: transparent; border: none; color: var(--color-white, #ffffff); font-size: 1em; font-weight: 700;"/>
+                      </div>
+                      <div style="color: rgba(255,255,255,0.8); font-size: 0.85em; margin-top: 8px;">
+                        <span invisible="current_token_balance &lt; 10" style="color: #28a745;">
+                          <i class="fa fa-check-circle"></i> Good Standing
+                        </span>
+                        <span invisible="current_token_balance &lt; 5 or current_token_balance &gt;= 10" style="color: #ffc107;">
+                          <i class="fa fa-exclamation-triangle"></i> Warning
+                        </span>
+                        <span invisible="current_token_balance &gt;= 5" style="color: #dc3545;">
+                          <i class="fa fa-times-circle"></i> Low Balance
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Period Information -->
+                  <div class="col-6" style="margin-bottom: 16px;">
+                    <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 16px;">
+                      <div class="o_form_label" style="color: rgba(255,255,255,0.9); font-size: 0.85em; font-weight: 500; margin-bottom: 6px; display: block;">
+                        <i class="fa fa-calendar-alt" style="margin-right: 6px;"></i>
+                        Period Start
+                      </div>
+                      <div style="font-size: 1.2em; font-weight: 600; color: var(--color-white, #ffffff);">
+                        <field name="token_period_start" readonly="1" nolabel="1" style="background: transparent; border: none; color: var(--color-white, #ffffff); font-size: 1em; font-weight: 600;"/>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-6" style="margin-bottom: 16px;">
+                    <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 16px;">
+                      <div class="o_form_label" style="color: rgba(255,255,255,0.9); font-size: 0.85em; font-weight: 500; margin-bottom: 6px; display: block;">
+                        <i class="fa fa-calendar-check" style="margin-right: 6px;"></i>
+                        Period End
+                      </div>
+                      <div style="font-size: 1.2em; font-weight: 600; color: var(--color-white, #ffffff);">
+                        <field name="token_period_end" readonly="1" nolabel="1" style="background: transparent; border: none; color: var(--color-white, #ffffff); font-size: 1em; font-weight: 600;"/>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Tokens Deducted -->
+                  <div class="col-12">
+                    <div style="background: rgba(255,255,255,0.1); border-radius: 8px; padding: 16px;">
+                      <div class="o_form_label" style="color: rgba(255,255,255,0.9); font-size: 0.85em; font-weight: 500; margin-bottom: 6px; display: block;">
+                        <i class="fa fa-minus-circle" style="margin-right: 6px;"></i>
+                        Tokens Deducted (This Period)
+                      </div>
+                      <div style="font-size: 1.5em; font-weight: 600; color: #ffc107;">
+                        <field name="tokens_deducted_this_period" widget="integer" readonly="1" nolabel="1" style="background: transparent; border: none; color: #ffc107; font-size: 1em; font-weight: 600;"/>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+                    <!-- Token Deduction Policy Section -->
+                    <div class="card" style="background: var(--bg-white, #ffffff); border-radius: 12px; padding: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      <div style="display: flex; align-items: center; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px solid var(--light-hover, #e9ecef);">
+                        <i class="fa fa-info-circle" style="font-size: 1.5em; color: var(--primary-accent, #004589); margin-right: 12px;"></i>
+                        <h3 style="margin: 0; font-weight: 600; color: var(--f-color, #212529);">รายละเอียดการหัก Token</h3>
+                      </div>
+                      
+                      <div style="margin-bottom: 16px;">
+                        <p style="color: var(--f-color, #212529); line-height: 1.6; margin-bottom: 20px;">
+                          การมาสายถือเป็นการเข้างานหลังเวลาที่กำหนดตามระเบียบบริษัท โดยมีเกณฑ์การหัก Token ดังนี้
+                        </p>
+                        
+                        <!-- Policy Item 1 -->
+                        <div style="margin-bottom: 20px; padding: 16px; background: var(--light-hover, #f8f9fa); border-radius: 8px; border-left: 4px solid var(--primary-accent, #004589);">
+                          <div style="display: flex; align-items: flex-start; margin-bottom: 8px;">
+                            <span style="background: var(--primary-accent, #004589); color: var(--color-white, #ffffff); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 12px; flex-shrink: 0;">1</span>
+                            <div style="flex: 1;">
+                              <p style="margin: 0; font-weight: 600; color: var(--f-color, #212529); margin-bottom: 8px;">
+                                มาสายเกินสิทธิ์ที่บริษัทอนุโลม แต่ไม่เกิน 10 นาที
+                              </p>
+                              <div style="display: flex; align-items: center; margin-left: 36px;">
+                                <i class="fa fa-minus-circle" style="color: #f59e0b; margin-right: 8px; font-size: 1.1em;"></i>
+                                <span style="color: var(--f-color, #212529); font-weight: 500;">หัก 1 Token</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <!-- Policy Item 2 -->
+                        <div style="margin-bottom: 20px; padding: 16px; background: var(--light-hover, #f8f9fa); border-radius: 8px; border-left: 4px solid var(--primary-accent, #004589);">
+                          <div style="display: flex; align-items: flex-start; margin-bottom: 8px;">
+                            <span style="background: var(--primary-accent, #004589); color: var(--color-white, #ffffff); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 12px; flex-shrink: 0;">2</span>
+                            <div style="flex: 1;">
+                              <p style="margin: 0; font-weight: 600; color: var(--f-color, #212529); margin-bottom: 8px;">
+                                มาสายเกิน 10 นาที
+                              </p>
+                              <div style="display: flex; align-items: center; margin-left: 36px;">
+                                <i class="fa fa-minus-circle" style="color: #f59e0b; margin-right: 8px; font-size: 1.1em;"></i>
+                                <span style="color: var(--f-color, #212529); font-weight: 500;">หัก 2 Token</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <!-- Policy Item 3 -->
+                        <div style="margin-bottom: 20px; padding: 16px; background: var(--light-hover, #f8f9fa); border-radius: 8px; border-left: 4px solid var(--primary-accent, #004589);">
+                          <div style="display: flex; align-items: flex-start; margin-bottom: 8px;">
+                            <span style="background: var(--primary-accent, #004589); color: var(--color-white, #ffffff); border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 12px; flex-shrink: 0;">3</span>
+                            <div style="flex: 1;">
+                              <p style="margin: 0; font-weight: 600; color: var(--f-color, #212529); margin-bottom: 8px;">
+                                มาสายโดยไม่แจ้งหัวหน้างานล่วงหน้า
+                              </p>
+                              <div style="display: flex; align-items: center; margin-left: 36px;">
+                                <i class="fa fa-minus-circle" style="color: #ef4444; margin-right: 8px; font-size: 1.1em;"></i>
+                                <span style="color: var(--f-color, #212529); font-weight: 500;">หัก 3 Token</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+            </div>
+          </div>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <!-- Action metadata for stable refresh (res_id is injected by server action) -->
+  <record id="action_my_token_balance_window" model="ir.actions.act_window">
+    <field name="name">Token Balance ของฉัน</field>
+    <field name="res_model">hr.employee</field>
+    <field name="view_mode">form</field>
+    <field name="view_id" ref="onthisday_hr_discipline.view_employee_my_token_balance"/>
+    <field name="context">
+      {
+        'no_create': True,
+        'create': False,
+        'edit': False,
+        'readonly': True,
+        'form_view_initial_mode': 'readonly',
+        'token_balance_view': True,
+        'view_id': 'onthisday_hr_discipline.view_employee_my_token_balance',
+      }
+    </field>
+  </record>
+
+  <!-- Action to view my token balance -->
+  <!-- Use ir.actions.server to find employee record, then open with view_id -->
+  <!-- This ensures view_id is preserved on refresh -->
+  <delete id="action_my_token_balance" model="ir.actions.act_window"/>
+
+  <record id="action_my_token_balance" model="ir.actions.server">
+    <field name="name">Token Balance ของฉัน</field>
+    <field name="model_id" ref="hr.model_hr_employee"/>
+    <field name="state">code</field>
+    <field name="code">
+# Find employee record for current user
+employee = env['hr.employee'].search([('user_id', '=', user.id)], limit=1)
+if not employee:
+    raise ValueError('ไม่พบข้อมูล Employee ที่เชื่อมโยงกับ User ของคุณ กรุณาติดต่อผู้ดูแลระบบเพื่อเชื่อมโยง Employee กับ User account ของคุณ')
+
+# Get the token balance view
+view = env.ref('onthisday_hr_discipline.view_employee_my_token_balance', raise_if_not_found=False)
+if not view:
+    raise ValueError('ไม่พบฟอร์ม Token Balance ของฉัน กรุณาอัปเกรดโมดูล onthisday_hr_discipline')
+
+# Use a stable action id to preserve view/context on refresh
+action_id = env.ref('onthisday_hr_discipline.action_my_token_balance_window', raise_if_not_found=False)
+
+# Return action with view_id set in action record (not just context)
+# This ensures view_id is preserved on refresh
+action = {
+    'name': 'Token Balance ของฉัน',
+    'type': 'ir.actions.act_window',
+    'res_model': 'hr.employee',
+    'res_id': employee.id,
+    'view_mode': 'form',
+    'views': [(view.id, 'form')],  # Use views list to ensure view_id is preserved
+    'view_id': view.id,  # Set view_id explicitly
+    'target': 'current',
+    'id': action_id.id if action_id else False,
+    'context': {
+        'no_create': True,
+        'create': False,
+        'edit': False,
+        'readonly': True,
+        'form_view_initial_mode': 'readonly',
+        'token_balance_view': True,
+        'view_id': 'onthisday_hr_discipline.view_employee_my_token_balance',
+    },
+}
+action
+    </field>
+  </record>
+
+  <!-- Menu item moved to menu.xml to ensure it's loaded properly -->
+</odoo>

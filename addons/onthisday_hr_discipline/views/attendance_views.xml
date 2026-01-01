@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_attendance_form_inherit_lateness" model="ir.ui.view">
+    <field name="name">hr.attendance.form.lateness</field>
+    <field name="model">hr.attendance</field>
+    <field name="inherit_id" ref="hr_attendance.hr_attendance_view_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//sheet" position="inside">
+        <div class="oe_button_box" name="button_box">
+          <button name="action_view_lateness_log"
+                  type="object"
+                  class="oe_stat_button"
+                  icon="fa-exclamation-triangle"
+                  invisible="lateness_minutes == 0">
+            <field name="lateness_log_count" widget="statinfo" string="Lateness"/>
+          </button>
+        </div>
+      </xpath>
+      <xpath expr="//group[@name='group_employee']" position="after">
+        <group>
+          <field name="lateness_minutes" readonly="1"/>
+          <field name="discipline_processed" readonly="1"/>
+        </group>
+      </xpath>
+    </field>
+  </record>
+
+</odoo>

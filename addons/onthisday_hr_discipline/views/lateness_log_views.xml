@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- Lateness Log Tree View -->
+  <record id="view_lateness_log_tree" model="ir.ui.view">
+    <field name="name">hr.lateness.log.tree</field>
+    <field name="model">hr.lateness.log</field>
+    <field name="arch" type="xml">
+      <list string="Lateness Logs" default_order="date desc">
+        <field name="date"/>
+        <field name="employee_id"/>
+        <field name="minutes" sum="Total Minutes"/>
+        <field name="verification_state"/>
+        <field name="notified_before_start" widget="boolean_toggle"/>
+        <field name="token_deducted" sum="Total Tokens"/>
+        <field name="case_id"/>
+        <field name="attendance_id"/>
+      </list>
+    </field>
+  </record>
+
+  <!-- Lateness Log Graph View -->
+  <record id="view_lateness_log_graph" model="ir.ui.view">
+    <field name="name">hr.lateness.log.graph</field>
+    <field name="model">hr.lateness.log</field>
+    <field name="arch" type="xml">
+      <graph string="สรุปการมาสายรายเดือน" type="bar" stacked="True">
+        <field name="date" type="row" interval="month" string="เดือน"/>
+        <field name="employee_id" type="row" string="พนักงาน"/>
+        <field name="minutes" type="measure" string="นาที"/>
+        <field name="token_deducted" type="measure" string="Tokens"/>
+      </graph>
+    </field>
+  </record>
+
+  <!-- Lateness Log Pivot View -->
+  <record id="view_lateness_log_pivot" model="ir.ui.view">
+    <field name="name">hr.lateness.log.pivot</field>
+    <field name="model">hr.lateness.log</field>
+    <field name="arch" type="xml">
+      <pivot string="สรุปการมาสายรายเดือน" sample="false">
+        <field name="date" type="row" interval="month" string="เดือน"/>
+        <field name="employee_id" type="row" string="พนักงาน"/>
+        <field name="minutes" type="measure" string="นาที"/>
+        <field name="token_deducted" type="measure" string="Tokens"/>
+      </pivot>
+    </field>
+  </record>
+
+  <!-- Lateness Log Form View -->
+  <record id="view_lateness_log_form" model="ir.ui.view">
+    <field name="name">hr.lateness.log.form</field>
+    <field name="model">hr.lateness.log</field>
+    <field name="arch" type="xml">
+      <form>
+        <sheet>
+          <group>
+            <group>
+              <field name="employee_id"/>
+              <field name="date"/>
+              <field name="attendance_id"/>
+              <field name="minutes"/>
+              <field name="verification_state"/>
+              <field name="token_deducted" readonly="1"/>
+            </group>
+            <group>
+              <field name="company_id"/>
+              <field name="case_id" readonly="1"/>
+              <field name="check_in_time" readonly="1"/>
+              <field name="check_out_time" readonly="1"/>
+            </group>
+          </group>
+          
+          <group string="Notification (Policy 002/2025)" name="notification_group">
+            <group>
+              <field name="notified_before_start"/>
+              <field name="notified_at" invisible="not notified_before_start"/>
+              <field name="notified_channel" invisible="not notified_before_start"/>
+            </group>
+            <group>
+              <field name="manager_confirmed_notification" invisible="not notified_before_start"/>
+            </group>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <!-- Action for Lateness Log -->
+  <record id="action_hr_lateness_log" model="ir.actions.act_window">
+    <field name="name">Lateness Logs</field>
+    <field name="res_model">hr.lateness.log</field>
+    <field name="view_mode">list,form</field>
+    <field name="views" eval="[(ref('view_lateness_log_tree'), 'tree'), (ref('view_lateness_log_form'), 'form')]"/>
+    <field name="context">{'search_default_employee_id': active_id if active_model == 'hr.employee' else False}</field>
+  </record>
+
+</odoo>

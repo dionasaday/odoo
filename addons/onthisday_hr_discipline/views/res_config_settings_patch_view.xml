@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!--
+    Patch view: ไม่ต้องแก้ไข view สำหรับ license_report_user_ids
+    เพราะ field definition ถูกเพิ่มใน res_config_settings_patch.py แล้ว
+    Odoo จะแสดง field อัตโนมัติถ้ามี field definition ใน model
+    
+    View นี้เหลือไว้เพื่อแสดง comment เท่านั้น
+  -->
+  
+  <!--
+    หมายเหตุ: Field definitions ถูกเพิ่มใน models/res_config_settings_patch.py
+    ไม่จำเป็นต้อง patch view เพราะ Odoo จะแสดง field อัตโนมัติ
+    ถ้าต้องการเพิ่ม field เข้า view ต้องตรวจสอบ xpath ที่ถูกต้องก่อน
+  -->
+</odoo>
+
