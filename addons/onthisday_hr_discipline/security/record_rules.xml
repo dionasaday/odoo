@@ -95,6 +95,18 @@
     <field name="perm_unlink" eval="1"/>
   </record>
 
+  <!-- System: full access (no restriction) -->
+  <record id="rule_ledger_system_all" model="ir.rule">
+    <field name="name">Discipline Ledger - System (All)</field>
+    <field name="model_id" ref="model_hr_discipline_point_ledger"/>
+    <field name="domain_force">[(1,'=',1)]</field>
+    <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+    <field name="perm_read" eval="1"/>
+    <field name="perm_write" eval="1"/>
+    <field name="perm_create" eval="1"/>
+    <field name="perm_unlink" eval="1"/>
+  </record>
+
   <!-- ผู้ใช้ทั่วไป เห็นเฉพาะของตัวเอง -->
   <record id="rule_my_summary_user_own" model="ir.rule">
     <field name="name">My Summary (Own)</field>

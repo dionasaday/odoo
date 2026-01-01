@@ -11,7 +11,7 @@ access_action_hr,Action HR,model_hr_discipline_action,onthisday_hr_discipline.gr
 access_action_manager,Action Manager,model_hr_discipline_action,onthisday_hr_discipline.group_discipline_manager,1,1,1,1
 
 access_ledger_user,Ledger User,model_hr_discipline_point_ledger,onthisday_hr_discipline.group_discipline_user,1,0,0,0
-access_ledger_hr,Ledger HR,model_hr_discipline_point_ledger,onthisday_hr_discipline.group_discipline_hr,1,1,1,0
+access_ledger_hr,Ledger HR,model_hr_discipline_point_ledger,onthisday_hr_discipline.group_discipline_hr,1,1,1,1
 access_ledger_manager,Ledger Manager,model_hr_discipline_point_ledger,onthisday_hr_discipline.group_discipline_manager,1,1,1,1
 
 access_case_user,Case User,model_hr_discipline_case,onthisday_hr_discipline.group_discipline_user,1,0,0,0
