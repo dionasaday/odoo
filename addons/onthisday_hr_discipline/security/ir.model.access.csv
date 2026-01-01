@@ -15,7 +15,7 @@ access_ledger_hr,Ledger HR,model_hr_discipline_point_ledger,onthisday_hr_discipl
 access_ledger_manager,Ledger Manager,model_hr_discipline_point_ledger,onthisday_hr_discipline.group_discipline_manager,1,1,1,1
 
 access_case_user,Case User,model_hr_discipline_case,onthisday_hr_discipline.group_discipline_user,1,0,0,0
-access_case_hr,Case HR,model_hr_discipline_case,onthisday_hr_discipline.group_discipline_hr,1,1,1,0
+access_case_hr,Case HR,model_hr_discipline_case,onthisday_hr_discipline.group_discipline_hr,1,1,1,1
 access_case_manager,Case Manager,model_hr_discipline_case,onthisday_hr_discipline.group_discipline_manager,1,1,1,1
 access_punishment_wizard_hr,Discipline Punishment Wizard HR,model_hr_discipline_punishment_wizard,onthisday_hr_discipline.group_discipline_hr,1,1,1,1
 
