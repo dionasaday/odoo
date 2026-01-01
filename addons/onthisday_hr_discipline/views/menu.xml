@@ -38,6 +38,12 @@
               action="onthisday_hr_discipline.action_my_token_balance"
               sequence="10"/>
 
+    <menuitem id="menu_my_points_by_catalog"
+              name="สรุปคะแนนของฉัน (รายกรณีความผิด)"
+              parent="onthisday_hr_discipline.menu_my_discipline_root"
+              action="onthisday_hr_discipline.action_my_points_by_catalog"
+              sequence="15"/>
+
     <!-- Main entries -->
     <menuitem id="menu_hr_discipline_ledger"
               name="สมุดคะแนน"
