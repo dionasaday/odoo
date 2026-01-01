@@ -9,9 +9,10 @@ class HrLatenessLog(models.Model):
     _name = "hr.lateness.log"
     _description = "บันทึกการมาสาย (ต่อการลงเวลา)"
     _order = "date desc, id desc"
-    _sql_constraints = [
-        ('uniq_attendance', 'unique(attendance_id)', 'A lateness log already exists for this attendance.'),
-    ]
+    _uniq_attendance = models.UniqueIndex(
+        "(attendance_id)",
+        "A lateness log already exists for this attendance.",
+    )
 
     # บริษัท (รองรับหลายบริษัท และใช้กับการกรองรายงานได้)
     company_id = fields.Many2one(

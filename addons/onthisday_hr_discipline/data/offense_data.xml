@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+  <data noupdate="1">
     <!-- Categories -->
     <record id="off_cat_minor" model="hr.discipline.offense.category">
         <field name="name">ความผิดเล็กน้อย</field>
@@ -81,4 +82,5 @@
         <field name="category_id" ref="off_cat_severe"/>
         <field name="points">3</field>
     </record>
+  </data>
 </odoo>

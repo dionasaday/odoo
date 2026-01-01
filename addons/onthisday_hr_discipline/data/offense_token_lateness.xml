@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <data noupdate="0">
+  <data noupdate="1">
     <!-- Policy 002/2025: Token-based lateness offenses -->
     <!-- Points are NEGATIVE to represent token deduction -->
     
@@ -39,4 +39,3 @@
 
   </data>
 </odoo>
-

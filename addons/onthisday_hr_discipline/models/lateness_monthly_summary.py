@@ -98,13 +98,10 @@ class HrLatenessMonthlySummary(models.Model):
     )
 
     # SQL constraint: ห้ามสร้างสรุปซ้ำสำหรับบริษัท/เดือนเดียวกัน
-    _sql_constraints = [
-        (
-            "unique_company_period",
-            "unique(company_id, period_date)",
-            "Monthly summary for this company and period already exists!",
-        ),
-    ]
+    _unique_company_period = models.UniqueIndex(
+        "(company_id, period_date)",
+        "Monthly summary for this company and period already exists!",
+    )
 
     @api.depends("period_date")
     def _compute_period_display(self):

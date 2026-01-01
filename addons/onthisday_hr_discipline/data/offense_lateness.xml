@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+  <data noupdate="1">
   <!-- หมวด Lateness -->
   <record id="offense_cat_lateness" model="hr.discipline.offense.category">
     <field name="name">Lateness</field>
@@ -67,4 +68,5 @@
     <field name="max_minute">9999</field>
     <field name="offense_xmlid">onthisday_hr_discipline.offense_late_over_60</field>
   </record>
+  </data>
 </odoo>

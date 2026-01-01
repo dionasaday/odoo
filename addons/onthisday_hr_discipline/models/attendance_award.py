@@ -125,11 +125,10 @@ class HrAttendanceAward(models.Model):
     state = fields.Selection([('draft','Draft'),('announced','Announced')], default='draft')
     line_ids = fields.One2many('hr.attendance.award.line', 'award_id')
 
-    _sql_constraints = [
-        ('period_company_unique',
-         'unique(company_id, date_from, date_to)',
-         'Award for this company and period already exists.')
-    ]
+    _unique_period_company = models.UniqueIndex(
+        "(company_id, date_from, date_to)",
+        "Award for this company and period already exists.",
+    )
 
     def action_recompute(self):
         for rec in self:

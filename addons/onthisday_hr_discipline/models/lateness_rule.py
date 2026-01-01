@@ -15,9 +15,10 @@ class HrDisciplineLatenessRule(models.Model):
     )
     active = fields.Boolean(default=True)
 
-    _sql_constraints = [
-        ("check_range", "CHECK(min_minute >= 0 AND max_minute >= min_minute)", "Invalid minute range."),
-    ]
+    _check_range = models.Constraint(
+        "CHECK(min_minute >= 0 AND max_minute >= min_minute)",
+        "Invalid minute range.",
+    )
 
 
 class ResCompany(models.Model):
