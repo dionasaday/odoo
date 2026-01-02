@@ -207,12 +207,12 @@
 # Find employee record for current user
 employee = env['hr.employee'].search([('user_id', '=', user.id)], limit=1)
 if not employee:
-    raise ValueError('ไม่พบข้อมูล Employee ที่เชื่อมโยงกับ User ของคุณ กรุณาติดต่อผู้ดูแลระบบเพื่อเชื่อมโยง Employee กับ User account ของคุณ')
+    raise UserError('ไม่พบข้อมูล Employee ที่เชื่อมโยงกับ User ของคุณ กรุณาติดต่อผู้ดูแลระบบเพื่อเชื่อมโยง Employee กับ User account ของคุณ')
 
 # Get the token balance view
 view = env.ref('onthisday_hr_discipline.view_employee_my_token_balance', raise_if_not_found=False)
 if not view:
-    raise ValueError('ไม่พบฟอร์ม Token Balance ของฉัน กรุณาอัปเกรดโมดูล onthisday_hr_discipline')
+    raise UserError('ไม่พบฟอร์ม Token Balance ของฉัน กรุณาอัปเกรดโมดูล onthisday_hr_discipline')
 
 # Use a stable action id to preserve view/context on refresh
 action_id = env.ref('onthisday_hr_discipline.action_my_token_balance_window', raise_if_not_found=False)
