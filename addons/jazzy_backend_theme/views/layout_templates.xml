@@ -5,6 +5,22 @@
         <xpath expr="//meta[@content='IE=edge']" position="after">
             <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
             <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500&amp;display=swap" rel="stylesheet"/>
+            <t t-set="jazzy_primary_accent" t-value="request.env['ir.config_parameter'].sudo().get_param('jazzy_backend_theme.primary_accent_color')"/>
+            <t t-set="jazzy_primary_hover" t-value="request.env['ir.config_parameter'].sudo().get_param('jazzy_backend_theme.primary_hover')"/>
+            <t t-set="jazzy_appbar_color" t-value="request.env['ir.config_parameter'].sudo().get_param('jazzy_backend_theme.appbar_color')"/>
+            <t t-set="jazzy_appbar_text" t-value="request.env['ir.config_parameter'].sudo().get_param('jazzy_backend_theme.appbar_text')"/>
+            <t t-set="jazzy_secondary_hover" t-value="request.env['ir.config_parameter'].sudo().get_param('jazzy_backend_theme.secondary_hover')"/>
+            <t t-set="jazzy_kanban_bg" t-value="request.env['ir.config_parameter'].sudo().get_param('jazzy_backend_theme.kanban_bg_color')"/>
+            <style type="text/css">
+                :root{
+                    --primary-accent: <t t-esc="jazzy_primary_accent or '#004589'"/> !important;
+                    --primary-hover: <t t-esc="jazzy_primary_hover or '#00376E'"/> !important;
+                    --app-bar-accent: <t t-esc="jazzy_appbar_color or '#000000'"/> !important;
+                    --app-menu-font-color: <t t-esc="jazzy_appbar_text or '#ffffff'"/> !important;
+                    --secondary-hover: <t t-esc="jazzy_secondary_hover or '#F2F2F3'"/> !important;
+                    --kanban-bg-color: <t t-esc="jazzy_kanban_bg or '#F7F7F7'"/> !important;
+                }
+            </style>
         </xpath>
     </template>
 </odoo>

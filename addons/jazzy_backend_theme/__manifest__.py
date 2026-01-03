@@ -45,10 +45,6 @@
             # Temporarily disabled to fix white screen issue
             # 'jazzy_backend_theme/static/src/layout/calendar_event_text_fix.js',
         ],
-        'web.assets_frontend': [
-            'jazzy_backend_theme/static/src/layout/style/login.scss',
-            'jazzy_backend_theme/static/src/layout/style/website_frontend.scss',
-        ],
     },
     'images': [
         'static/description/banner.jpg',
