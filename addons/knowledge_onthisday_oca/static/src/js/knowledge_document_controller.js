@@ -111,6 +111,10 @@ export class KnowledgeDocumentController extends Component {
         this._floatingTOCHeadings = [];
         this.inlineTOCElement = null;
         this._tocObserver = null;
+        this._tocHiddenKey = "knowledge_onthisday_toc_hidden";
+        this._tocHidden = false;
+        this._tocShouldShow = false;
+        this.tocToggleButton = null;
         this._onScrollFloatingTOC = () => {
             if (this._floatingTOCHeadings.length === 0 || !this.floatingTOCContainer) {
                 return;
@@ -119,6 +123,11 @@ export class KnowledgeDocumentController extends Component {
         };
 
         onWillStart(async () => {
+            try {
+                this._tocHidden = window.localStorage.getItem(this._tocHiddenKey) === "1";
+            } catch (error) {
+                this._tocHidden = false;
+            }
             // Load tags first
             await this.loadTags();
             await this.loadFilterOptions();
@@ -186,6 +195,10 @@ export class KnowledgeDocumentController extends Component {
                 this.floatingTOCContainer.parentNode.removeChild(this.floatingTOCContainer);
             }
             this.floatingTOCContainer = null;
+            if (this.tocToggleButton && this.tocToggleButton.parentNode) {
+                this.tocToggleButton.parentNode.removeChild(this.tocToggleButton);
+            }
+            this.tocToggleButton = null;
         });
     }
 
@@ -3304,8 +3317,27 @@ export class KnowledgeDocumentController extends Component {
 
         this.floatingTOCContainer.innerHTML = tocHTML;
 
+        const header = this.floatingTOCContainer.querySelector('.o_toc_header');
+        if (header && !header.querySelector('.o_toc_close')) {
+            const closeButton = document.createElement('button');
+            closeButton.type = 'button';
+            closeButton.className = 'o_toc_close';
+            closeButton.setAttribute('title', 'Hide Table of Contents');
+            closeButton.setAttribute('aria-label', 'Hide Table of Contents');
+            closeButton.innerHTML = '<span class="fa fa-times" aria-hidden="true"></span>';
+            header.appendChild(closeButton);
+        }
+
+        this._ensureTOCToggleButton();
+
         // Delegate clicks to reuse smooth scroll behaviour
         this.floatingTOCContainer.onclick = (e) => {
+            const closeButton = e.target.closest('.o_toc_close');
+            if (closeButton) {
+                e.preventDefault();
+                this._setTOCHidden(true);
+                return;
+            }
             const link = e.target.closest('.o_toc_link');
             if (!link) return;
             e.preventDefault();
@@ -3320,6 +3352,7 @@ export class KnowledgeDocumentController extends Component {
         } else {
             this._toggleFloatingTOC(false);
         }
+        this._setTOCHidden(this._tocHidden);
     }
 
     /**
@@ -3461,7 +3494,52 @@ export class KnowledgeDocumentController extends Component {
 
     _toggleFloatingTOC(show) {
         if (!this.floatingTOCContainer) return;
-        this.floatingTOCContainer.style.display = show ? 'block' : 'none';
+        this._tocShouldShow = show;
+        const shouldShow = show && !this._tocHidden;
+        this.floatingTOCContainer.style.display = shouldShow ? 'block' : 'none';
+        this._updateTOCToggleButtonVisibility();
+    }
+
+    _ensureTOCToggleButton() {
+        if (this.tocToggleButton) {
+            return;
+        }
+        const toggleButton = document.createElement('button');
+        toggleButton.type = 'button';
+        toggleButton.className = 'o_knowledge_toc_toggle';
+        toggleButton.setAttribute('title', 'Show Table of Contents');
+        toggleButton.setAttribute('aria-label', 'Show Table of Contents');
+        toggleButton.innerHTML = '<span class="fa fa-list" aria-hidden="true"></span><span>TOC</span>';
+        toggleButton.addEventListener('click', () => {
+            this._setTOCHidden(false);
+        });
+        const host = this.el || document.body;
+        host.appendChild(toggleButton);
+        this.tocToggleButton = toggleButton;
+        this._updateTOCToggleButtonVisibility();
+    }
+
+    _setTOCHidden(hidden) {
+        this._tocHidden = hidden;
+        try {
+            window.localStorage.setItem(this._tocHiddenKey, hidden ? "1" : "0");
+        } catch (error) {
+            // ignore localStorage errors
+        }
+        if (this.el) {
+            this.el.classList.toggle('o_knowledge_toc_hidden', hidden);
+            const articleContent = this.el.querySelector('.o_knowledge_article_content');
+            if (articleContent) {
+                articleContent.classList.toggle('o_knowledge_toc_hidden_content', hidden);
+            }
+        }
+        this._toggleFloatingTOC(this._tocShouldShow);
+    }
+
+    _updateTOCToggleButtonVisibility() {
+        if (!this.tocToggleButton) return;
+        const shouldShow = this._tocHidden && this._floatingTOCHeadings.length > 0;
+        this.tocToggleButton.style.display = shouldShow ? 'flex' : 'none';
     }
 
     _buildTOCHTMLFromHeadings(headings) {

@@ -2686,11 +2686,28 @@ html {
     display: none; /* hidden until toc is ready */
 
     .o_toc_header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
         margin-bottom: 8px;
         h3 {
             font-size: 16px;
             margin: 0;
             color: var(--knowledge-text);
+        }
+        .o_toc_close {
+            border: none;
+            background: transparent;
+            color: var(--knowledge-muted);
+            padding: 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            line-height: 1;
+
+            &:hover {
+                background: var(--knowledge-primary-bg, var(--knowledge-primary-bg-fallback));
+                color: var(--knowledge-primary);
+            }
         }
     }
 
@@ -2729,8 +2746,35 @@ html {
     }
 }
 
+.o_knowledge_toc_toggle {
+    position: fixed;
+    right: 24px;
+    top: 180px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--knowledge-border);
+    background: #fff;
+    color: var(--knowledge-text);
+    box-shadow: 0 4px 12px var(--knowledge-shadow);
+    cursor: pointer;
+    z-index: 1040;
+    font-size: 12px;
+}
+
+.o_knowledge_document_view.o_knowledge_toc_hidden {
+    .o_knowledge_floating_toc {
+        display: none !important;
+    }
+}
+
 @media (max-width: 1200px) {
     .o_knowledge_floating_toc {
+        display: none !important;
+    }
+    .o_knowledge_toc_toggle {
         display: none !important;
     }
 }
@@ -2742,7 +2786,7 @@ html {
         }
 
         .o_knowledge_article_content {
-            padding-right: 320px !important; /* keep body aligned with floating TOC */
+            padding-right: var(--knowledge-spacing-lg) !important;
         }
     }
 }
