@@ -761,7 +761,7 @@ export class KnowledgeDocumentController extends Component {
             const basicFields = ["id", "name", "active"];
             const extendedFields = ["icon", "category_id", "parent_id", "responsible_id", "write_date", "create_date"];
             const relationFields = ["favorite_user_ids", "shared_user_ids", "share_token", "tag_ids"];
-            const order = "parent_id asc, id asc";
+            const order = "parent_id asc, sequence asc, name asc";
             
             try {
                 try {
@@ -1305,7 +1305,7 @@ export class KnowledgeDocumentController extends Component {
                 "knowledge.article",
                 [["parent_id", "=", articleId], ["active", "=", true]],
                 ["id", "name", "icon", "category_id", "create_date"],
-                { order: "name" }
+                { order: "sequence, name" }
             );
             if (!children || !children.length) {
                 return [];

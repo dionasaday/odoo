@@ -13,7 +13,7 @@ class KnowledgeArticle(models.Model):
     _name = 'knowledge.article'
     _description = 'Knowledge Article'
     _inherit = ['mail.thread', 'mail.activity.mixin']
-    _order = 'name'
+    _order = 'parent_id, sequence, name'
     _sql_constraints = [
         ('knowledge_article_share_token_unique', 'unique(share_token)', 'Share token must be unique.'),
     ]
@@ -49,6 +49,12 @@ class KnowledgeArticle(models.Model):
     icon = fields.Char(
         string='Icon',
         help='Emoji or icon character for this article'
+    )
+
+    sequence = fields.Integer(
+        string='Sequence',
+        default=10,
+        help='Ordering for article display'
     )
 
     icon_choice = fields.Selection(

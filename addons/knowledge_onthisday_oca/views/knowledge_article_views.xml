@@ -58,6 +58,7 @@
                                        string="ไอคอนแบบกำหนดเอง"
                                        placeholder="📝"
                                        invisible="icon_choice != 'custom'"/>
+                                <field name="sequence"/>
                                 <field name="category_id"/>
                                 <field name="parent_id"/>
                                 <field name="responsible_id"/>
