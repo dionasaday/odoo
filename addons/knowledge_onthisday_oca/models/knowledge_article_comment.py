@@ -63,7 +63,7 @@ class KnowledgeArticleComment(models.Model):
         required=True,
         sanitize_attributes=True,  # Security: Enable attribute sanitization to prevent XSS
         sanitize_form=True,         # Security: Sanitize form elements
-        sanitize_style=False,       # Allow inline styles for formatting (can be True for stricter security)
+        sanitize_style=True,        # Enforce inline style sanitization for production safety
         help='Comment content (supports HTML)'
     )
     
@@ -242,8 +242,7 @@ class KnowledgeArticleComment(models.Model):
                 # Send notification to article owner/responsible
                 comment._notify_article_owner()
             
-            # Return single comment if only one was created, otherwise return recordset
-            return comments if len(comments) > 1 else comments[0] if comments else self.browse()
+            return comments
             
         except ValidationError:
             # Re-raise ValidationError as-is
@@ -258,11 +257,19 @@ class KnowledgeArticleComment(models.Model):
         # Security: Check if user has write access (Odoo ACL will handle this automatically,
         # but we add explicit check for better security)
         for record in self:
+            is_privileged = (
+                self.env.user.has_group('base.group_system') or
+                self.env.user.has_group('knowledge_onthisday_oca.group_knowledge_manager')
+            )
+            if not is_privileged and record.author_id.id != self.env.user.id:
+                _logger.warning(f"Access denied: User {self.env.user.id} cannot modify comment {record.id} (not author)")
+                raise AccessError(_("You can only edit your own comments"))
+
             # Check if user is trying to modify comment content (body) or other sensitive fields
             # Only allow author or admin to modify comment content
             if 'body' in vals or 'selected_text' in vals or 'start_offset' in vals or 'end_offset' in vals:
                 # Only author or admin can modify comment content
-                if record.author_id.id != self.env.user.id and not self.env.user.has_group('base.group_system'):
+                if record.author_id.id != self.env.user.id and not is_privileged:
                     _logger.warning(f"Access denied: User {self.env.user.id} cannot modify comment {record.id} (not author)")
                     raise AccessError(_("You can only edit your own comments"))
             
@@ -295,6 +302,18 @@ class KnowledgeArticleComment(models.Model):
                 self._notify_mentioned_users(mentioned_users)
         
         return result
+
+    def unlink(self):
+        """Only allow author or managers to delete comments."""
+        for record in self:
+            is_privileged = (
+                self.env.user.has_group('base.group_system') or
+                self.env.user.has_group('knowledge_onthisday_oca.group_knowledge_manager')
+            )
+            if not is_privileged and record.author_id.id != self.env.user.id:
+                _logger.warning(f"Access denied: User {self.env.user.id} cannot delete comment {record.id} (not author)")
+                raise AccessError(_("You can only delete your own comments"))
+        return super().unlink()
     
     def _extract_mentions(self, html_body):
         """Extract @mentions from HTML body
@@ -397,4 +416,3 @@ class KnowledgeArticleComment(models.Model):
             
             if record.end_offset < record.start_offset:
                 raise ValidationError("End offset must be greater than or equal to start offset")
-

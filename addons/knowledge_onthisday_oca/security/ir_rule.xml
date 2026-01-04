@@ -5,9 +5,9 @@
         <!-- Rule: Regular users can only see active articles -->
         <!-- This ensures deleted/archived articles are hidden from normal users -->
         <record id="knowledge_article_user_rule" model="ir.rule">
-            <field name="name">Knowledge Article: User Access - Active Only</field>
+            <field name="name">Knowledge Article: User Access - Active Shared/Owner</field>
             <field name="model_id" ref="model_knowledge_article"/>
-            <field name="domain_force">[('active', '=', True)]</field>
+            <field name="domain_force">['&amp;', ('active', '=', True), '|', ('responsible_id', '=', user.id), ('shared_user_ids', 'in', user.id)]</field>
             <field name="groups" eval="[(4, ref('base.group_user'))]"/>
         </record>
         
@@ -66,7 +66,7 @@
         <record id="knowledge_article_comment_user_rule" model="ir.rule">
             <field name="name">Knowledge Article Comment: User Access</field>
             <field name="model_id" ref="model_knowledge_article_comment"/>
-            <field name="domain_force">[('article_id.active', '=', True)]</field>
+            <field name="domain_force">['&amp;', ('article_id.active', '=', True), '|', ('article_id.responsible_id', '=', user.id), ('article_id.shared_user_ids', 'in', user.id)]</field>
             <field name="groups" eval="[(4, ref('base.group_user'))]"/>
         </record>
         
@@ -85,7 +85,98 @@
             <field name="domain_force">[(1, '=', 1)]</field>
             <field name="groups" eval="[(4, ref('knowledge_onthisday_oca.group_knowledge_manager'))]"/>
         </record>
+
+        <!-- Rule: Users can read share members for articles they can access -->
+        <record id="knowledge_article_member_user_rule" model="ir.rule">
+            <field name="name">Knowledge Article Member: User Read Access</field>
+            <field name="model_id" ref="model_knowledge_article_member"/>
+            <field name="domain_force">['&amp;', ('article_id.active', '=', True), '|', ('article_id.responsible_id', '=', user.id), ('article_id.shared_user_ids', 'in', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="0"/>
+            <field name="perm_create" eval="0"/>
+            <field name="perm_unlink" eval="0"/>
+        </record>
+
+        <!-- Rule: Owners can manage share members for their articles -->
+        <record id="knowledge_article_member_owner_rule" model="ir.rule">
+            <field name="name">Knowledge Article Member: Owner Manage Access</field>
+            <field name="model_id" ref="model_knowledge_article_member"/>
+            <field name="domain_force">[('article_id.responsible_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="1"/>
+            <field name="perm_create" eval="1"/>
+            <field name="perm_unlink" eval="1"/>
+        </record>
+
+        <!-- Rule: System users can manage all share members -->
+        <record id="knowledge_article_member_system_rule" model="ir.rule">
+            <field name="name">Knowledge Article Member: System Access</field>
+            <field name="model_id" ref="model_knowledge_article_member"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+        </record>
+
+        <!-- Rule: Knowledge Managers can manage all share members -->
+        <record id="knowledge_article_member_manager_rule" model="ir.rule">
+            <field name="name">Knowledge Article Member: Manager Access</field>
+            <field name="model_id" ref="model_knowledge_article_member"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('knowledge_onthisday_oca.group_knowledge_manager'))]"/>
+        </record>
+
+        <!-- Rule: Users can read revisions for articles they can access -->
+        <record id="knowledge_article_revision_user_rule" model="ir.rule">
+            <field name="name">Knowledge Article Revision: User Read Access</field>
+            <field name="model_id" ref="model_knowledge_article_revision"/>
+            <field name="domain_force">['|', ('article_id.responsible_id', '=', user.id), ('article_id.shared_user_ids', 'in', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="0"/>
+            <field name="perm_create" eval="0"/>
+            <field name="perm_unlink" eval="0"/>
+        </record>
+
+        <!-- Rule: Users can create revisions (system will validate article access) -->
+        <record id="knowledge_article_revision_user_create_rule" model="ir.rule">
+            <field name="name">Knowledge Article Revision: User Create Access</field>
+            <field name="model_id" ref="model_knowledge_article_revision"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="perm_read" eval="0"/>
+            <field name="perm_write" eval="0"/>
+            <field name="perm_create" eval="1"/>
+            <field name="perm_unlink" eval="0"/>
+        </record>
+
+        <!-- Rule: Owners can manage revisions for their articles -->
+        <record id="knowledge_article_revision_owner_rule" model="ir.rule">
+            <field name="name">Knowledge Article Revision: Owner Manage Access</field>
+            <field name="model_id" ref="model_knowledge_article_revision"/>
+            <field name="domain_force">[('article_id.responsible_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="perm_read" eval="1"/>
+            <field name="perm_write" eval="1"/>
+            <field name="perm_create" eval="1"/>
+            <field name="perm_unlink" eval="1"/>
+        </record>
+
+        <!-- Rule: System users can manage all revisions -->
+        <record id="knowledge_article_revision_system_rule" model="ir.rule">
+            <field name="name">Knowledge Article Revision: System Access</field>
+            <field name="model_id" ref="model_knowledge_article_revision"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+        </record>
+
+        <!-- Rule: Knowledge Managers can manage all revisions -->
+        <record id="knowledge_article_revision_manager_rule" model="ir.rule">
+            <field name="name">Knowledge Article Revision: Manager Access</field>
+            <field name="model_id" ref="model_knowledge_article_revision"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('knowledge_onthisday_oca.group_knowledge_manager'))]"/>
+        </record>
         
     </data>
 </odoo>
-

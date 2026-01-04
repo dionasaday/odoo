@@ -82,7 +82,7 @@
                                             <t t-else="">
                                                 <span class="o_knowledge_expand_icon o_knowledge_expand_icon_empty"></span>
                                             </t>
-                                            <span class="o_knowledge_article_icon" t-esc="article.category_icon || '📝'"/>
+                                            <span class="o_knowledge_article_icon" t-esc="article.article_icon || article.category_icon || '📝'"/>
                                             <div class="o_knowledge_article_info">
                                                 <span class="o_knowledge_article_name" t-esc="article.name"/>
                                             </div>
@@ -95,7 +95,7 @@
                                                          t-att-class="{'o_active': state.selectedArticleId === child.id}">
                                                         <div class="o_knowledge_article_item_header">
                                                             <span class="o_knowledge_expand_icon o_knowledge_expand_icon_empty"></span>
-                                                            <span class="o_knowledge_article_icon" t-esc="child.category_icon || '📝'"/>
+                                                            <span class="o_knowledge_article_icon" t-esc="child.article_icon || child.category_icon || '📝'"/>
                                                             <div class="o_knowledge_article_info">
                                                                 <span class="o_knowledge_article_name" t-esc="child.name"/>
                                                             </div>
@@ -165,7 +165,7 @@
                                                                     <t t-else="">
                                                                         <span class="o_knowledge_expand_icon o_knowledge_expand_icon_empty"></span>
                                                                     </t>
-                                                                    <span class="o_knowledge_article_icon" t-esc="article.category_icon || '📝'"/>
+                                                                    <span class="o_knowledge_article_icon" t-esc="article.article_icon || article.category_icon || '📝'"/>
                                                                     <div class="o_knowledge_article_info">
                                                                         <span class="o_knowledge_article_name" t-esc="article.name"/>
                                                                     </div>
@@ -178,7 +178,7 @@
                                                                                  t-att-class="{'o_active': state.selectedArticleId === child.id}">
                                                                                 <div class="o_knowledge_article_item_header">
                                                                                     <span class="o_knowledge_expand_icon o_knowledge_expand_icon_empty"></span>
-                                                                                    <span class="o_knowledge_article_icon" t-esc="child.category_icon || '📝'"/>
+                                                                                    <span class="o_knowledge_article_icon" t-esc="child.article_icon || child.category_icon || '📝'"/>
                                                                                     <div class="o_knowledge_article_info">
                                                                                         <span class="o_knowledge_article_name" t-esc="child.name"/>
                                                                                     </div>
@@ -197,6 +197,16 @@
                                                     </t>
                                                 </div>
                                             </t>
+                                        </div>
+                                    </t>
+                                    <t t-if="state.hasMoreArticles">
+                                        <div class="o_knowledge_load_more">
+                                            <button class="btn btn-outline-secondary"
+                                                    t-on-click="() => this.loadMoreArticles()"
+                                                    t-att-disabled="state.loadingMoreArticles">
+                                                <t t-if="state.loadingMoreArticles">กำลังโหลด...</t>
+                                                <t t-else="">โหลดเพิ่มเติม</t>
+                                            </button>
                                         </div>
                                     </t>
                                 </t>
@@ -251,7 +261,7 @@
                                                                 <t t-else="">
                                                                     <span class="o_knowledge_expand_icon o_knowledge_expand_icon_empty"></span>
                                                                 </t>
-                                                                <span class="o_knowledge_article_icon" t-esc="article.category_icon || '📝'"/>
+                                                                <span class="o_knowledge_article_icon" t-esc="article.article_icon || article.category_icon || '📝'"/>
                                                                 <div class="o_knowledge_article_info">
                                                                     <span class="o_knowledge_article_name" t-esc="article.name"/>
                                                                 </div>
@@ -264,7 +274,7 @@
                                                                              t-att-class="{'o_active': state.selectedArticleId === child.id}">
                                                                             <div class="o_knowledge_article_item_header">
                                                                                 <span class="o_knowledge_expand_icon o_knowledge_expand_icon_empty"></span>
-                                                                                <span class="o_knowledge_article_icon" t-esc="child.category_icon || '📝'"/>
+                                                                                <span class="o_knowledge_article_icon" t-esc="child.article_icon || child.category_icon || '📝'"/>
                                                                                 <div class="o_knowledge_article_info">
                                                                                     <span class="o_knowledge_article_name" t-esc="child.name"/>
                                                                                 </div>
@@ -425,7 +435,7 @@
                     <div class="o_knowledge_article_header">
                         <div class="o_knowledge_article_header_left">
                             <h1 class="o_knowledge_article_title">
-                                <span class="o_knowledge_article_icon" t-esc="state.currentArticle.category_icon || '📝'"/>
+                                <span class="o_knowledge_article_icon" t-esc="state.currentArticle.article_icon || state.currentArticle.category_icon || '📝'"/>
                                 <span t-esc="state.currentArticle.name"/>
                             </h1>
                             <!-- Tags -->
@@ -456,26 +466,31 @@
                                 t-att-class="{'o_favorited': this.isFavorited(state.currentArticle)}"
                                 t-on-click="() => this.toggleFavorite(state.currentArticle.id)"
                                 title="Favorite">
-                                <span t-if="this.isFavorited(state.currentArticle)">⭐</span>
-                                <span t-else="">☆</span>
+                                <i t-att-class="this.isFavorited(state.currentArticle) ? 'fa fa-star o_knowledge_header_icon' : 'fa fa-star-o o_knowledge_header_icon'"/>
                             </button>
                             <button 
                                 class="btn btn-link" 
                                 t-att-class="{'o_shared': this.isShared(state.currentArticle)}"
                                 t-on-click="() => this.toggleShare(state.currentArticle.id)"
                                 t-att-title="this.isShared(state.currentArticle) ? `Shared with ${this.getSharedCount(state.currentArticle)} user(s)` : 'Share'">
-                                <span t-if="this.isShared(state.currentArticle)">🔗</span>
-                                <span t-else="">Share</span>
+                                <i class="fa fa-share-alt o_knowledge_header_icon"/>
+                                <span class="o_knowledge_action_text">Share</span>
                                 <span t-if="this.isShared(state.currentArticle) and this.getSharedCount(state.currentArticle) > 0" 
                                       class="o_share_count" 
                                       t-esc="`(${this.getSharedCount(state.currentArticle)})`"/>
+                            </button>
+                            <button
+                                class="btn btn-link o_knowledge_revision_button"
+                                t-on-click="() => this.onOpenRevisionHistory()"
+                                title="Revision history">
+                                <i class="fa fa-history o_knowledge_header_icon"/>
                             </button>
                             <button 
                                 class="btn btn-link" 
                                 t-att-class="{'o_active': state.showCommentPanel}"
                                 t-on-click="() => this.toggleCommentPanel()"
                                 title="Comments">
-                                💬
+                                <i class="fa fa-comment-o o_knowledge_header_icon"/>
                                 <t t-if="state.currentArticle and state.currentArticle.comment_count">
                                     <span class="badge badge-secondary" t-esc="state.currentArticle.comment_count"/>
                                 </t>
@@ -729,30 +744,129 @@
             <div class="o_share_dialog_overlay" t-on-click="() => this.closeShareDialog()">
                 <div class="o_share_dialog" t-on-click.stop="">
                     <div class="o_share_dialog_header">
-                        <h3>Share Article</h3>
+                        <h3>Who gets access?</h3>
                         <button class="btn btn-link o_share_dialog_close" t-on-click="() => this.closeShareDialog()">
                             ✕
                         </button>
                     </div>
                     <div class="o_share_dialog_body">
-                        <p>Share this article with others using the link below:</p>
-                        <div class="o_share_link_container">
-                            <input 
-                                type="text" 
-                                class="form-control o_share_link_input" 
-                                t-att-value="state.shareLink"
-                                readonly="readonly"
-                            />
-                            <button 
-                                class="btn btn-primary o_share_copy_btn" 
-                                t-on-click="() => this.copyShareLink()">
-                                📋 Copy Link
+                        <div class="o_share_public_row">
+                            <div class="o_share_public_text">
+                                <div class="o_share_public_title">Article Published</div>
+                                <div class="o_share_public_subtitle">Anyone can view</div>
+                            </div>
+                            <label class="o_share_switch">
+                                <input type="checkbox"
+                                       t-att-checked="state.sharePublic"
+                                       t-att-disabled="!state.shareCanManage"
+                                       t-on-change="() => this.toggleSharePublic()"/>
+                                <span class="o_share_slider"/>
+                            </label>
+                        </div>
+
+                        <t t-if="state.sharePublic">
+                            <div class="o_share_link_container">
+                                <input
+                                    type="text"
+                                    class="form-control o_share_link_input"
+                                    t-att-value="state.shareLink"
+                                    readonly="readonly"
+                                />
+                                <button
+                                    class="btn btn-primary o_share_copy_btn"
+                                    t-on-click="() => this.copyShareLink()"
+                                    t-att-disabled="!state.shareLink">
+                                    📋 Copy Link
+                                </button>
+                            </div>
+                        </t>
+
+                        <div class="o_share_default_row">
+                            <div class="o_share_default_text">
+                                <div class="o_share_default_title">Default Access Rights</div>
+                                <div class="o_share_default_subtitle">
+                                    Based on <t t-esc="state.shareCategoryName || 'Uncategorized'"/>
+                                </div>
+                            </div>
+                            <select class="form-control o_share_default_select"
+                                    t-att-value="state.shareDefaultPermission"
+                                    t-att-disabled="!state.shareCanManage"
+                                    t-on-change="(ev) => this.updateDefaultSharePermission(ev)">
+                                <option value="read">Can read</option>
+                                <option value="edit">Can edit</option>
+                            </select>
+                        </div>
+
+                        <div class="o_share_invite_row">
+                            <div class="o_share_invite_input_wrapper">
+                                <input type="text"
+                                       class="form-control o_share_invite_input"
+                                       placeholder="Add people or email addresses..."
+                                       t-att-value="state.shareInviteQuery"
+                                       t-att-disabled="!state.shareCanManage"
+                                       t-on-input="(ev) => this.onShareInviteInput(ev)"
+                                       t-on-focus="() => this.onShareInviteFocus()"
+                                       t-on-blur="() => this.onShareInviteBlur()"/>
+                                <t t-if="state.shareInviteSuggestions &amp;&amp; state.shareInviteSuggestions.length">
+                                    <div class="o_share_invite_suggestions">
+                                        <t t-foreach="state.shareInviteSuggestions" t-as="suggestion" t-key="suggestion.id">
+                                            <button type="button"
+                                                    class="o_share_invite_suggestion"
+                                                    t-on-mousedown.prevent="() => this.selectShareInviteSuggestion(suggestion)">
+                                                <span class="o_share_invite_suggestion_name" t-esc="suggestion.name"/>
+                                                <span class="o_share_invite_suggestion_email" t-esc="suggestion.email"/>
+                                            </button>
+                                        </t>
+                                    </div>
+                                </t>
+                            </div>
+                            <select class="form-control o_share_invite_select"
+                                    t-att-value="state.shareInvitePermission"
+                                    t-att-disabled="!state.shareCanManage"
+                                    t-on-change="(ev) => this.onShareInvitePermissionChange(ev)">
+                                <option value="read">Can read</option>
+                                <option value="edit">Can edit</option>
+                            </select>
+                            <button class="btn btn-primary o_share_invite_btn"
+                                    t-on-click="() => this.inviteShareMember()"
+                                    t-att-disabled="!state.shareCanManage or state.shareInviteLoading">
+                                Invite
                             </button>
                         </div>
-                        <div class="o_share_dialog_footer">
-                            <small class="text-muted">
-                                Anyone with this link can view the article without logging in.
-                            </small>
+
+                        <div class="o_share_member_list">
+                            <t t-if="state.shareMembers and state.shareMembers.length">
+                                <t t-foreach="state.shareMembers" t-as="member" t-key="member.member_id || ('owner-' + member.user_id)">
+                                    <div class="o_share_member_row">
+                                        <div class="o_share_member_info">
+                                            <div class="o_share_member_name" t-esc="member.name"/>
+                                            <div class="o_share_member_email" t-esc="member.email"/>
+                                        </div>
+                                        <div class="o_share_member_actions">
+                                            <t t-if="member.is_owner">
+                                                <span class="o_share_owner_badge">Owner</span>
+                                            </t>
+                                            <t t-else="">
+                                                <select class="form-control o_share_member_select"
+                                                        t-att-value="member.permission"
+                                                        t-att-disabled="!state.shareCanManage"
+                                                        t-on-change="(ev) => this.updateShareMemberPermission(member.member_id, ev.target.value)">
+                                                    <option value="read">Can read</option>
+                                                    <option value="edit">Can edit</option>
+                                                </select>
+                                                <button class="btn btn-link o_share_member_remove"
+                                                        t-on-click="() => this.removeShareMember(member.member_id)"
+                                                        t-att-disabled="!state.shareCanManage">
+                                                    ✕
+                                                </button>
+                                            </t>
+                                        </div>
+                                    </div>
+                                </t>
+                            </t>
+                            <t t-else="">
+                                <div class="o_share_empty_text">No shared users yet</div>
+                            </t>
                         </div>
                     </div>
                 </div>

@@ -51,6 +51,9 @@ export class KnowledgeDocumentController extends Component {
         this.contentRef = useRef("content");
         this._userHistoryKeyPrefix = "knowledge_onthisday_history";
         this._loadingArticleId = null; // Track which article ID is currently being loaded
+        this._loadedArticles = [];
+        this._shareInviteTimer = null;
+        this._shareInviteBlurTimer = null;
         
         this.state = useState({
             selectedArticleId: null,
@@ -60,6 +63,10 @@ export class KnowledgeDocumentController extends Component {
             searchTotal: 0,
             searchPage: 1,
             searchPageSize: 10,
+            articlePage: 1,
+            articlePageSize: 200,
+            hasMoreArticles: false,
+            loadingMoreArticles: false,
             searchSort: "recent", // recent, name, views
             searchFilters: {
                 category_id: null,
@@ -81,6 +88,16 @@ export class KnowledgeDocumentController extends Component {
             expandedCategories: new Set(), // Track which categories are expanded
             showShareDialog: false, // Show share link dialog
             shareLink: null, // Generated share link
+            sharePublic: false, // Public share toggle
+            shareDefaultPermission: "read", // Default share permission
+            shareMembers: [], // Share members list
+            shareCategoryName: null, // Category name for default access
+            shareInviteQuery: "", // Invite input value
+            shareInvitePermission: "read", // Invite permission
+            shareInviteLoading: false, // Invite loading state
+            shareCanManage: false, // Permission to manage sharing
+            shareInviteSuggestions: [], // Invite suggestions
+            shareInviteUserId: null, // Selected user id from suggestions
             selectedTagId: null, // Selected tag for filtering
             availableTags: [], // List of all available tags
             sidebarOpenMobile: false, // Mobile drawer state
@@ -127,7 +144,12 @@ export class KnowledgeDocumentController extends Component {
                 logger.error("Error getting user ID:", error);
                 this.state.currentUserId = null;
             }
-            await this.loadArticles();
+            await this.loadArticles(1, false);
+            const actionArticleId = this._getActionArticleId();
+            if (actionArticleId) {
+                this.state.selectedArticleId = actionArticleId;
+                await this.openArticle(actionArticleId);
+            }
         });
 
         // According to Odoo 19 docs, use lifecycle hooks for DOM manipulation
@@ -165,6 +187,18 @@ export class KnowledgeDocumentController extends Component {
             }
             this.floatingTOCContainer = null;
         });
+    }
+
+    _getActionArticleId() {
+        const action = this.props?.action || {};
+        const params = action.params || {};
+        const context = action.context || {};
+        const rawId = params.article_id || context.knowledge_article_id || context.active_id;
+        if (!rawId) {
+            return null;
+        }
+        const parsed = parseInt(rawId, 10);
+        return Number.isNaN(parsed) ? null : parsed;
     }
 
     // Mobile drawer helpers
@@ -648,7 +682,7 @@ export class KnowledgeDocumentController extends Component {
         }, 200);
     }
 
-    async loadArticles() {
+    async loadArticles(page = 1, append = false) {
         this.state.loading = true;
         try {
         // Load ALL categories first (ordered by sequence, then name)
@@ -706,19 +740,28 @@ export class KnowledgeDocumentController extends Component {
             // Load articles
             const domain = this.getDomain();
             let articles = [];
+            const limit = this.state.articlePageSize || 200;
+            const offset = (page - 1) * limit;
+            let totalCount = null;
             // According to Odoo 19 docs, start with minimal fields to avoid RPC errors
             // Then add more fields if successful
             const basicFields = ["id", "name", "active"];
-            const extendedFields = ["category_id", "parent_id", "responsible_id", "write_date", "create_date", "content"];
+            const extendedFields = ["icon", "category_id", "parent_id", "responsible_id", "write_date", "create_date"];
             const relationFields = ["favorite_user_ids", "shared_user_ids", "share_token", "tag_ids"];
+            const order = "parent_id asc, id asc";
             
             try {
+                try {
+                    totalCount = await this.orm.searchCount("knowledge.article", domain);
+                } catch (countError) {
+                    logger.warn("Error counting articles:", countError);
+                }
                 // Step 1: Try with basic fields only first
                 articles = await this.orm.searchRead(
                     "knowledge.article",
                     domain,
                     basicFields,
-                    { limit: 1000 }
+                    { limit, offset, order }
                 );
                 
                 // Step 2: If successful, read extended fields
@@ -760,7 +803,7 @@ export class KnowledgeDocumentController extends Component {
                     const articleIds = await this.orm.search(
                         "knowledge.article",
                         domain,
-                        { limit: 1000 }
+                        { limit, offset, order }
                     );
                     
                     if (articleIds && articleIds.length > 0) {
@@ -787,7 +830,7 @@ export class KnowledgeDocumentController extends Component {
                         const articleIds = await this.orm.search(
                             "knowledge.article",
                             fallbackDomain.length > 0 ? fallbackDomain : [],
-                            { limit: 1000 }
+                            { limit, offset, order }
                         );
                         if (articleIds && articleIds.length > 0) {
                             try {
@@ -890,7 +933,18 @@ export class KnowledgeDocumentController extends Component {
                     }
                     article.category_id = ['uncategorized'];
                 }
+
+                article.article_icon = article.icon || article.category_icon || '📝';
             });
+
+            if (append) {
+                const merged = new Map(this._loadedArticles.map(a => [a.id, a]));
+                articles.forEach(article => merged.set(article.id, article));
+                this._loadedArticles = Array.from(merged.values());
+            } else {
+                this._loadedArticles = articles;
+            }
+            const allArticles = this._loadedArticles;
             
             // Build tree structure
             // For favorites/shared/private sections, don't group by category
@@ -898,14 +952,20 @@ export class KnowledgeDocumentController extends Component {
                 this.state.activeSection === "shared" || 
                 this.state.activeSection === "private") {
                 // For these sections, create a flat list without category grouping
-                const flatTree = this.buildFlatTree(articles);
+                const flatTree = this.buildFlatTree(allArticles);
                 // Set articles directly without category structure
                 this.state.articles = flatTree;
+                this.state.articlePage = page;
+                if (totalCount !== null) {
+                    this.state.hasMoreArticles = offset + articles.length < totalCount;
+                } else {
+                    this.state.hasMoreArticles = articles.length === limit;
+                }
                 return; // Early return for flat sections
             }
             
             // For workspace, use category grouping
-            this.buildTree(articles, categoryMap);
+            this.buildTree(allArticles, categoryMap);
             
             // Convert category map to array, sorted by sequence then name
             const categoryList = Array.from(categoryMap.values()).sort((a, b) => {
@@ -924,6 +984,12 @@ export class KnowledgeDocumentController extends Component {
                 articles: cat.articles ? [...cat.articles] : []
             }));
             this.state.articles = newCategoryList;
+            this.state.articlePage = page;
+            if (totalCount !== null) {
+                this.state.hasMoreArticles = offset + articles.length < totalCount;
+            } else {
+                this.state.hasMoreArticles = articles.length === limit;
+            }
 
             // Auto-expand all categories by default when in workspace section
             if (this.state.activeSection === 'workspace' || this.state.activeSection === null || this.state.activeSection === undefined) {
@@ -948,9 +1014,20 @@ export class KnowledgeDocumentController extends Component {
                 currentUserId: this.state.currentUserId
             });
             this.state.articles = [];
+            this.state.hasMoreArticles = false;
         } finally {
             this.state.loading = false;
+            this.state.loadingMoreArticles = false;
         }
+    }
+
+    async loadMoreArticles() {
+        if (this.state.loadingMoreArticles || !this.state.hasMoreArticles) {
+            return;
+        }
+        this.state.loadingMoreArticles = true;
+        const nextPage = (this.state.articlePage || 1) + 1;
+        await this.loadArticles(nextPage, true);
     }
 
     getDomain() {
@@ -1028,6 +1105,9 @@ export class KnowledgeDocumentController extends Component {
             // Ensure category data is preserved
             if (article.category_icon) {
                 articleNode.category_icon = article.category_icon;
+            }
+            if (article.article_icon) {
+                articleNode.article_icon = article.article_icon;
             }
             if (article.category_name) {
                 articleNode.category_name = article.category_name;
@@ -1175,6 +1255,26 @@ export class KnowledgeDocumentController extends Component {
         return findInArticles(stateArticles);
     }
 
+    _formatArticleDate(dateString) {
+        if (!dateString) {
+            return "";
+        }
+        const normalized = String(dateString).replace(" ", "T");
+        const date = new Date(normalized);
+        if (Number.isNaN(date.getTime())) {
+            return dateString;
+        }
+        try {
+            return new Intl.DateTimeFormat("th-TH", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+            }).format(date);
+        } catch (error) {
+            return date.toLocaleDateString();
+        }
+    }
+
     async _loadChildArticles(articleId) {
         const stateNode = this._findArticleNodeInState(articleId);
         const stateChildren = stateNode?.children || [];
@@ -1182,7 +1282,8 @@ export class KnowledgeDocumentController extends Component {
             return stateChildren.map((child) => ({
                 id: child.id,
                 name: child.name,
-                category_icon: child.category_icon || '📝',
+                article_icon: child.article_icon || child.category_icon || '📝',
+                create_date: child.create_date || null,
             }));
         }
 
@@ -1190,7 +1291,7 @@ export class KnowledgeDocumentController extends Component {
             const children = await this.orm.searchRead(
                 "knowledge.article",
                 [["parent_id", "=", articleId], ["active", "=", true]],
-                ["id", "name", "category_id"],
+                ["id", "name", "icon", "category_id", "create_date"],
                 { order: "name" }
             );
             if (!children || !children.length) {
@@ -1213,7 +1314,8 @@ export class KnowledgeDocumentController extends Component {
             return children.map((child) => ({
                 id: child.id,
                 name: child.name,
-                category_icon: categoryIconMap.get(child.category_id?.[0]) || '📝',
+                article_icon: child.icon || categoryIconMap.get(child.category_id?.[0]) || '📝',
+                create_date: child.create_date || null,
             }));
         } catch (error) {
             logger.error("Error loading child articles:", error);
@@ -1222,12 +1324,19 @@ export class KnowledgeDocumentController extends Component {
     }
 
     _buildChildArticlesHtml(childArticles) {
-        const items = childArticles.map((child) => `
+        const items = childArticles.map((child) => {
+            const formattedDate = this._formatArticleDate(child.create_date);
+            const dateHtml = formattedDate
+                ? `<span class="o_knowledge_children_date">เพิ่มเมื่อ ${formattedDate}</span>`
+                : "";
+            return `
             <li class="o_knowledge_children_item" data-article-id="${child.id}" tabindex="0">
-                <span class="o_knowledge_children_icon">${child.category_icon || '📝'}</span>
+                <span class="o_knowledge_children_icon">${child.article_icon || '📝'}</span>
                 <span class="o_knowledge_children_name">${child.name}</span>
+                ${dateHtml}
             </li>
-        `).join("");
+        `;
+        }).join("");
 
         return `
             <div class="o_knowledge_children_block">
@@ -1454,7 +1563,7 @@ export class KnowledgeDocumentController extends Component {
                 articles = await this.orm.searchRead(
                     "knowledge.article",
                     [["id", "=", articleId]],
-                    ["id", "name", "content", "category_id", "parent_id", "responsible_id", "active", "favorite_user_ids", "shared_user_ids", "share_token", "comment_count", "unresolved_comment_count"],
+                    ["id", "name", "icon", "content", "category_id", "parent_id", "responsible_id", "active", "favorite_user_ids", "shared_user_ids", "share_token", "share_public", "comment_count", "unresolved_comment_count"],
                     { limit: 1 }
                 );
                 // Compute share_link manually
@@ -1487,7 +1596,7 @@ export class KnowledgeDocumentController extends Component {
                 article = await this.orm.read(
                     "knowledge.article",
                     [articleId],
-                    ["id", "name", "content", "category_id", "parent_id", "responsible_id", "active", "favorite_user_ids", "shared_user_ids", "share_token", "share_link", "tag_ids", "comment_count", "unresolved_comment_count"],
+                        ["id", "name", "icon", "content", "category_id", "parent_id", "responsible_id", "active", "favorite_user_ids", "shared_user_ids", "share_token", "share_public", "share_link", "tag_ids", "comment_count", "unresolved_comment_count"],
                     { context: { safe_eval: true } }
                 );
             }
@@ -1519,6 +1628,7 @@ export class KnowledgeDocumentController extends Component {
                 } else {
                     this.state.currentArticle.category_icon = '📝';
                 }
+                this.state.currentArticle.article_icon = this.state.currentArticle.icon || this.state.currentArticle.category_icon || '📝';
                 
                 // Load tag details if tags exist
                 if (this.state.currentArticle.tag_ids && this.state.currentArticle.tag_ids.length > 0) {
@@ -1783,7 +1893,7 @@ export class KnowledgeDocumentController extends Component {
                     tmp.innerHTML = html;
                     return (tmp.textContent || tmp.innerText || "").trim();
                 };
-                const cleanText = stripHtml(a.content);
+                const cleanText = a.clean_content || stripHtml(a.content);
                 const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
                 const regex = new RegExp(terms.map((t) => t.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")).join("|"), "ig");
                 const makeSnippet = (text) => {
@@ -1866,6 +1976,26 @@ export class KnowledgeDocumentController extends Component {
             view_mode: "form",
             views: [[false, "form"]],
             target: "current",
+        };
+        await this.action.doAction(action);
+    }
+
+    async onOpenRevisionHistory() {
+        if (!this.state.currentArticle || !this.state.currentArticle.id) {
+            return;
+        }
+        const action = {
+            type: "ir.actions.act_window",
+            name: "Revision History",
+            res_model: "knowledge.article.revision",
+            view_mode: "list,form",
+            views: [[false, "list"], [false, "form"]],
+            target: "current",
+            domain: [["article_id", "=", this.state.currentArticle.id]],
+            context: {
+                default_article_id: this.state.currentArticle.id,
+                search_default_article_id: this.state.currentArticle.id,
+            },
         };
         await this.action.doAction(action);
     }
@@ -2112,7 +2242,13 @@ export class KnowledgeDocumentController extends Component {
     }
 
     isShared(article) {
-        if (!article || !article.shared_user_ids) {
+        if (!article) {
+            return false;
+        }
+        if (article.share_public) {
+            return true;
+        }
+        if (!article.shared_user_ids) {
             return false;
         }
         // shared_user_ids can be an array of IDs or array of tuples [(id, name), ...]
@@ -2216,7 +2352,7 @@ export class KnowledgeDocumentController extends Component {
         }
         
         try {
-            // Open share link dialog
+            // Open share dialog
             await this.showShareLinkDialog(articleId);
         } catch (error) {
             logger.error("Error toggling share:", error);
@@ -2229,55 +2365,44 @@ export class KnowledgeDocumentController extends Component {
         }
         
         try {
-            // Get current article to check if share_token exists
-            const articles = await this.orm.searchRead(
-                "knowledge.article",
-                [["id", "=", articleId]],
-                ["id", "share_token", "share_link"],
-                { limit: 1 }
-            );
-            
-            if (!articles || articles.length === 0) {
-                return;
-            }
-            
-            let article = articles[0];
-            let shareLink = article.share_link;
-            
-            // If no share token exists, generate one
-            if (!article.share_token || !shareLink) {
-                // Call the server method to generate share token
-                await this.orm.call(
-                    "knowledge.article",
-                    "generate_share_token",
-                    [[articleId]]
-                );
-                
-                // Reload article to get the new share_token and computed share_link
-                const updatedArticles = await this.orm.read(
-                    "knowledge.article",
-                    [articleId],
-                    ["id", "share_token", "share_link"]
-                );
-                
-                if (updatedArticles && updatedArticles.length > 0) {
-                    article = updatedArticles[0];
-                    shareLink = article.share_link;
-                }
-            }
-            
-            // Update state to show dialog
-            this.state.shareLink = shareLink;
+            await this.loadShareInfo(articleId);
             this.state.showShareDialog = true;
-            
-            // Update current article if it's the same
-            if (this.state.currentArticle && this.state.currentArticle.id === articleId) {
-                this.state.currentArticle.share_token = article.share_token;
-                this.state.currentArticle.share_link = shareLink;
-                this.state.currentArticle = { ...this.state.currentArticle };
-            }
         } catch (error) {
             logger.error("Error showing share dialog:", error);
+        }
+    }
+
+    async loadShareInfo(articleId) {
+        const info = await this.orm.call(
+            "knowledge.article",
+            "get_share_info",
+            [[articleId]]
+        );
+        this.state.sharePublic = !!info.share_public;
+        this.state.shareLink = info.share_link || null;
+        this.state.shareDefaultPermission = info.default_permission || "read";
+        this.state.shareInvitePermission = info.default_permission || "read";
+        this.state.shareMembers = info.members || [];
+        this.state.shareCategoryName = info.category_name || null;
+        this.state.shareCanManage = !!info.can_manage;
+        if (info.shared_user_ids && this.state.currentArticle && this.state.currentArticle.id === articleId) {
+            this.state.currentArticle.shared_user_ids = info.shared_user_ids;
+            this.state.currentArticle.share_public = !!info.share_public;
+            this.state.currentArticle.share_link = info.share_link || null;
+            this.state.currentArticle = { ...this.state.currentArticle };
+        }
+        if (this.state.sharePublic && !this.state.shareLink && this.state.shareCanManage) {
+            const result = await this.orm.call(
+                "knowledge.article",
+                "set_share_public",
+                [[articleId], true]
+            );
+            this.state.sharePublic = !!result.share_public;
+            this.state.shareLink = result.share_link || null;
+            if (this.state.currentArticle && this.state.currentArticle.id === articleId) {
+                this.state.currentArticle.share_public = this.state.sharePublic;
+                this.state.currentArticle = { ...this.state.currentArticle };
+            }
         }
     }
 
@@ -2313,6 +2438,189 @@ export class KnowledgeDocumentController extends Component {
     closeShareDialog() {
         this.state.showShareDialog = false;
         this.state.shareLink = null;
+        this.state.sharePublic = false;
+        this.state.shareDefaultPermission = "read";
+        this.state.shareMembers = [];
+        this.state.shareCategoryName = null;
+        this.state.shareInviteQuery = "";
+        this.state.shareInviteSuggestions = [];
+        this.state.shareInviteUserId = null;
+        this.state.shareInvitePermission = "read";
+        this.state.shareInviteLoading = false;
+        this.state.shareCanManage = false;
+    }
+
+    async toggleSharePublic() {
+        if (!this.state.currentArticle || !this.state.shareCanManage) {
+            return;
+        }
+        try {
+            const result = await this.orm.call(
+                "knowledge.article",
+                "set_share_public",
+                [[this.state.currentArticle.id], !this.state.sharePublic]
+            );
+            this.state.sharePublic = !!result.share_public;
+            this.state.shareLink = result.share_link || null;
+            if (this.state.currentArticle) {
+                this.state.currentArticle.share_public = this.state.sharePublic;
+                this.state.currentArticle.share_link = this.state.shareLink;
+                this.state.currentArticle = { ...this.state.currentArticle };
+            }
+        } catch (error) {
+            logger.error("Error toggling share public:", error);
+            this.showNotification("Unable to update public sharing.", "danger");
+        }
+    }
+
+    async updateDefaultSharePermission(ev) {
+        if (!this.state.currentArticle || !this.state.shareCanManage) {
+            return;
+        }
+        const permission = ev.target.value;
+        try {
+            await this.orm.call(
+                "knowledge.article",
+                "set_default_share_permission",
+                [[this.state.currentArticle.id], permission]
+            );
+            this.state.shareDefaultPermission = permission;
+        } catch (error) {
+            logger.error("Error updating default share permission:", error);
+            this.showNotification("Unable to update default access.", "danger");
+        }
+    }
+
+    onShareInviteInput(ev) {
+        const value = ev.target.value;
+        this.state.shareInviteQuery = value;
+        this.state.shareInviteUserId = null;
+        if (this._shareInviteTimer) {
+            clearTimeout(this._shareInviteTimer);
+        }
+        this._shareInviteTimer = setTimeout(() => {
+            this.loadShareInviteSuggestions(value, false);
+        }, 200);
+    }
+
+    onShareInvitePermissionChange(ev) {
+        this.state.shareInvitePermission = ev.target.value;
+    }
+
+    async onShareInviteFocus() {
+        if (this._shareInviteBlurTimer) {
+            clearTimeout(this._shareInviteBlurTimer);
+        }
+        await this.loadShareInviteSuggestions(this.state.shareInviteQuery, true);
+    }
+
+    onShareInviteBlur() {
+        if (this._shareInviteBlurTimer) {
+            clearTimeout(this._shareInviteBlurTimer);
+        }
+        this._shareInviteBlurTimer = setTimeout(() => {
+            this.state.shareInviteSuggestions = [];
+        }, 200);
+    }
+
+    async loadShareInviteSuggestions(query, force) {
+        const term = (query || "").trim();
+        if (!force && term.length < 2) {
+            this.state.shareInviteSuggestions = [];
+            return;
+        }
+        const domain = force && !term
+            ? [["share", "=", false], ["active", "=", true]]
+            : ["&", "&", ["share", "=", false], ["active", "=", true], "|", "|", ["name", "ilike", term], ["email", "ilike", term], ["login", "ilike", term]];
+        try {
+            const users = await this.orm.searchRead(
+                "res.users",
+                domain,
+                ["id", "name", "email", "login"],
+                { limit: 8, order: "name asc" }
+            );
+            this.state.shareInviteSuggestions = (users || []).map(user => ({
+                id: user.id,
+                name: user.name,
+                email: user.email || user.login || "",
+            }));
+        } catch (error) {
+            logger.error("Error loading invite suggestions:", error);
+            this.state.shareInviteSuggestions = [];
+        }
+    }
+
+    selectShareInviteSuggestion(suggestion) {
+        if (!suggestion) {
+            return;
+        }
+        this.state.shareInviteQuery = suggestion.email || suggestion.name;
+        this.state.shareInviteUserId = suggestion.id;
+        this.state.shareInviteSuggestions = [];
+    }
+
+    async inviteShareMember() {
+        if (!this.state.currentArticle || !this.state.shareCanManage) {
+            return;
+        }
+        const query = (this.state.shareInviteQuery || "").trim();
+        const identifier = this.state.shareInviteUserId || query;
+        if (!identifier) {
+            this.showNotification("Please enter a user email.", "warning");
+            return;
+        }
+        this.state.shareInviteLoading = true;
+        try {
+            await this.orm.call(
+                "knowledge.article",
+                "add_share_member",
+                [[this.state.currentArticle.id], identifier, this.state.shareInvitePermission]
+            );
+            this.state.shareInviteQuery = "";
+            this.state.shareInviteUserId = null;
+            await this.loadShareInfo(this.state.currentArticle.id);
+            this.showNotification("User invited successfully.", "success");
+        } catch (error) {
+            logger.error("Error inviting share member:", error);
+            this.showNotification("Unable to invite user. Check the email.", "danger");
+        } finally {
+            this.state.shareInviteLoading = false;
+        }
+    }
+
+    async updateShareMemberPermission(memberId, permission) {
+        if (!this.state.currentArticle || !this.state.shareCanManage || !memberId) {
+            return;
+        }
+        try {
+            await this.orm.call(
+                "knowledge.article",
+                "update_share_member_permission",
+                [[this.state.currentArticle.id], memberId, permission]
+            );
+            await this.loadShareInfo(this.state.currentArticle.id);
+        } catch (error) {
+            logger.error("Error updating share member permission:", error);
+            this.showNotification("Unable to update access rights.", "danger");
+        }
+    }
+
+    async removeShareMember(memberId) {
+        if (!this.state.currentArticle || !this.state.shareCanManage || !memberId) {
+            return;
+        }
+        try {
+            await this.orm.call(
+                "knowledge.article",
+                "remove_share_member",
+                [[this.state.currentArticle.id], memberId]
+            );
+            await this.loadShareInfo(this.state.currentArticle.id);
+            this.showNotification("Access removed.", "success");
+        } catch (error) {
+            logger.error("Error removing share member:", error);
+            this.showNotification("Unable to remove access.", "danger");
+        }
     }
 
     toggleCommentPanel() {

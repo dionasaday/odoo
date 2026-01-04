@@ -47,6 +47,7 @@ Categories:
         'views/knowledge_article_category_views.xml',
         'views/knowledge_article_tag_views.xml',
         'views/knowledge_article_views.xml',
+        'views/knowledge_article_revision_views.xml',
         'views/knowledge_article_comment_views.xml',
         'views/knowledge_public_templates.xml',
         'data/knowledge_menus.xml',

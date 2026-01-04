@@ -56,7 +56,6 @@ class KnowledgeArticle(models.Model):
             results.append({
                 "id": rec.id,
                 "name": rec.name,
-                "content": rec.content,
                 "category_name": rec.category_id.name or "",
                 "responsible_name": rec.responsible_id.name or "",
                 "responsible_avatar": rec.responsible_id.image_128 or "",

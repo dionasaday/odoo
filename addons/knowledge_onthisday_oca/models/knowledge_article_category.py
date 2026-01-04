@@ -55,6 +55,13 @@ class KnowledgeArticleCategory(models.Model):
         default=True,
         help='If unchecked, it will allow you to hide the category without removing it.'
     )
+
+    default_share_permission = fields.Selection(
+        selection=[('read', 'Can read'), ('edit', 'Can edit')],
+        string='Default Access Rights',
+        default='read',
+        help='Default access rights for new shares in this category'
+    )
     
     article_count = fields.Integer(
         string='Article Count',
@@ -71,4 +78,3 @@ class KnowledgeArticleCategory(models.Model):
                 ('category_id', '=', category.id),
                 ('active', '=', True)
             ])
-

@@ -527,6 +527,17 @@ html {
                 margin: var(--knowledge-spacing-sm) var(--knowledge-spacing-md);
             }
 
+            .o_knowledge_load_more {
+                display: flex;
+                justify-content: center;
+                padding: var(--knowledge-spacing-sm) var(--knowledge-spacing-md) var(--knowledge-spacing-md);
+
+                .btn {
+                    font-size: 13px;
+                    padding: 6px 14px;
+                }
+            }
+
             /* Article Items */
             .o_knowledge_article_item {
                 display: flex;
@@ -861,8 +872,11 @@ html {
         /* Article Header */
         .o_knowledge_article_header {
             display: flex;
-            justify-content: space-between;
+            justify-content: space-between !important;
             align-items: flex-start;
+            flex-wrap: nowrap;
+            width: 100%;
+            gap: var(--knowledge-spacing-md);
             padding-bottom: var(--knowledge-spacing-md);
             border-bottom: 1px solid var(--knowledge-border);
             margin-bottom: var(--knowledge-spacing-lg);
@@ -939,7 +953,8 @@ html {
             }
 
             .o_knowledge_article_header_left {
-                flex: 1;
+                flex: 1 1 auto;
+                min-width: 0;
 
                 .o_knowledge_article_title {
                     display: flex;
@@ -953,6 +968,11 @@ html {
                         margin-right: 12px;
                         font-size: 32px;
                     }
+
+                    span {
+                        min-width: 0;
+                        word-break: break-word;
+                    }
                 }
             }
 
@@ -960,6 +980,8 @@ html {
                 display: flex;
                 gap: 8px;
                 align-items: center;
+                margin-left: auto !important;
+                flex-shrink: 0;
 
                 .btn {
                     padding: var(--knowledge-spacing-sm) var(--knowledge-spacing-md);
@@ -1039,6 +1061,11 @@ html {
                             border-radius: var(--knowledge-radius);
                         }
                     }
+                }
+
+                .o_knowledge_revision_button {
+                    font-size: 16px;
+                    padding: var(--knowledge-spacing-xs) var(--knowledge-spacing-sm);
                 }
             }
         }
@@ -1208,6 +1235,13 @@ html {
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
+                }
+
+                .o_knowledge_children_date {
+                    margin-left: auto;
+                    font-size: 12px;
+                    color: var(--knowledge-text-secondary);
+                    white-space: nowrap;
                 }
 
                 /* Images */
@@ -2052,7 +2086,7 @@ html {
     border-radius: var(--knowledge-radius-lg);
     box-shadow: 0 4px 20px var(--knowledge-shadow-lg);
     width: 90%;
-    max-width: 500px;
+    max-width: 640px;
     animation: slideUp 0.3s ease-out;
     border: 1px solid var(--knowledge-border);
 }
@@ -2087,12 +2121,35 @@ html {
             background-color: var(--knowledge-bg-secondary);
         }
         
-        &:focus-visible {
-            outline: 2px solid var(--knowledge-primary);
-            outline-offset: 2px;
-        }
-    }
-}
+                    &:focus-visible {
+                        outline: 2px solid var(--knowledge-primary);
+                        outline-offset: 2px;
+                    }
+                }
+
+                .btn.btn-link {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 0 6px;
+                    color: var(--knowledge-text);
+                }
+
+                .o_knowledge_header_icon {
+                    font-size: 16px;
+                    line-height: 1;
+                }
+
+                .o_knowledge_action_text {
+                    font-weight: 500;
+                }
+
+                .btn.btn-link.o_favorited .o_knowledge_header_icon,
+                .btn.btn-link.o_shared .o_knowledge_header_icon,
+                .btn.btn-link.o_active .o_knowledge_header_icon {
+                    color: var(--knowledge-primary);
+                }
+            }
 
 .o_share_dialog_body {
     padding: var(--knowledge-spacing-lg);
@@ -2107,7 +2164,7 @@ html {
     .o_share_link_container {
         display: flex;
         gap: var(--knowledge-spacing-sm);
-        margin-bottom: var(--knowledge-spacing-md);
+        margin: var(--knowledge-spacing-md) 0;
 
         .o_share_link_input {
             flex: 1;
@@ -2148,6 +2205,231 @@ html {
         small {
             font-size: 12px;
         }
+    }
+
+    .o_share_public_row,
+    .o_share_default_row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--knowledge-spacing-md);
+        padding: var(--knowledge-spacing-sm) 0;
+    }
+
+    .o_share_public_text,
+    .o_share_default_text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .o_share_public_title,
+    .o_share_default_title {
+        font-weight: 600;
+        color: var(--knowledge-text);
+    }
+
+    .o_share_public_subtitle,
+    .o_share_default_subtitle {
+        font-size: 12px;
+        color: var(--knowledge-text-secondary);
+    }
+
+    .o_share_switch {
+        position: relative;
+        display: inline-flex;
+        width: 46px;
+        height: 26px;
+
+        input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+    }
+
+    .o_share_slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #d4d4d4;
+        transition: 0.2s;
+        border-radius: 999px;
+
+        &:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #fff;
+            transition: 0.2s;
+            border-radius: 50%;
+        }
+    }
+
+    .o_share_switch input:checked + .o_share_slider {
+        background-color: var(--knowledge-primary);
+    }
+
+    .o_share_switch input:checked + .o_share_slider:before {
+        transform: translateX(20px);
+    }
+
+    .o_share_switch input:disabled + .o_share_slider {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .o_share_default_select {
+        min-width: 140px;
+    }
+
+    .o_share_invite_row {
+        display: grid;
+        grid-template-columns: 1fr 140px auto;
+        gap: var(--knowledge-spacing-sm);
+        align-items: center;
+        margin-top: var(--knowledge-spacing-md);
+    }
+
+    @media (max-width: 640px) {
+        .o_share_invite_row {
+            grid-template-columns: 1fr;
+        }
+
+        .o_share_invite_btn {
+            width: 100%;
+        }
+    }
+
+    .o_share_invite_input_wrapper {
+        position: relative;
+    }
+
+    .o_share_invite_suggestions {
+        position: absolute;
+        top: calc(100% + 4px);
+        left: 0;
+        right: 0;
+        background-color: var(--knowledge-bg);
+        border: 1px solid var(--knowledge-border);
+        border-radius: var(--knowledge-radius);
+        box-shadow: 0 6px 16px var(--knowledge-shadow-lg);
+        max-height: 220px;
+        overflow-y: auto;
+        z-index: 2;
+    }
+
+    .o_share_invite_suggestion {
+        width: 100%;
+        text-align: left;
+        padding: 8px 12px;
+        border: none;
+        background: none;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        cursor: pointer;
+        color: var(--knowledge-text);
+
+        &:hover {
+            background-color: var(--knowledge-bg-secondary);
+        }
+    }
+
+    .o_share_invite_suggestion_name {
+        font-weight: 600;
+        font-size: 13px;
+    }
+
+    .o_share_invite_suggestion_email {
+        font-size: 12px;
+        color: var(--knowledge-text-secondary);
+    }
+
+    .o_share_invite_input {
+        min-width: 0;
+    }
+
+    .o_share_invite_btn {
+        white-space: nowrap;
+    }
+
+    .o_share_member_list {
+        margin-top: var(--knowledge-spacing-lg);
+        border-top: 1px solid var(--knowledge-border);
+        padding-top: var(--knowledge-spacing-md);
+        display: flex;
+        flex-direction: column;
+        gap: var(--knowledge-spacing-sm);
+    }
+
+    .o_share_member_row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--knowledge-spacing-md);
+        padding: var(--knowledge-spacing-xs) var(--knowledge-spacing-sm);
+        border-radius: var(--knowledge-radius);
+
+        &:hover {
+            background-color: var(--knowledge-bg-secondary);
+        }
+    }
+
+    .o_share_member_info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .o_share_member_name {
+        font-weight: 600;
+        color: var(--knowledge-text);
+    }
+
+    .o_share_member_email {
+        font-size: 12px;
+        color: var(--knowledge-text-secondary);
+    }
+
+    .o_share_member_actions {
+        display: flex;
+        align-items: center;
+        gap: var(--knowledge-spacing-xs);
+    }
+
+    .o_share_member_select {
+        min-width: 120px;
+    }
+
+    .o_share_member_remove {
+        font-size: 16px;
+        color: var(--knowledge-text-secondary);
+        text-decoration: none;
+
+        &:hover {
+            color: var(--knowledge-danger);
+        }
+    }
+
+    .o_share_owner_badge {
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 12px;
+        background-color: var(--knowledge-primary-light);
+        color: var(--knowledge-primary);
+        font-weight: 600;
+    }
+
+    .o_share_empty_text {
+        font-size: 13px;
+        color: var(--knowledge-text-secondary);
     }
 }
 
@@ -2456,7 +2738,11 @@ html {
 @media (min-width: 1200px) {
     .o_knowledge_document_view {
         .o_knowledge_main_content {
-            padding-right: 320px; /* make room for floating TOC */
+            padding-right: var(--knowledge-spacing-lg) !important; /* keep header full width */
+        }
+
+        .o_knowledge_article_content {
+            padding-right: 320px !important; /* keep body aligned with floating TOC */
         }
     }
 }
@@ -2983,6 +3269,35 @@ html {
             }
         }
     }
+}
+
+// Force full-width article header and right-aligned actions
+.o_knowledge_document_view .o_knowledge_main_content .o_knowledge_article_header {
+    display: flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    align-self: stretch !important;
+}
+
+.o_knowledge_document_view .o_knowledge_main_content {
+    width: 100% !important;
+    max-width: none !important;
+    align-self: stretch !important;
+}
+
+.o_knowledge_document_view .o_knowledge_main_content .o_knowledge_article_content {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.o_knowledge_document_view .o_knowledge_main_content .o_knowledge_article_header_left {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+}
+
+.o_knowledge_document_view .o_knowledge_main_content .o_knowledge_article_header_right {
+    margin-left: auto !important;
+    flex: 0 0 auto !important;
 }
 
 // Comment selection overlay - text box with Copy button

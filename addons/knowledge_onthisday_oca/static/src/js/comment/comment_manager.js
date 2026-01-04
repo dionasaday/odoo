@@ -363,26 +363,14 @@ export class CommentManager {
                 `.o_knowledge_comment_highlight[data-comment-id="${id}"]`
             );
             if (highlightInDOM) {
-                const parent = highlightInDOM.parentNode;
-                if (parent) {
-                    const text = highlightInDOM.textContent || highlightInDOM.innerText;
-                    // Replace with text node
-                    const textNode = document.createTextNode(text);
-                    parent.replaceChild(textNode, highlightInDOM);
-                    parent.normalize();
-                    
-                    // Double-check: Remove any remaining references
-                    const stillExists = this.contentElement.querySelector(
-                        `.o_knowledge_comment_highlight[data-comment-id="${id}"]`
-                    );
-                    if (stillExists) {
-                        const parent2 = stillExists.parentNode;
-                        if (parent2) {
-                            const text2 = stillExists.textContent || stillExists.innerText;
-                            parent2.replaceChild(document.createTextNode(text2), stillExists);
-                            parent2.normalize();
-                        }
-                    }
+                this._unwrapHighlightElement(highlightInDOM);
+
+                // Double-check: Remove any remaining references
+                const stillExists = this.contentElement.querySelector(
+                    `.o_knowledge_comment_highlight[data-comment-id="${id}"]`
+                );
+                if (stillExists) {
+                    this._unwrapHighlightElement(stillExists);
                 }
                 // Ensure removed from map
                 this.highlights.delete(id);
@@ -417,7 +405,7 @@ export class CommentManager {
         try {
             await this.orm.unlink(
                 'knowledge.article.comment',
-                [[commentId]]
+                [commentId]
             );
 
             // Remove highlight
@@ -669,24 +657,14 @@ export class CommentManager {
                 // Remove if resolved (use allResolvedCommentIds to catch all resolved comments)
                 if (allResolvedCommentIds.has(commentId)) {
                     logger.log(`Removing highlight for resolved comment ${commentId}`);
-                    const parent = highlightEl.parentNode;
-                    if (parent) {
-                        const text = highlightEl.textContent || highlightEl.innerText;
-                        parent.replaceChild(document.createTextNode(text), highlightEl);
-                        parent.normalize();
-                    }
+                    this._unwrapHighlightElement(highlightEl);
                     // Remove from map
                     this.highlights.delete(commentId);
                 }
                 // Also remove if not in unresolved list (orphaned highlights)
                 else if (!unresolvedIds.has(commentId)) {
                     logger.log(`Removing orphaned highlight for comment ${commentId}`);
-                    const parent = highlightEl.parentNode;
-                    if (parent) {
-                        const text = highlightEl.textContent || highlightEl.innerText;
-                        parent.replaceChild(document.createTextNode(text), highlightEl);
-                        parent.normalize();
-                    }
+                    this._unwrapHighlightElement(highlightEl);
                     // Remove from map
                     this.highlights.delete(commentId);
                 }
@@ -713,12 +691,7 @@ export class CommentManager {
                 const commentId = parseInt(commentIdAttr, 10);
                 if (allResolvedCommentIds.has(commentId)) {
                     logger.log(`Double-check: Removing remaining highlight for resolved comment ${commentId}`);
-                    const parent = highlightEl.parentNode;
-                    if (parent) {
-                        const text = highlightEl.textContent || highlightEl.innerText;
-                        parent.replaceChild(document.createTextNode(text), highlightEl);
-                        parent.normalize();
-                    }
+                    this._unwrapHighlightElement(highlightEl);
                     // Remove from map
                     this.highlights.delete(commentId);
                 }
@@ -755,12 +728,7 @@ export class CommentManager {
                         `.o_knowledge_comment_highlight[data-comment-id="${comment.id}"]`
                     );
                     if (existingHighlight) {
-                        const parent = existingHighlight.parentNode;
-                        if (parent) {
-                            const text = existingHighlight.textContent || existingHighlight.innerText;
-                            parent.replaceChild(document.createTextNode(text), existingHighlight);
-                            parent.normalize();
-                        }
+                        this._unwrapHighlightElement(existingHighlight);
                         this.highlights.delete(comment.id);
                         logger.log(`Removed highlight for resolved comment ${comment.id}`);
                     }
@@ -806,14 +774,7 @@ export class CommentManager {
                     });
                     
                     // Remove temp highlight from DOM
-                    const tempParent = tempHighlight.parentNode;
-                    const tempText = tempHighlight.textContent || tempHighlight.innerText;
-                    if (tempParent) {
-                        // Replace temp highlight with text node
-                        const textNode = document.createTextNode(tempText);
-                        tempParent.replaceChild(textNode, tempHighlight);
-                        tempParent.normalize();
-                    }
+                    this._unwrapHighlightElement(tempHighlight);
                     
                     // Clear reference in textSelectionHandler
                     if (this.textSelectionHandler) {
@@ -986,12 +947,7 @@ export class CommentManager {
             // CRITICAL: Check if comment is actually resolved - if so, remove the highlight
             if (comment.resolved) {
                 logger.log(`Highlight for comment ${comment.id} exists in DOM but comment is resolved - removing highlight`);
-                const parent = highlightInDOM.parentNode;
-                if (parent) {
-                    const text = highlightInDOM.textContent || highlightInDOM.innerText;
-                    parent.replaceChild(document.createTextNode(text), highlightInDOM);
-                    parent.normalize();
-                }
+                this._unwrapHighlightElement(highlightInDOM);
                 this.highlights.delete(comment.id);
                 return false; // Don't render, highlight was removed
             }
@@ -1547,10 +1503,7 @@ export class CommentManager {
     removeHighlight(commentId) {
         const highlight = this.highlights.get(commentId);
         if (highlight && highlight.parentNode) {
-            const parent = highlight.parentNode;
-            const text = highlight.textContent || highlight.innerText;
-            parent.replaceChild(document.createTextNode(text), highlight);
-            parent.normalize();
+            this._unwrapHighlightElement(highlight);
             
             // Also remove profile picture if exists
             if (this.contentElement) {
@@ -1564,6 +1517,28 @@ export class CommentManager {
             
             this.highlights.delete(commentId);
         }
+    }
+
+    /**
+     * Unwrap highlight element to preserve original inline markup.
+     * @param {HTMLElement} highlightEl
+     */
+    _unwrapHighlightElement(highlightEl) {
+        if (!highlightEl || !highlightEl.parentNode) return;
+        const parent = highlightEl.parentNode;
+
+        if (!highlightEl.firstChild) {
+            parent.removeChild(highlightEl);
+            parent.normalize();
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        while (highlightEl.firstChild) {
+            fragment.appendChild(highlightEl.firstChild);
+        }
+        parent.replaceChild(fragment, highlightEl);
+        parent.normalize();
     }
 
     /**

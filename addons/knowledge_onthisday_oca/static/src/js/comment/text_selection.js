@@ -516,9 +516,20 @@ export class TextSelectionHandler {
                     {
                         acceptNode: (node) => {
                             // Check if node is within range
-                            const rangeStart = fallbackRange.compareBoundaryPoints(Range.START_TO_START, document.createRange().selectNode(node));
-                            const rangeEnd = fallbackRange.compareBoundaryPoints(Range.END_TO_END, document.createRange().selectNode(node));
-                            
+                            const nodeRange = document.createRange();
+                            try {
+                                if (node.nodeType === Node.TEXT_NODE) {
+                                    nodeRange.selectNode(node);
+                                } else {
+                                    nodeRange.selectNode(node);
+                                }
+                            } catch (e) {
+                                nodeRange.selectNodeContents(node);
+                            }
+
+                            const rangeStart = fallbackRange.compareBoundaryPoints(Range.START_TO_START, nodeRange);
+                            const rangeEnd = fallbackRange.compareBoundaryPoints(Range.END_TO_END, nodeRange);
+
                             if (rangeStart >= 0 && rangeEnd <= 0) {
                                 return NodeFilter.FILTER_ACCEPT;
                             }

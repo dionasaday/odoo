@@ -23,6 +23,10 @@
             <field name="arch" type="xml">
                 <form string="Knowledge Article">
                     <header>
+                        <button name="action_open_article_view"
+                                string="ดูหน้าอ่าน"
+                                type="object"
+                                class="btn-primary"/>
                         <button name="action_move_to_trash"
                                 string="Move to Trash"
                                 type="object"
@@ -42,29 +46,48 @@
                                 confirm="This will permanently delete the article. Continue?"/>
                     </header>
                     <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="name" placeholder="ชื่อบทความ"/>
+                            </h1>
+                        </div>
                         <group>
-                            <field name="name"/>
-                            <field name="category_id"/>
-                            <field name="parent_id"/>
-                            <field name="responsible_id"/>
-                            <field name="active"/>
+                            <group string="ข้อมูลบทความ">
+                                <field name="icon_choice" string="ไอคอน"/>
+                                <field name="icon"
+                                       string="ไอคอนแบบกำหนดเอง"
+                                       placeholder="📝"
+                                       invisible="icon_choice != 'custom'"/>
+                                <field name="category_id"/>
+                                <field name="parent_id"/>
+                                <field name="responsible_id"/>
+                                <field name="active"/>
+                            </group>
+                            <group string="แท็กและสถานะ">
+                                <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
+                                <field name="favorite_user_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
+                                <field name="shared_user_ids" widget="many2many_tags" options="{'color_field': 'color'}" readonly="1"/>
+                            </group>
                         </group>
-                        <group>
-                            <field name="tag_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
-                            <field name="favorite_user_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
-                            <field name="shared_user_ids" widget="many2many_tags" options="{'color_field': 'color'}"/>
-                        </group>
-                        <group string="Sharing">
-                            <field name="share_token" readonly="1" placeholder="Click 'Generate Share Link' to create"/>
-                            <field name="share_link" readonly="1" widget="url" placeholder="No share link yet"/>
-                            <button name="action_generate_share_link" string="Generate Share Link" type="object" class="btn-primary"/>
-                        </group>
-                        <group>
-                            <field name="content"
-                                   widget="html"
-                                   style="min-height: 700px;"
-                                   options="{'height': 700}"/>
-                        </group>
+                        <notebook>
+                            <page string="เนื้อหา">
+                                <field name="content"
+                                       widget="html"
+                                       style="min-height: 700px;"
+                                       options="{'height': 700}"/>
+                            </page>
+                            <page string="การแชร์">
+                                <group>
+                                    <field name="share_public"/>
+                                    <field name="default_share_permission"/>
+                                </group>
+                                <group>
+                                    <field name="share_token" readonly="1" placeholder="กดสร้างลิงก์แชร์เพื่อสร้าง token"/>
+                                    <field name="share_link" readonly="1" widget="url" placeholder="ยังไม่มีลิงก์แชร์"/>
+                                    <button name="action_generate_share_link" string="สร้างลิงก์แชร์" type="object" class="btn-primary"/>
+                                </group>
+                            </page>
+                        </notebook>
                     </sheet>
                     <chatter/>
                 </form>

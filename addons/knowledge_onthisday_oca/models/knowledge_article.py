@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, fields, api
+from odoo import models, fields, api, _
+from odoo.exceptions import AccessError, UserError
 
 
 class KnowledgeArticle(models.Model):
@@ -13,6 +14,30 @@ class KnowledgeArticle(models.Model):
     _description = 'Knowledge Article'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'name'
+    _sql_constraints = [
+        ('knowledge_article_share_token_unique', 'unique(share_token)', 'Share token must be unique.'),
+    ]
+
+    ICON_CHOICES = [
+        ('📝', '📝 Note'),
+        ('📋', '📋 Checklist'),
+        ('📄', '📄 Document'),
+        ('📚', '📚 Library'),
+        ('📦', '📦 Product'),
+        ('⚙️', '⚙️ Settings'),
+        ('🛠️', '🛠️ Tools'),
+        ('🔧', '🔧 Repair'),
+        ('✅', '✅ Done'),
+        ('❓', '❓ FAQ'),
+        ('☕', '☕ Coffee'),
+        ('🧹', '🧹 Cleaning'),
+        ('🧰', '🧰 Equipment'),
+        ('📊', '📊 Report'),
+        ('📅', '📅 Schedule'),
+        ('📌', '📌 Pin'),
+        ('📁', '📁 Folder'),
+        ('custom', 'Custom'),
+    ]
 
     name = fields.Char(
         string='Title',
@@ -20,10 +45,36 @@ class KnowledgeArticle(models.Model):
         tracking=True,
         help='Title of the knowledge article'
     )
+
+    icon = fields.Char(
+        string='Icon',
+        help='Emoji or icon character for this article'
+    )
+
+    icon_choice = fields.Selection(
+        selection=ICON_CHOICES,
+        string='Icon Picker',
+        compute='_compute_icon_choice',
+        inverse='_inverse_icon_choice',
+        store=False
+    )
     
     content = fields.Html(
         string='Content',
         help='HTML content of the article'
+    )
+
+    revision_ids = fields.One2many(
+        comodel_name='knowledge.article.revision',
+        inverse_name='article_id',
+        string='Revisions',
+        help='Revision history for this article'
+    )
+
+    revision_count = fields.Integer(
+        string='Revision Count',
+        compute='_compute_revision_count',
+        store=False
     )
     
     category_id = fields.Many2one(
@@ -52,6 +103,42 @@ class KnowledgeArticle(models.Model):
         except (KeyError, AttributeError, Exception):
             # Model not available yet, return False
             return False
+
+    @api.onchange('category_id')
+    def _onchange_category_id(self):
+        for article in self:
+            if article.category_id and article.category_id.default_share_permission:
+                article.default_share_permission = article.category_id.default_share_permission
+            if article.category_id and not article.icon:
+                article.icon = article.category_id.icon or '📝'
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if not vals.get('default_share_permission') and vals.get('category_id'):
+                category = self.env['knowledge.article.category'].browse(vals['category_id'])
+                if category and category.default_share_permission:
+                    vals['default_share_permission'] = category.default_share_permission
+            if not vals.get('icon') and vals.get('category_id'):
+                category = self.env['knowledge.article.category'].browse(vals['category_id'])
+                if category and category.icon:
+                    vals['icon'] = category.icon
+        return super().create(vals_list)
+
+    @api.depends('icon', 'category_id')
+    def _compute_icon_choice(self):
+        icon_values = {choice[0] for choice in self.ICON_CHOICES}
+        for article in self:
+            icon_value = article.icon or (article.category_id.icon if article.category_id else None)
+            if icon_value in icon_values:
+                article.icon_choice = icon_value
+            else:
+                article.icon_choice = 'custom'
+
+    def _inverse_icon_choice(self):
+        for article in self:
+            if article.icon_choice and article.icon_choice != 'custom':
+                article.icon = article.icon_choice
     
     # Remove legacy category field completely - it causes view errors
     # category = fields.Selection(...)  # REMOVED - use category_id instead
@@ -104,6 +191,28 @@ class KnowledgeArticle(models.Model):
         help='Users who have access to this shared article'
     )
 
+    share_member_ids = fields.One2many(
+        comodel_name='knowledge.article.member',
+        inverse_name='article_id',
+        string='Share Members',
+        help='Users with explicit access rights for this article'
+    )
+
+    share_public = fields.Boolean(
+        string='Article Published',
+        default=False,
+        tracking=True,
+        help='If enabled, anyone with the share link can view this article'
+    )
+
+    default_share_permission = fields.Selection(
+        selection=[('read', 'Can read'), ('edit', 'Can edit')],
+        string='Default Access Rights',
+        default='read',
+        tracking=True,
+        help='Default access rights for newly invited users'
+    )
+
     # Tags: Many2many to track tags/labels for this article
     tag_ids = fields.Many2many(
         comodel_name='knowledge.article.tag',
@@ -113,6 +222,13 @@ class KnowledgeArticle(models.Model):
         string='Tags',
         help='Tags/labels for categorizing and organizing this article'
     )
+
+    @api.depends('revision_ids')
+    def _compute_revision_count(self):
+        for article in self:
+            article.revision_count = self.env['knowledge.article.revision'].search_count([
+                ('article_id', '=', article.id),
+            ])
 
     # Share link token for public access
     share_token = fields.Char(
@@ -141,25 +257,15 @@ class KnowledgeArticle(models.Model):
 
     def generate_share_token(self):
         """Generate a unique share token for this article"""
-        import random
-        import string
-        import hashlib
-        import time
+        import secrets
         
-        # Generate a secure random token using multiple sources
-        # Combine random string with timestamp hash for uniqueness
-        alphabet = string.ascii_letters + string.digits
-        random_part = ''.join(random.choice(alphabet) for _ in range(24))
-        timestamp_part = hashlib.md5(str(time.time()).encode()).hexdigest()[:8]
-        token = random_part + timestamp_part
+        token = secrets.token_urlsafe(32)
         
         # Ensure uniqueness (check if token already exists)
         max_attempts = 10
         attempts = 0
         while self.env['knowledge.article'].search([('share_token', '=', token)], limit=1) and attempts < max_attempts:
-            random_part = ''.join(random.choice(alphabet) for _ in range(24))
-            timestamp_part = hashlib.md5(str(time.time()).encode()).hexdigest()[:8]
-            token = random_part + timestamp_part
+            token = secrets.token_urlsafe(32)
             attempts += 1
         
         # If still not unique after max attempts, add article ID to ensure uniqueness
@@ -173,6 +279,8 @@ class KnowledgeArticle(models.Model):
         """Action to generate share link"""
         if not self.share_token:
             self.generate_share_token()
+        if not self.share_public:
+            self.share_public = True
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
@@ -227,6 +335,236 @@ class KnowledgeArticle(models.Model):
                 'sticky': False,
             }
         }
+
+    def action_open_article_view(self):
+        """Open the article in the document (view) mode."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'knowledge_document_view',
+            'name': _('Knowledge Base'),
+            'context': {
+                'active_id': self.id,
+                'knowledge_article_id': self.id,
+            },
+            'params': {
+                'article_id': self.id,
+            },
+        }
+
+    def _can_edit_article(self, user=None):
+        user = user or self.env.user
+        if not user:
+            return False
+        if user.has_group('base.group_system') or user.has_group('knowledge_onthisday_oca.group_knowledge_manager'):
+            return True
+        for article in self:
+            if article.responsible_id.id == user.id:
+                return True
+            if article.share_member_ids.filtered(lambda m: m.user_id.id == user.id and m.permission == 'edit'):
+                return True
+        return False
+
+    def _can_manage_share(self, user=None):
+        return self._can_edit_article(user=user)
+
+    def _sync_shared_user_ids(self):
+        for article in self:
+            user_ids = article.share_member_ids.mapped('user_id').ids
+            article.with_context(
+                skip_share_member_sync=True,
+                skip_article_access_check=True
+            ).write({'shared_user_ids': [(6, 0, user_ids)]})
+
+    def _ensure_members_from_shared_users(self):
+        for article in self:
+            shared_ids = set(article.shared_user_ids.ids)
+            member_ids = set(article.share_member_ids.mapped('user_id').ids)
+            missing_ids = shared_ids - member_ids
+            for user_id in missing_ids:
+                self.env['knowledge.article.member'].create({
+                    'article_id': article.id,
+                    'user_id': user_id,
+                    'permission': article.default_share_permission or 'read',
+                })
+
+    def _prepare_share_members_payload(self):
+        self.ensure_one()
+        responsible = self.responsible_id
+        members = []
+        member_user_ids = set()
+        for member in self.share_member_ids:
+            member_user_ids.add(member.user_id.id)
+            members.append({
+                'member_id': member.id,
+                'user_id': member.user_id.id,
+                'name': member.user_id.name,
+                'email': member.user_id.email or member.user_id.login or '',
+                'permission': member.permission,
+                'is_owner': responsible and member.user_id.id == responsible.id,
+            })
+        if responsible and responsible.id not in member_user_ids:
+            members.insert(0, {
+                'member_id': False,
+                'user_id': responsible.id,
+                'name': responsible.name,
+                'email': responsible.email or responsible.login or '',
+                'permission': 'edit',
+                'is_owner': True,
+            })
+        return members
+
+    def get_share_info(self):
+        self.ensure_one()
+        can_manage = self._can_manage_share()
+        if can_manage:
+            self._ensure_members_from_shared_users()
+        return {
+            'share_public': self.share_public,
+            'share_link': self.share_link if self.share_public else False,
+            'default_permission': self.default_share_permission,
+            'members': self._prepare_share_members_payload(),
+            'can_manage': can_manage,
+            'category_name': self.category_id.name if self.category_id else _('Uncategorized'),
+            'shared_user_ids': self.shared_user_ids.ids,
+        }
+
+    def set_share_public(self, is_public):
+        self.ensure_one()
+        if not self._can_manage_share():
+            raise AccessError(_('You do not have permission to manage sharing for this article.'))
+        self.share_public = bool(is_public)
+        if self.share_public and not self.share_token:
+            self.generate_share_token()
+        return {
+            'share_public': self.share_public,
+            'share_link': self.share_link if self.share_public else False,
+        }
+
+    def set_default_share_permission(self, permission):
+        self.ensure_one()
+        if not self._can_manage_share():
+            raise AccessError(_('You do not have permission to manage sharing for this article.'))
+        if permission not in ('read', 'edit'):
+            raise UserError(_('Invalid permission value.'))
+        self.default_share_permission = permission
+        return True
+
+    def add_share_member(self, user_identifier, permission=None):
+        self.ensure_one()
+        if not self._can_manage_share():
+            raise AccessError(_('You do not have permission to manage sharing for this article.'))
+        if not user_identifier:
+            raise UserError(_('Please provide a user name or email.'))
+        permission = permission or self.default_share_permission or 'read'
+        if permission not in ('read', 'edit'):
+            raise UserError(_('Invalid permission value.'))
+
+        user = None
+        if isinstance(user_identifier, int):
+            user = self.env['res.users'].browse(user_identifier)
+        else:
+            identifier = str(user_identifier).strip()
+            user = self.env['res.users'].search([
+                '|', ('login', '=', identifier), ('email', '=', identifier)
+            ], limit=1)
+        if not user or not user.exists():
+            raise UserError(_('User not found. Please use a valid user email.'))
+        if self.responsible_id and user.id == self.responsible_id.id:
+            raise UserError(_('The owner already has full access.'))
+
+        member = self.env['knowledge.article.member'].search([
+            ('article_id', '=', self.id),
+            ('user_id', '=', user.id)
+        ], limit=1)
+        if member:
+            member.permission = permission
+        else:
+            self.env['knowledge.article.member'].create({
+                'article_id': self.id,
+                'user_id': user.id,
+                'permission': permission,
+            })
+
+        self._sync_shared_user_ids()
+        return True
+
+    def update_share_member_permission(self, member_id, permission):
+        self.ensure_one()
+        if not self._can_manage_share():
+            raise AccessError(_('You do not have permission to manage sharing for this article.'))
+        if permission not in ('read', 'edit'):
+            raise UserError(_('Invalid permission value.'))
+        member = self.env['knowledge.article.member'].browse(member_id)
+        if not member or member.article_id.id != self.id:
+            raise UserError(_('Share member not found.'))
+        if self.responsible_id and member.user_id.id == self.responsible_id.id:
+            raise UserError(_('Cannot change owner permissions.'))
+        member.permission = permission
+        self._sync_shared_user_ids()
+        return True
+
+    def remove_share_member(self, member_id):
+        self.ensure_one()
+        if not self._can_manage_share():
+            raise AccessError(_('You do not have permission to manage sharing for this article.'))
+        member = self.env['knowledge.article.member'].browse(member_id)
+        if not member or member.article_id.id != self.id:
+            raise UserError(_('Share member not found.'))
+        if self.responsible_id and member.user_id.id == self.responsible_id.id:
+            raise UserError(_('Cannot remove the owner from sharing.'))
+        member.unlink()
+        self._sync_shared_user_ids()
+        return True
+
+    def _get_revision_tracked_fields(self):
+        return {
+            'name',
+            'content',
+            'category_id',
+            'parent_id',
+            'tag_ids',
+        }
+
+    def _should_create_revision(self, vals):
+        tracked_fields = self._get_revision_tracked_fields()
+        return bool(tracked_fields.intersection(vals.keys()))
+
+    def _copy_attachments_to_revision(self, revision):
+        Attachment = self.env['ir.attachment'].sudo()
+        attachments = Attachment.search([
+            ('res_model', '=', 'knowledge.article'),
+            ('res_id', '=', self.id),
+        ])
+        for attachment in attachments:
+            attachment.copy({
+                'res_model': 'knowledge.article.revision',
+                'res_id': revision.id,
+            })
+
+    def _create_revision_snapshot(self):
+        self.ensure_one()
+        revision = self.env['knowledge.article.revision'].create({
+            'article_id': self.id,
+            'name': self.name or '',
+            'content': self.content or '',
+            'category_id': self.category_id.id or False,
+            'parent_id': self.parent_id.id or False,
+            'tag_ids': [(6, 0, self.tag_ids.ids)],
+        })
+        self._copy_attachments_to_revision(revision)
+        return revision
+
+    def write(self, vals):
+        if not self.env.context.get('skip_article_access_check'):
+            allowed_fields = {'favorite_user_ids'}
+            for article in self:
+                if not article._can_edit_article() and not (set(vals.keys()) <= allowed_fields):
+                    raise AccessError(_('You do not have permission to edit this article.'))
+        if not self.env.context.get('skip_revision') and self._should_create_revision(vals):
+            for article in self:
+                article._create_revision_snapshot()
+        return super().write(vals)
     
     # Comments relationship
     comment_ids = fields.One2many(

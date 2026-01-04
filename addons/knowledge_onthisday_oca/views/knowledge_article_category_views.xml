@@ -12,6 +12,7 @@
                     <field name="code"/>
                     <field name="icon"/>
                     <field name="article_count" string="Articles"/>
+                    <field name="default_share_permission"/>
                     <field name="active" widget="boolean_toggle"/>
                 </list>
             </field>
@@ -35,6 +36,7 @@
                                 <field name="active" widget="boolean_toggle"/>
                                 <field name="color" widget="color_picker"/>
                                 <field name="article_count" readonly="1"/>
+                                <field name="default_share_permission"/>
                             </group>
                         </group>
                         <group>
@@ -115,4 +117,3 @@
         </record>
     </data>
 </odoo>
-

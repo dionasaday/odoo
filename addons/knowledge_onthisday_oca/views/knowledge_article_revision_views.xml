@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="knowledge_article_revision_list" model="ir.ui.view">
+            <field name="name">knowledge.article.revision.list</field>
+            <field name="model">knowledge.article.revision</field>
+            <field name="arch" type="xml">
+                <list>
+                    <field name="create_date" string="Revision Date"/>
+                    <field name="name" string="Title"/>
+                    <field name="article_id"/>
+                    <field name="create_uid" string="Revised By"/>
+                </list>
+            </field>
+        </record>
+
+        <record id="knowledge_article_revision_form" model="ir.ui.view">
+            <field name="name">knowledge.article.revision.form</field>
+            <field name="model">knowledge.article.revision</field>
+            <field name="arch" type="xml">
+                <form>
+                    <header>
+                        <button name="action_restore_revision"
+                                type="object"
+                                string="Restore This Revision"
+                                class="btn-primary"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <field name="article_id" readonly="1"/>
+                            <field name="create_date" string="Revision Date" readonly="1"/>
+                            <field name="create_uid" string="Revised By" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="name" readonly="1"/>
+                            <field name="category_id" readonly="1"/>
+                            <field name="parent_id" readonly="1"/>
+                            <field name="tag_ids" widget="many2many_tags" readonly="1"/>
+                        </group>
+                        <notebook>
+                            <page string="Previous Content">
+                                <field name="content" readonly="1"/>
+                            </page>
+                            <page string="Previous Attachments">
+                                <field name="attachment_ids" readonly="1">
+                                    <list>
+                                        <field name="name"/>
+                                        <field name="mimetype"/>
+                                        <field name="create_date"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <record id="action_knowledge_article_revision" model="ir.actions.act_window">
+            <field name="name">Revision History</field>
+            <field name="res_model">knowledge.article.revision</field>
+            <field name="view_mode">list,form</field>
+            <field name="target">current</field>
+        </record>
+    </data>
+</odoo>
