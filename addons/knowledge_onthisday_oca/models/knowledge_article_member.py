@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from odoo import models, fields
+from odoo import api, models, fields
 
 
 class KnowledgeArticleMember(models.Model):
@@ -37,7 +37,10 @@ class KnowledgeArticleMember(models.Model):
         readonly=True,
     )
 
+    @api.model_create_multi
     def create(self, vals_list):
+        if isinstance(vals_list, dict):
+            vals_list = [vals_list]
         for vals in vals_list:
             if not vals.get('permission') and vals.get('article_id'):
                 article = self.env['knowledge.article'].browse(vals['article_id'])

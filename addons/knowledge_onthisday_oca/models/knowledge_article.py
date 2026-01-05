@@ -466,16 +466,28 @@ class KnowledgeArticle(models.Model):
         if permission not in ('read', 'edit'):
             raise UserError(_('Invalid permission value.'))
 
-        user = None
+        user = self.env['res.users']
         if isinstance(user_identifier, int):
             user = self.env['res.users'].browse(user_identifier)
         else:
             identifier = str(user_identifier).strip()
-            user = self.env['res.users'].search([
-                '|', ('login', '=', identifier), ('email', '=', identifier)
-            ], limit=1)
-        if not user or not user.exists():
-            raise UserError(_('User not found. Please use a valid user email.'))
+            if identifier.isdigit():
+                user = self.env['res.users'].browse(int(identifier))
+            if not user or not user.exists():
+                user = self.env['res.users'].search([
+                    '&', '&', ('share', '=', False), ('active', '=', True),
+                    '|', '|', ('login', '=', identifier), ('email', '=', identifier), ('partner_id.email', '=', identifier)
+                ], limit=1)
+            if not user:
+                user = self.env['res.users'].search([
+                    '&', '&', ('share', '=', False), ('active', '=', True),
+                    ('name', 'ilike', identifier)
+                ], limit=1)
+        user = user.exists()
+        if not user:
+            raise UserError(_('User not found. Please choose an existing internal user.'))
+        if user.share:
+            raise UserError(_('Only internal users can be invited.'))
         if self.responsible_id and user.id == self.responsible_id.id:
             raise UserError(_('The owner already has full access.'))
 

@@ -100,9 +100,9 @@
 
         <!-- Rule: Owners can manage share members for their articles -->
         <record id="knowledge_article_member_owner_rule" model="ir.rule">
-            <field name="name">Knowledge Article Member: Owner Manage Access</field>
+            <field name="name">Knowledge Article Member: Owner/Shared Manage Access</field>
             <field name="model_id" ref="model_knowledge_article_member"/>
-            <field name="domain_force">[('article_id.responsible_id', '=', user.id)]</field>
+            <field name="domain_force">['|', ('article_id.responsible_id', '=', user.id), ('article_id.shared_user_ids', 'in', user.id)]</field>
             <field name="groups" eval="[(4, ref('base.group_user'))]"/>
             <field name="perm_read" eval="1"/>
             <field name="perm_write" eval="1"/>

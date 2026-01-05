@@ -2595,7 +2595,11 @@ export class KnowledgeDocumentController extends Component {
             this.showNotification("User invited successfully.", "success");
         } catch (error) {
             logger.error("Error inviting share member:", error);
-            this.showNotification("Unable to invite user. Check the email.", "danger");
+            const message = (error && error.data && error.data.arguments && error.data.arguments[0])
+                || (error && error.data && error.data.message)
+                || (error && error.message)
+                || "Unable to invite user.";
+            this.showNotification(message, "danger");
         } finally {
             this.state.shareInviteLoading = false;
         }
