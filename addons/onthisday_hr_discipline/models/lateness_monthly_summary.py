@@ -335,6 +335,7 @@ class HrLatenessMonthlySummary(models.Model):
     def action_send_email(self):
         """ส่งอีเมลแจ้งหัวหน้า HR"""
         self.ensure_one()
+        EmailLog = self.env["hr.discipline.email.log"]
         template = self.env.ref(
             "onthisday_hr_discipline.mail_template_lateness_monthly_summary",
             raise_if_not_found=False,
@@ -378,23 +379,40 @@ class HrLatenessMonthlySummary(models.Model):
 
         # ส่งอีเมล
         try:
+            email_values = EmailLog._prepare_email_values(emails)
             template.sudo().send_mail(
                 self.id,
                 force_send=True,
-                email_values={"email_to": ",".join(emails)},
+                email_values=email_values,
             )
             self.write(
                 {
                     "state": "sent",
                     "email_sent_date": fields.Datetime.now(),
-                    "email_sent_to": ",".join(emails),
+                    "email_sent_to": email_values.get("email_to"),
                 }
             )
             self.message_post(
-                body=_("Email sent to: %s") % ", ".join(emails)
+                body=_("Email sent to: %s") % (email_values.get("email_to") or "")
+            )
+            EmailLog._log_email(
+                "hr.lateness.monthly_summary",
+                self.id,
+                template,
+                email_values.get("email_to"),
+                email_values.get("email_cc"),
             )
         except Exception as e:
             _logger.error("Failed to send email: %s", str(e))
+            EmailLog._log_email(
+                "hr.lateness.monthly_summary",
+                self.id,
+                template,
+                ",".join(emails),
+                False,
+                state="failed",
+                error_message=str(e),
+            )
             raise UserError(_("Failed to send email: %s") % str(e))
 
         return {

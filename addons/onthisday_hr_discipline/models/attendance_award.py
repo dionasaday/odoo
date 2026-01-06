@@ -312,7 +312,36 @@ class HrAttendanceAward(models.Model):
         self.ensure_one()
         tpl = self.env.ref('onthisday_hr_discipline.mail_template_attendance_award_monthly', raise_if_not_found=False)
         if tpl:
-            tpl.sudo().send_mail(self.id, force_send=True)
+            EmailLog = self.env["hr.discipline.email.log"]
+            cc_values = EmailLog._prepare_email_values([])
+            email_values = {}
+            if cc_values.get("email_cc"):
+                email_values["email_cc"] = cc_values.get("email_cc")
+            try:
+                tpl.sudo().send_mail(self.id, force_send=True, email_values=email_values)
+                email_to = False
+                try:
+                    rendered = tpl._render_field("email_to", [self.id])
+                    email_to = rendered.get(self.id) if rendered else tpl.email_to
+                except Exception:
+                    email_to = tpl.email_to
+                EmailLog._log_email(
+                    "hr.attendance.award",
+                    self.id,
+                    tpl,
+                    email_to,
+                    email_values.get("email_cc"),
+                )
+            except Exception as e:
+                EmailLog._log_email(
+                    "hr.attendance.award",
+                    self.id,
+                    tpl,
+                    False,
+                    email_values.get("email_cc"),
+                    state="failed",
+                    error_message=str(e),
+                )
 
 
 # =========================================================

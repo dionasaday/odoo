@@ -14,3 +14,4 @@ from . import res_config_settings_patch
 from . import employee
 from . import ir_ui_menu
 from . import punishment_wizard
+from . import email_log

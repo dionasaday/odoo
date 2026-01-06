@@ -373,6 +373,7 @@ class DisciplineCase(models.Model):
     def _notify_on_confirm(self):
         """ส่งอีเมลแจ้งหัวหน้า/พนักงานเมื่อเคสถูกยืนยัน"""
         self.ensure_one()
+        Log = self.env["hr.discipline.email.log"]
         if self.lateness_log_ids:
             xmlid_mgr = "onthisday_hr_discipline.mail_tmpl_lateness_bundle_to_manager"
             xmlid_emp = "onthisday_hr_discipline.mail_tmpl_lateness_bundle_to_employee"
@@ -390,11 +391,28 @@ class DisciplineCase(models.Model):
                 or (addr and addr.email)
             )
             if mgr_email:
+                email_values = Log._prepare_email_values(mgr_email, manager=mgr)
                 try:
-                    tmpl_mgr.send_mail(self.id, force_send=True, email_values={"email_to": mgr_email})
+                    tmpl_mgr.send_mail(self.id, force_send=True, email_values=email_values)
+                    Log._log_email(
+                        "hr.discipline.case",
+                        self.id,
+                        tmpl_mgr,
+                        email_values.get("email_to"),
+                        email_values.get("email_cc"),
+                    )
                 except Exception as e:
                     _logger.error("Failed to send email to manager %s for case %s: %s", 
                                   mgr_email, self.id, str(e))
+                    Log._log_email(
+                        "hr.discipline.case",
+                        self.id,
+                        tmpl_mgr,
+                        email_values.get("email_to"),
+                        email_values.get("email_cc"),
+                        state="failed",
+                        error_message=str(e),
+                    )
 
         tmpl_emp = self.env.ref(xmlid_emp, raise_if_not_found=False)
         if tmpl_emp:
@@ -406,15 +424,34 @@ class DisciplineCase(models.Model):
                 or (emp_addr and emp_addr.email)
             )
             if emp_email:
+                manager = emp.parent_id.sudo()
+                email_values = Log._prepare_email_values(emp_email, manager=manager)
                 try:
-                    tmpl_emp.send_mail(self.id, force_send=True, email_values={"email_to": emp_email})
+                    tmpl_emp.send_mail(self.id, force_send=True, email_values=email_values)
+                    Log._log_email(
+                        "hr.discipline.case",
+                        self.id,
+                        tmpl_emp,
+                        email_values.get("email_to"),
+                        email_values.get("email_cc"),
+                    )
                 except Exception as e:
                     _logger.error("Failed to send email to employee %s for case %s: %s", 
                                   emp_email, self.id, str(e))
+                    Log._log_email(
+                        "hr.discipline.case",
+                        self.id,
+                        tmpl_emp,
+                        email_values.get("email_to"),
+                        email_values.get("email_cc"),
+                        state="failed",
+                        error_message=str(e),
+                    )
 
     def _notify_on_punishment(self):
         """ส่งอีเมลแจ้งพนักงานหลังสรุปบทลงโทษ"""
         self.ensure_one()
+        Log = self.env["hr.discipline.email.log"]
         tmpl = self.env.ref(
             "onthisday_hr_discipline.mail_tmpl_punishment_to_employee",
             raise_if_not_found=False,
@@ -430,7 +467,8 @@ class DisciplineCase(models.Model):
         )
         if not emp_email:
             return False
-        email_values = {"email_to": emp_email}
+        manager = emp.parent_id.sudo()
+        email_values = Log._prepare_email_values(emp_email, manager=manager)
         if self.punishment_note and "punishment_note" not in (tmpl.body_html or ""):
             rendered = tmpl._render_field("body_html", [self.id]).get(self.id) or ""
             rendered = str(rendered)
@@ -446,9 +484,25 @@ class DisciplineCase(models.Model):
             email_values["body_html"] = rendered
         try:
             tmpl.sudo().send_mail(self.id, force_send=True, email_values=email_values)
+            Log._log_email(
+                "hr.discipline.case",
+                self.id,
+                tmpl,
+                email_values.get("email_to"),
+                email_values.get("email_cc"),
+            )
         except Exception as e:
             _logger.error("Failed to send punishment email to employee %s for case %s: %s", 
                           emp_email, self.id, str(e))
+            Log._log_email(
+                "hr.discipline.case",
+                self.id,
+                tmpl,
+                email_values.get("email_to"),
+                email_values.get("email_cc"),
+                state="failed",
+                error_message=str(e),
+            )
             return False
         return True
 

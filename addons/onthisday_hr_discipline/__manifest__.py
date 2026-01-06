@@ -28,6 +28,7 @@
         "views/action_views.xml",  # action_hr_discipline_action
         "views/lateness_log_views.xml",  # ต้องมาก่อน lateness_monthly_summary_views.xml เพื่อให้ view IDs พร้อม
         "views/lateness_monthly_summary_views.xml",  # action_hr_lateness_monthly_summary
+        "views/email_log_views.xml",  # action_hr_discipline_email_log
         "views/attendance_award_views.xml",  # action_attendance_award (ถ้ามี)
         'views/my_token_balance_views.xml',  # action_my_token_balance
         'views/my_summary_views.xml',  # action_my_points_by_catalog

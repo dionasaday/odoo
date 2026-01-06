@@ -25,6 +25,7 @@ class ResCompany(models.Model):
         Case = self.env["hr.discipline.case"].sudo()
         Log = self.env["hr.lateness.log"].sudo()
         Employee = self.env["hr.employee"].sudo()
+        EmailLog = self.env["hr.discipline.email.log"]
 
         Template = self.env.ref(
             "onthisday_hr_discipline.mail_template_monthly_summary",
@@ -134,14 +135,32 @@ class ResCompany(models.Model):
                 if not email_to:
                     continue
 
-                Template.sudo().with_context(
-                    manager=mgr,
-                    period_from=date_from,
-                    period_to=date_to,
-                    min_min=min_min,
-                    summary_rows=rows,
-                ).send_mail(
-                    company.id,
-                    force_send=True,
-                    email_values={"email_to": email_to},
-                )
+                email_values = EmailLog._prepare_email_values(email_to, manager=mgr)
+                try:
+                    Template.sudo().with_context(
+                        manager=mgr,
+                        period_from=date_from,
+                        period_to=date_to,
+                        min_min=min_min,
+                        summary_rows=rows,
+                    ).send_mail(
+                        company.id,
+                        force_send=True,
+                        email_values=email_values,
+                    )
+                    EmailLog._log_email(
+                        Template.model or "res.company",
+                        company.id,
+                        Template,
+                        email_values.get("email_to"),
+                        email_values.get("email_cc"),
+                    )
+                except Exception:
+                    EmailLog._log_email(
+                        Template.model or "res.company",
+                        company.id,
+                        Template,
+                        email_values.get("email_to"),
+                        email_values.get("email_cc"),
+                        state="failed",
+                    )

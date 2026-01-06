@@ -45,3 +45,6 @@ access_lateness_monthly_summary_line_hr,Lateness Monthly Summary Line HR,model_h
 access_lateness_monthly_summary_line_manager,Lateness Monthly Summary Line Manager,model_hr_lateness_monthly_summary_line,onthisday_hr_discipline.group_discipline_manager,1,1,1,1
 
 access_employee_user,Employee User Read Own,model_hr_employee,base.group_user,1,0,0,0
+
+access_email_log_hr,Discipline Email Log HR,model_hr_discipline_email_log,onthisday_hr_discipline.group_discipline_hr,1,0,0,0
+access_email_log_manager,Discipline Email Log Manager,model_hr_discipline_email_log,onthisday_hr_discipline.group_discipline_manager,1,0,0,0

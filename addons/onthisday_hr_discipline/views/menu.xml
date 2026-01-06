@@ -120,5 +120,12 @@
               action="onthisday_hr_discipline.action_hr_lateness_monthly_summary"
               sequence="3"
               groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+
+    <menuitem id="menu_hr_discipline_email_log"
+              name="บันทึกการส่งอีเมล"
+              parent="menu_hr_discipline_root"
+              action="onthisday_hr_discipline.action_hr_discipline_email_log"
+              sequence="30"
+              groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
   </data>
 </odoo>
