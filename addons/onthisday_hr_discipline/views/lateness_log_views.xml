@@ -25,7 +25,7 @@
     <field name="arch" type="xml">
       <graph string="สรุปการมาสายรายเดือน" type="bar" stacked="True">
         <field name="date" type="row" interval="month" string="เดือน"/>
-        <field name="employee_id" type="row" string="พนักงาน"/>
+        <field name="department_id" type="row" string="แผนก"/>
         <field name="minutes" type="measure" string="นาที"/>
         <field name="token_deducted" type="measure" string="Tokens"/>
       </graph>
@@ -38,8 +38,9 @@
     <field name="model">hr.lateness.log</field>
     <field name="arch" type="xml">
       <pivot string="สรุปการมาสายรายเดือน" sample="false">
-        <field name="date" type="row" interval="month" string="เดือน"/>
+        <field name="department_id" type="row" string="แผนก"/>
         <field name="employee_id" type="row" string="พนักงาน"/>
+        <field name="date" type="col" interval="month" string="เดือน"/>
         <field name="minutes" type="measure" string="นาที"/>
         <field name="token_deducted" type="measure" string="Tokens"/>
       </pivot>

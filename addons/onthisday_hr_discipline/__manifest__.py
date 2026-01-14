@@ -31,6 +31,7 @@
         "views/email_log_views.xml",  # action_hr_discipline_email_log
         "views/attendance_award_views.xml",  # action_attendance_award (ถ้ามี)
         'views/my_token_balance_views.xml',  # action_my_token_balance
+        "views/token_balance_summary_views.xml",  # action_token_balance_summary
         'views/my_summary_views.xml',  # action_my_points_by_catalog
         # Menu (ต้องมาหลัง views ที่มี actions)
         "views/menu.xml",

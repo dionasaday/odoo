@@ -12,6 +12,7 @@ from . import lateness_monthly_summary
 from . import res_company
 from . import res_config_settings_patch
 from . import employee
+from . import hr_version
 from . import ir_ui_menu
 from . import punishment_wizard
 from . import email_log

@@ -1,6 +1,7 @@
 # models/employee.py
 from odoo import models, fields, api, _
 from odoo.exceptions import AccessError
+from odoo.tools.safe_eval import safe_eval
 from datetime import timedelta
 import logging
 
@@ -9,6 +10,23 @@ _logger = logging.getLogger(__name__)
 class HREmployee(models.Model):
     _inherit = "hr.employee"
 
+    version_id = fields.Many2one(
+        "hr.version",
+        compute="_compute_version_id",
+        search="_search_version_id",
+        ondelete="cascade",
+        required=True,
+        store=False,
+        compute_sudo=True,
+        groups="hr.group_hr_user,onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager",
+    )
+    current_version_id = fields.Many2one(
+        "hr.version",
+        compute="_compute_current_version_id",
+        store=True,
+        groups="hr.group_hr_user,onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager",
+    )
+
     discipline_points_year = fields.Integer(
         compute="_compute_discipline_points_year", store=False)
     
@@ -16,26 +34,36 @@ class HREmployee(models.Model):
     current_token_balance = fields.Integer(
         string="Current Token Balance",
         compute="_compute_current_token_balance",
-        store=False,
+        store=True,
+        compute_sudo=True,
         help="Current token balance for the current period (starting tokens - deductions)."
     )
     token_period_start = fields.Date(
         string="Token Period Start",
         compute="_compute_current_token_balance",
-        store=False,
+        store=True,
+        compute_sudo=True,
         help="Start date of current token period."
     )
     token_period_end = fields.Date(
         string="Token Period End",
         compute="_compute_current_token_balance",
-        store=False,
+        store=True,
+        compute_sudo=True,
         help="End date of current token period."
     )
     tokens_deducted_this_period = fields.Integer(
         string="Tokens Deducted (This Period)",
         compute="_compute_current_token_balance",
-        store=False,
+        store=True,
+        compute_sudo=True,
         help="Total tokens deducted in current period."
+    )
+    company_management_review_threshold = fields.Integer(
+        string="Management Review Threshold",
+        related="company_id.lateness_repeat_threshold",
+        store=False,
+        readonly=True,
     )
 
     @api.depends()
@@ -382,7 +410,8 @@ class HREmployee(models.Model):
         try:
             user = self._get_access_user()
             return (
-                user.has_group('hr.group_hr_user')
+                user.has_group('onthisday_hr_discipline.group_discipline_hr')
+                or user.has_group('hr.group_hr_user')
                 or user.has_group('hr.group_hr_manager')
                 or user.has_group('base.group_system')
             )
@@ -436,11 +465,19 @@ class HREmployee(models.Model):
     def _allowed_employee_domain(self, user):
         """Return domain for employees visible to this user (non-HR)."""
         domain = [("user_id", "=", user.id)]
+        company_domain = None
+        if user.company_id:
+            company_domain = ("company_id", "=", user.company_id.id)
         try:
             if user.has_group("onthisday_hr_discipline.group_discipline_manager"):
-                domain = ["|", ("user_id", "=", user.id), ("parent_id.user_id", "=", user.id)]
+                if user.employee_id:
+                    domain = [("id", "child_of", user.employee_id.id)]
+                else:
+                    domain = [("id", "=", 0)]
         except Exception:
             pass
+        if company_domain:
+            domain = [company_domain] + domain
         return domain
 
     @api.model
@@ -623,3 +660,122 @@ class HREmployee(models.Model):
                 'target': 'current',
                 'context': custom_context,
             }
+
+    @api.model
+    def action_open_token_balance_summary(self):
+        """Open token balance summary list for HR/Manager."""
+        user = self.env.user
+        action = self.env.ref(
+            "onthisday_hr_discipline.action_token_balance_summary",
+            raise_if_not_found=False,
+        )
+        if not action:
+            raise AccessError(_("ไม่พบเมนูสรุป Token กรุณาอัปเกรดโมดูล"))
+
+        action_data = action.sudo().read()[0]
+        view = self.env.ref(
+            "onthisday_hr_discipline.view_employee_token_balance_summary_tree",
+            raise_if_not_found=False,
+        )
+        if view:
+            view = view.sudo()
+        search_view = self.env.ref(
+            "onthisday_hr_discipline.view_employee_token_balance_summary_search",
+            raise_if_not_found=False,
+        )
+        if search_view:
+            search_view = search_view.sudo()
+        domain = []
+        if user.company_id:
+            domain.append(("company_id", "=", user.company_id.id))
+
+        if user.has_group("onthisday_hr_discipline.group_discipline_hr"):
+            pass
+        elif user.has_group("onthisday_hr_discipline.group_discipline_manager"):
+            if user.employee_id:
+                domain.append(("id", "child_of", user.employee_id.id))
+            else:
+                domain.append(("id", "=", 0))
+        else:
+            raise AccessError(_("คุณไม่มีสิทธิ์เข้าถึงเมนูนี้"))
+
+        context = action_data.get("context") or {}
+        if isinstance(context, str):
+            try:
+                context = safe_eval(context, {"user": user, "uid": user.id})
+            except Exception:
+                context = {}
+        if not isinstance(context, dict):
+            context = {}
+
+        action_data.update(
+            {
+                "domain": domain,
+                "context": dict(context, token_balance_summary=True),
+            }
+        )
+        if view:
+            action_data["views"] = [(view.id, "list")]
+            action_data["view_id"] = view.id
+        if search_view:
+            action_data["search_view_id"] = search_view.id
+        action_data.pop("id", None)
+        return action_data
+
+    def _search(self, domain, offset=0, limit=None, order=None, **kwargs):
+        """Allow sorting by non-stored token balance in summary view."""
+        kwargs.pop("access_rights_uid", None)
+        kwargs.pop("count", None)
+        if self._context.get("token_balance_summary") and order:
+            order_l = order.lower()
+            if "current_token_balance" in order_l:
+                ids = super()._search(
+                    domain,
+                    offset=0,
+                    limit=None,
+                    order="name",
+                    **kwargs,
+                )
+                records = self.browse(ids)
+                descending = "current_token_balance desc" in order_l
+                records = records.sorted(
+                    key=lambda r: (r.current_token_balance, r.name or ""),
+                    reverse=descending,
+                )
+                ids = records.ids
+                if offset:
+                    ids = ids[offset:]
+                if limit:
+                    ids = ids[:limit]
+                return ids
+
+        return super()._search(
+            domain,
+            offset=offset,
+            limit=limit,
+            order=order,
+            **kwargs,
+        )
+
+    def search_fetch(self, domain, field_names, offset=0, limit=None, order=None):
+        """Sort by non-stored token balance in summary view without SQL order."""
+        if self._context.get("token_balance_summary") and order:
+            order_l = order.lower()
+            if "current_token_balance" in order_l:
+                descending = "current_token_balance desc" in order_l
+                records = self.search(domain, order="name")
+                if descending:
+                    records = records.sorted(
+                        key=lambda r: (-r.current_token_balance, r.name or "")
+                    )
+                else:
+                    records = records.sorted(
+                        key=lambda r: (r.current_token_balance, r.name or "")
+                    )
+                if offset:
+                    records = records[offset:]
+                if limit:
+                    records = records[:limit]
+                return records
+
+        return super().search_fetch(domain, field_names, offset=offset, limit=limit, order=order)

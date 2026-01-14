@@ -19,6 +19,16 @@ action = model.action_create_current_month_summary()
         </field>
     </record>
 
+    <!-- Routing action: HR = pivot/graph, Manager = team list -->
+    <record id="action_lateness_monthly_summary_router" model="ir.actions.server">
+        <field name="name">สรุปการมาสายรายเดือน</field>
+        <field name="model_id" ref="model_hr_lateness_monthly_summary"/>
+        <field name="state">code</field>
+        <field name="code">
+action = model.action_open_monthly_summary()
+        </field>
+    </record>
+
     <!-- Action สำหรับสรุปรายเดือน - แสดงข้อมูลแบบ real-time จาก lateness logs -->
     <!-- Note: ไม่ระบุ views field เพื่อให้ Odoo สร้าง views อัตโนมัติจาก view_mode -->
     <record id="action_hr_lateness_monthly_summary" model="ir.actions.act_window">
@@ -26,8 +36,7 @@ action = model.action_create_current_month_summary()
         <field name="res_model">hr.lateness.log</field>
         <field name="view_mode">graph,pivot,list</field>
         <field name="context">{
-            'search_default_group_by_month': 1,
-            'group_by': ['date:month'],
+            'group_by': ['date:month', 'department_id'],
         }</field>
         <field name="domain">[]</field>
         <field name="help" type="html">
@@ -160,9 +169,26 @@ action = model.action_create_current_month_summary()
                 <field name="employee_id"/>
                 <field name="department_id"/>
                 <field name="job_id"/>
+                <field name="current_token_balance"/>
                 <field name="lateness_count" sum="Total"/>
                 <field name="lateness_minutes" sum="Total"/>
                 <field name="avg_minutes_per_lateness"/>
+                <field name="last_lateness_date"/>
+                <button name="action_view_lateness_logs" string="ดูรายละเอียด" type="object" class="oe_link"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_lateness_monthly_summary_line_manager_tree" model="ir.ui.view">
+        <field name="name">hr.lateness.monthly_summary.line.manager.tree</field>
+        <field name="model">hr.lateness.monthly_summary.line</field>
+        <field name="arch" type="xml">
+            <list string="สรุปการมาสายรายเดือน (ทีมของฉัน)" default_order="lateness_count desc, last_lateness_date desc">
+                <field name="employee_id"/>
+                <field name="current_token_balance" string="Token ปัจจุบัน"/>
+                <field name="lateness_count" string="จำนวนครั้งมาสาย"/>
+                <field name="last_lateness_date" string="มาสายล่าสุด"/>
+                <button name="action_view_lateness_logs" string="ดูรายละเอียด" type="object" class="oe_link"/>
             </list>
         </field>
     </record>
@@ -192,5 +218,22 @@ action = model.action_create_current_month_summary()
         </field>
     </record>
 
-</odoo>
+    <!-- Manager List Action -->
+    <record id="action_lateness_monthly_summary_manager_lines" model="ir.actions.act_window">
+        <field name="name">สรุปการมาสายรายเดือน (ทีมของฉัน)</field>
+        <field name="res_model">hr.lateness.monthly_summary.line</field>
+        <field name="view_mode">list,form</field>
+        <field name="views" eval="[(ref('view_lateness_monthly_summary_line_manager_tree'), 'tree'), (ref('view_lateness_monthly_summary_line_form'), 'form')]"/>
+        <field name="domain">[]</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                ยังไม่มีข้อมูลการมาสาย
+            </p>
+            <p>
+                ระบบจะสรุปเป็นรายพนักงานตามงวดปัจจุบัน<br/>
+                ใช้ปุ่ม <b>ดูรายละเอียด</b> เพื่อเปิด Lateness Log ตามเดือน
+            </p>
+        </field>
+    </record>
 
+</odoo>

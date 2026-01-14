@@ -70,6 +70,10 @@
               <td style="padding: 8px; border: 1px solid #bdc3c7;"><b>วันที่สรุปบทลงโทษ</b></td>
               <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="format_datetime(object.punishment_at) if object.punishment_at else '-'"/></td>
             </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><b>Token คงเหลือปัจจุบัน</b></td>
+              <td style="padding: 8px; border: 1px solid #bdc3c7;"><t t-out="object.employee_id.current_token_balance or 0"/></td>
+            </tr>
           </table>
           <t t-if="object.punishment_note">
             <p><b>ข้อความเพิ่มเติม:</b></p>

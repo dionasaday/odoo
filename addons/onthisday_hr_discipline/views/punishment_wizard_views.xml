@@ -9,7 +9,7 @@
           <field name="case_id" readonly="1"/>
           <field name="action_taken_id"
                  options="{'no_open': False, 'no_quick_create': False, 'no_create_edit': False}"/>
-          <field name="punishment_note" placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)"/>
+          <field name="punishment_note" placeholder="ดึงจากเทมเพลตบทลงโทษให้อัตโนมัติ (แก้ไขได้)"/>
         </group>
         <footer>
           <button name="action_confirm" string="บันทึก" type="object" class="btn-primary"/>

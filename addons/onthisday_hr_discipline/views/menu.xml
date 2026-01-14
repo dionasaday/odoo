@@ -59,6 +59,13 @@
               sequence="2"
               groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
 
+    <menuitem id="menu_token_balance_summary"
+              name="สรุป Token คงเหลือ"
+              parent="menu_hr_discipline_root"
+              action="onthisday_hr_discipline.action_token_balance_summary_router"
+              sequence="3"
+              groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+
 
     <!-- Configuration -->
     <menuitem id="menu_hr_discipline_config"
@@ -117,8 +124,8 @@
     <menuitem id="menu_lateness_monthly_summary"
               name="สรุปการมาสายรายเดือน"
               parent="menu_hr_discipline_root"
-              action="onthisday_hr_discipline.action_hr_lateness_monthly_summary"
-              sequence="3"
+              action="onthisday_hr_discipline.action_lateness_monthly_summary_router"
+              sequence="4"
               groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
 
     <menuitem id="menu_hr_discipline_email_log"

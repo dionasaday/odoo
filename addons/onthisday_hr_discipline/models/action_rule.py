@@ -11,8 +11,8 @@ class DisciplineAction(models.Model):
     min_points = fields.Integer(required=True, default=1)
     max_points = fields.Integer(required=True, default=1)
     auto_reset = fields.Boolean(
-        default=True,
-        help="เมื่อลงโทษตามรายการนี้แล้ว จะตัดคะแนนสะสมของปีนั้นให้เป็น 0 โดยอัตโนมัติ",
+        default=False,
+        help="เปิดใช้เมื่อต้องการรีเซ็ตคะแนนสะสมของปีนั้นหลังสรุปบทลงโทษ",
     )
     send_punishment_email = fields.Boolean(
         string="ส่งอีเมลหลังสรุปบทลงโทษ",

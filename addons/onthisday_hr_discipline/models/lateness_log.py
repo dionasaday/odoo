@@ -27,6 +27,13 @@ class HrLatenessLog(models.Model):
     date          = fields.Date(required=True, index=True)
     minutes       = fields.Integer(string="Lateness (min)", required=True)
     attendance_id = fields.Many2one("hr.attendance", ondelete="set null", index=True)
+    department_id = fields.Many2one(
+        "hr.department",
+        related="employee_id.department_id",
+        store=True,
+        readonly=True,
+        string="Department",
+    )
 
     # ผูกเข้ากับเคสที่ bundle แล้ว (legacy - Policy 002/2025 uses per-attendance cases)
     case_id = fields.Many2one(

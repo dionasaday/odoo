@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- Token Balance Summary (List) -->
+  <record id="view_employee_token_balance_summary_tree" model="ir.ui.view">
+    <field name="name">hr.employee.token.balance.summary.tree</field>
+    <field name="model">hr.employee</field>
+    <field name="arch" type="xml">
+      <list string="สรุป Token คงเหลือ" create="0" edit="0" delete="0">
+        <field name="name"/>
+        <field name="department_id"/>
+        <field name="job_id"/>
+        <field name="parent_id"/>
+        <field name="company_management_review_threshold" invisible="1"/>
+        <field name="current_token_balance" widget="badge"
+               decoration-danger="current_token_balance &lt;= 0"
+               decoration-warning="current_token_balance &gt; 0 and current_token_balance &lt;= (company_management_review_threshold or 0)"
+               decoration-success="current_token_balance &gt; (company_management_review_threshold or 0)"/>
+        <field name="tokens_deducted_this_period" string="Tokens Deducted"/>
+        <field name="token_period_start"/>
+        <field name="token_period_end"/>
+      </list>
+    </field>
+  </record>
+
+  <!-- Token Balance Summary (Search) -->
+  <record id="view_employee_token_balance_summary_search" model="ir.ui.view">
+    <field name="name">hr.employee.token.balance.summary.search</field>
+    <field name="model">hr.employee</field>
+    <field name="arch" type="xml">
+      <search string="สรุป Token คงเหลือ">
+        <field name="name"/>
+        <field name="department_id"/>
+        <field name="job_id"/>
+        <field name="parent_id" string="Manager"/>
+        <field name="company_id"/>
+      </search>
+    </field>
+  </record>
+
+  <!-- Action for Token Balance Summary -->
+  <record id="action_token_balance_summary" model="ir.actions.act_window">
+    <field name="name">สรุป Token คงเหลือ</field>
+    <field name="res_model">hr.employee</field>
+    <field name="view_mode">list</field>
+    <field name="view_id" ref="view_employee_token_balance_summary_tree"/>
+    <field name="views" eval="[(ref('view_employee_token_balance_summary_tree'), 'list')]"/>
+    <field name="search_view_id" ref="view_employee_token_balance_summary_search"/>
+    <field name="domain">[]</field>
+    <field name="context">{'create': False, 'edit': False, 'token_balance_summary': True}</field>
+  </record>
+
+  <!-- Router Action (HR = all, Manager = team) -->
+  <record id="action_token_balance_summary_router" model="ir.actions.server">
+    <field name="name">สรุป Token คงเหลือ</field>
+    <field name="model_id" ref="hr.model_hr_employee"/>
+    <field name="state">code</field>
+    <field name="code">
+action = model.action_open_token_balance_summary()
+    </field>
+  </record>
+</odoo>

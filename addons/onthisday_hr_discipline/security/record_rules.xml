@@ -6,11 +6,7 @@
     <field name="name">Discipline Case - Own</field>
     <field name="model_id" ref="model_hr_discipline_case"/>
     <field name="domain_force">
-      [
-        '|',
-        ('employee_id.user_id', '=', user.id),
-        ('id', '!=', 0) if user.has_group('onthisday_hr_discipline.group_discipline_hr') or user.has_group('onthisday_hr_discipline.group_discipline_manager') else ('id', '=', 0)
-      ]
+      [('employee_id.user_id', '=', user.id)]
     </field>
     <field name="groups" eval="[(4, ref('onthisday_hr_discipline.group_discipline_user'))]"/>
     <field name="perm_read" eval="1"/>
@@ -19,14 +15,14 @@
     <field name="perm_unlink" eval="0"/>
   </record>
 
-  <!-- HR/MANAGER: เห็นเฉพาะบริษัทที่กำลังใช้งาน (current company) -->
+  <!-- HR: เห็นเฉพาะบริษัทที่กำลังใช้งาน (current company) -->
   <record id="rule_case_hr_all" model="ir.rule">
     <field name="name">Discipline Case - HR/Manager (By Company)</field>
     <field name="model_id" ref="model_hr_discipline_case"/>
     <field name="domain_force">
       ['|', ('employee_id.company_id','=',False), ('employee_id.company_id','=', user.company_id.id)]
     </field>
-    <field name="groups" eval="[(4, ref('onthisday_hr_discipline.group_discipline_hr'))]"/>
+    <field name="groups" eval="[(6, 0, [ref('onthisday_hr_discipline.group_discipline_hr')])]"/>
     <field name="perm_read" eval="1"/>
     <field name="perm_write" eval="1"/>
     <field name="perm_create" eval="1"/>
@@ -63,16 +59,44 @@
     <field name="perm_unlink" eval="0"/>
   </record>
 
+  <!-- Employee Contract (hr.version): HR เห็นตามบริษัท -->
+  <record id="rule_hr_version_hr_all" model="ir.rule">
+    <field name="name">Employee Contract - HR (By Company)</field>
+    <field name="model_id" ref="hr.model_hr_version"/>
+    <field name="domain_force">
+      ['|', ('company_id','=',False), ('company_id','=', user.company_id.id)]
+    </field>
+    <field name="groups" eval="[(4, ref('onthisday_hr_discipline.group_discipline_hr'))]"/>
+    <field name="perm_read" eval="1"/>
+    <field name="perm_write" eval="0"/>
+    <field name="perm_create" eval="0"/>
+    <field name="perm_unlink" eval="0"/>
+  </record>
+
+  <!-- Employee Contract (hr.version): Manager เห็นเฉพาะลูกทีมในบริษัทปัจจุบัน -->
+  <record id="rule_hr_version_manager_team" model="ir.rule">
+    <field name="name">Employee Contract - Manager (Team Only)</field>
+    <field name="model_id" ref="hr.model_hr_version"/>
+    <field name="domain_force">
+      [
+        '&amp;',
+        '|', ('company_id','=',False), ('company_id','=', user.company_id.id),
+        ('employee_id','child_of', user.employee_id.id) if user.employee_id else ('id','=',0)
+      ]
+    </field>
+    <field name="groups" eval="[(4, ref('onthisday_hr_discipline.group_discipline_manager'))]"/>
+    <field name="perm_read" eval="1"/>
+    <field name="perm_write" eval="0"/>
+    <field name="perm_create" eval="0"/>
+    <field name="perm_unlink" eval="0"/>
+  </record>
+
   <!-- Ledger: กรองตามบริษัทผ่าน employee_id.company_id -->
   <record id="rule_ledger_user_own" model="ir.rule">
     <field name="name">Discipline Ledger - Own</field>
     <field name="model_id" ref="model_hr_discipline_point_ledger"/>
     <field name="domain_force">
-      [
-        '|',
-        ('employee_id.user_id', '=', user.id),
-        ('id', '!=', 0) if user.has_group('onthisday_hr_discipline.group_discipline_hr') or user.has_group('onthisday_hr_discipline.group_discipline_manager') else ('id', '=', 0)
-      ]
+      [('employee_id.user_id', '=', user.id)]
     </field>
     <field name="groups" eval="[(4, ref('onthisday_hr_discipline.group_discipline_user'))]"/>
     <field name="perm_read" eval="1"/>
@@ -100,11 +124,7 @@
     <field name="name">My Summary (Own)</field>
     <field name="model_id" ref="model_hr_discipline_my_summary"/>
     <field name="domain_force">
-      [
-        '|',
-        ('employee_id.user_id','=',user.id),
-        ('id', '!=', 0) if user.has_group('onthisday_hr_discipline.group_discipline_hr') or user.has_group('onthisday_hr_discipline.group_discipline_manager') else ('id', '=', 0)
-      ]
+      [('employee_id.user_id','=',user.id)]
     </field>
     <field name="groups" eval="[(4, ref('onthisday_hr_discipline.group_discipline_user'))]"/>
   </record>
@@ -140,11 +160,7 @@
     <field name="name">Lateness Log - Own</field>
     <field name="model_id" ref="model_hr_lateness_log"/>
     <field name="domain_force">
-      [
-        '|',
-        ('employee_id.user_id', '=', user.id),
-        ('id', '!=', 0) if user.has_group('onthisday_hr_discipline.group_discipline_hr') or user.has_group('onthisday_hr_discipline.group_discipline_manager') else ('id', '=', 0)
-      ]
+      [('employee_id.user_id', '=', user.id)]
     </field>
     <field name="groups" eval="[(4, ref('onthisday_hr_discipline.group_discipline_user'))]"/>
     <field name="perm_read" eval="1"/>
@@ -174,7 +190,7 @@
     <field name="domain_force">
       [
         ('company_id','=', user.company_id.id),
-        ('employee_id.parent_id.user_id','=', user.id)
+        ('employee_id.parent_id', 'child_of', user.employee_id.id) if user.employee_id else ('id','=',0)
       ]
     </field>
     <field name="groups" eval="[(4, ref('onthisday_hr_discipline.group_discipline_manager'))]"/>
@@ -231,13 +247,29 @@
 
   <!-- Lateness Monthly Summary Line: HR/Manager เห็นตามบริษัทที่กำลังใช้งาน (current company) -->
   <record id="rule_lateness_monthly_summary_line_hr_all" model="ir.rule">
-    <field name="name">Lateness Monthly Summary Line - HR/Manager (By Company)</field>
+    <field name="name">Lateness Monthly Summary Line - HR (By Company)</field>
     <field name="model_id" ref="model_hr_lateness_monthly_summary_line"/>
     <field name="domain_force">
       ['|', ('summary_id.company_id','=',False), ('summary_id.company_id','=', user.company_id.id)]
     </field>
-    <field name="groups" eval="[(4, ref('onthisday_hr_discipline.group_discipline_hr')),
-                                 (4, ref('onthisday_hr_discipline.group_discipline_manager'))]"/>
+    <field name="groups" eval="[(4, ref('onthisday_hr_discipline.group_discipline_hr'))]"/>
+    <field name="perm_read" eval="1"/>
+    <field name="perm_write" eval="1"/>
+    <field name="perm_create" eval="1"/>
+    <field name="perm_unlink" eval="1"/>
+  </record>
+
+  <!-- Lateness Monthly Summary Line: Manager เห็นเฉพาะลูกน้องของตัวเองในบริษัทปัจจุบัน -->
+  <record id="rule_lateness_monthly_summary_line_manager_team" model="ir.rule">
+    <field name="name">Lateness Monthly Summary Line - Manager (Team Only)</field>
+    <field name="model_id" ref="model_hr_lateness_monthly_summary_line"/>
+    <field name="domain_force">
+      [
+        ('summary_id.company_id','=', user.company_id.id),
+        ('employee_id.parent_id', 'child_of', user.employee_id.id) if user.employee_id else ('id','=',0)
+      ]
+    </field>
+    <field name="groups" eval="[(4, ref('onthisday_hr_discipline.group_discipline_manager'))]"/>
     <field name="perm_read" eval="1"/>
     <field name="perm_write" eval="1"/>
     <field name="perm_create" eval="1"/>

@@ -469,7 +469,10 @@ class DisciplineCase(models.Model):
             return False
         manager = emp.parent_id.sudo()
         email_values = Log._prepare_email_values(emp_email, manager=manager)
-        if self.punishment_note and "punishment_note" not in (tmpl.body_html or ""):
+        rendered = None
+        body_tpl = tmpl.body_html or ""
+
+        if self.punishment_note and "punishment_note" not in body_tpl:
             rendered = tmpl._render_field("body_html", [self.id]).get(self.id) or ""
             rendered = str(rendered)
             note_html = (
@@ -481,6 +484,23 @@ class DisciplineCase(models.Model):
                 rendered = rendered.replace("</div>", f"{note_html}</div>", 1)
             else:
                 rendered = f"{rendered}{note_html}"
+
+        if "current_token_balance" not in body_tpl and "Token คงเหลือ" not in body_tpl:
+            if rendered is None:
+                rendered = tmpl._render_field("body_html", [self.id]).get(self.id) or ""
+                rendered = str(rendered)
+            token_row = (
+                "<tr>"
+                "<td style=\"padding: 8px; border: 1px solid #bdc3c7;\"><b>Token คงเหลือปัจจุบัน</b></td>"
+                "<td style=\"padding: 8px; border: 1px solid #bdc3c7;\">%s</td>"
+                "</tr>"
+            ) % (emp.current_token_balance or 0)
+            if "</table>" in rendered:
+                rendered = rendered.replace("</table>", f"{token_row}</table>", 1)
+            else:
+                rendered = f"{rendered}{token_row}"
+
+        if rendered is not None:
             email_values["body_html"] = rendered
         try:
             tmpl.sudo().send_mail(self.id, force_send=True, email_values=email_values)
@@ -755,7 +775,8 @@ class DisciplineCase(models.Model):
             if not rec.action_taken_id:
                 rec.action_taken_id = rec.action_suggested_id
 
-            if rec.action_taken_id and rec.action_taken_id.auto_reset:
+            allow_reset = bool(self.env.context.get("allow_token_reset"))
+            if allow_reset and rec.action_taken_id and rec.action_taken_id.auto_reset:
                 total = rec._sum_points(rec.employee_id, rec.calendar_year)
                 if total:
                     Ledger.create(

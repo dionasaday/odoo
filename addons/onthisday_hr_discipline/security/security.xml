@@ -16,11 +16,13 @@
     <record id="group_discipline_hr" model="res.groups">
         <field name="name">Discipline HR</field>
         <field name="privilege_id" ref="res_groups_privilege_discipline"/>
+        <field name="implied_ids" eval="[(6, 0, [ref('onthisday_hr_discipline.group_discipline_user')])]"/>
     </record>
 
     <record id="group_discipline_manager" model="res.groups">
         <field name="name">Discipline Manager</field>
         <field name="privilege_id" ref="res_groups_privilege_discipline"/>
+        <field name="implied_ids" eval="[(6, 0, [ref('onthisday_hr_discipline.group_discipline_user')])]"/>
     </record>
 
     <!-- ให้ผู้ใช้ภายในทุกคนมีสิทธิ Discipline User (เห็นข้อมูลของตัวเองเท่านั้น) -->

@@ -165,7 +165,7 @@ class HrLatenessMonthlySummary(models.Model):
         Log = self.env["hr.lateness.log"].sudo()
 
         # ลบ line เดิม
-        self.line_ids.unlink()
+        self.sudo().line_ids.unlink()
 
         # หา min_minutes ตาม company setting
         min_minutes = (
@@ -318,6 +318,75 @@ class HrLatenessMonthlySummary(models.Model):
         summary._generate_lines_from_logs()
 
         return summary
+
+    @api.model
+    def _get_or_refresh_current_month_summary(self, company=None):
+        """สร้าง/รีเฟรชสรุปของเดือนปัจจุบันสำหรับมุมมองผู้จัดการ"""
+        if not company:
+            company = self.env.company
+
+        today = fields.Date.context_today(self)
+        date_from = date(today.year, today.month, 1)
+        date_to = today
+        period_date = date_from
+
+        summary = self.search(
+            [
+                ("company_id", "=", company.id),
+                ("period_date", "=", period_date),
+            ],
+            limit=1,
+        )
+        if summary:
+            summary.sudo().write(
+                {"date_from": date_from, "date_to": date_to, "state": summary.state}
+            )
+            summary.sudo()._generate_lines_from_logs()
+            return summary
+
+        summary = self.sudo().create(
+            {
+                "company_id": company.id,
+                "period_date": period_date,
+                "date_from": date_from,
+                "date_to": date_to,
+                "state": "draft",
+            }
+        )
+        summary.sudo()._generate_lines_from_logs()
+        return summary
+
+    @api.model
+    def action_open_monthly_summary(self):
+        """Routing action: HR = pivot/graph, Manager = team list view."""
+        user = self.env.user
+        if user.has_group("onthisday_hr_discipline.group_discipline_hr"):
+            return self._action_open_monthly_summary_hr()
+        if user.has_group("onthisday_hr_discipline.group_discipline_manager"):
+            return self._action_open_monthly_summary_manager()
+        raise UserError(_("You do not have access to this report."))
+
+    def _action_open_monthly_summary_hr(self):
+        """Open HR pivot/graph for lateness logs."""
+        action = self.env.ref(
+            "onthisday_hr_discipline.action_hr_lateness_monthly_summary"
+        ).read()[0]
+        return action
+
+    def _action_open_monthly_summary_manager(self):
+        """Open manager list view (one row per subordinate)."""
+        summary = self._get_or_refresh_current_month_summary()
+        action = self.env.ref(
+            "onthisday_hr_discipline.action_lateness_monthly_summary_manager_lines"
+        ).read()[0]
+        action.update(
+            {
+                "name": _("สรุปการมาสายรายเดือน (ทีมของฉัน)"),
+                "domain": [("summary_id", "=", summary.id)],
+                "context": {"default_summary_id": summary.id},
+            }
+        )
+        return action
 
     def action_confirm(self):
         """ปุ่ม Confirm: เปลี่ยนสถานะเป็น confirmed"""
@@ -584,6 +653,19 @@ class HrLatenessMonthlySummaryLine(models.Model):
         digits=(16, 1),
         help="ค่าเฉลี่ยนาทีต่อครั้ง",
     )
+    current_token_balance = fields.Integer(
+        related="employee_id.current_token_balance",
+        string="Current Token Balance",
+        store=False,
+        readonly=True,
+        help="Token ปัจจุบันของพนักงาน",
+    )
+    last_lateness_date = fields.Date(
+        string="Last Lateness",
+        compute="_compute_last_lateness_date",
+        store=False,
+        help="วันที่มาสายล่าสุดในงวดนี้",
+    )
 
     @api.depends("lateness_count", "lateness_minutes")
     def _compute_avg_minutes(self):
@@ -594,6 +676,29 @@ class HrLatenessMonthlySummaryLine(models.Model):
                 )
             else:
                 rec.avg_minutes_per_lateness = 0.0
+
+    @api.depends("employee_id", "summary_id.date_from", "summary_id.date_to")
+    def _compute_last_lateness_date(self):
+        Log = self.env["hr.lateness.log"]
+        for rec in self:
+            rec.last_lateness_date = False
+            if not rec.employee_id or not rec.summary_id:
+                continue
+
+            min_minutes = (
+                rec.summary_id.company_id.lateness_alert_min_minutes
+                or rec.summary_id.company_id.hr_lateness_grace
+                or 0
+            )
+            domain = [
+                ("employee_id", "=", rec.employee_id.id),
+                ("company_id", "=", rec.summary_id.company_id.id),
+                ("date", ">=", rec.summary_id.date_from),
+                ("date", "<=", rec.summary_id.date_to),
+                ("minutes", ">=", min_minutes),
+            ]
+            last_log = Log.search(domain, order="date desc", limit=1)
+            rec.last_lateness_date = last_log.date if last_log else False
 
     def action_view_lateness_logs(self):
         """เปิดดู lateness logs ของพนักงานนี้"""
