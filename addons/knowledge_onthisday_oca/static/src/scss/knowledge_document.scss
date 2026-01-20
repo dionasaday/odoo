@@ -2018,6 +2018,45 @@ html {
                         font-weight: 600;
                     }
 
+                    .o_knowledge_empty_list_summary {
+                        font-size: 12px;
+                        color: var(--knowledge-text-secondary);
+                        margin-top: 4px;
+                    }
+
+                    .o_knowledge_change_block {
+                        margin-top: 6px;
+                    }
+
+                    .o_knowledge_change_label {
+                        font-size: 11px;
+                        font-weight: 600;
+                        color: var(--knowledge-text-secondary);
+                        text-transform: uppercase;
+                        letter-spacing: 0.04em;
+                    }
+
+                    .o_knowledge_change_text {
+                        font-size: 12px;
+                        color: var(--knowledge-text);
+                        margin: 2px 0 6px;
+                        line-height: 1.4;
+
+                        mark.o_knowledge_change_old {
+                            background-color: #ffe0e0;
+                            color: #7a1d1d;
+                            border-radius: 4px;
+                            padding: 0 2px;
+                        }
+
+                        mark.o_knowledge_change_new {
+                            background-color: #dff3e4;
+                            color: #1f5a2d;
+                            border-radius: 4px;
+                            padding: 0 2px;
+                        }
+                    }
+
                     .o_knowledge_empty_list_meta {
                         font-size: 12px;
                         color: var(--knowledge-text-secondary);
@@ -2025,6 +2064,12 @@ html {
                         display: flex;
                         gap: 8px;
                         align-items: center;
+
+                        .o_knowledge_update_label {
+                            font-size: 11px;
+                            letter-spacing: 0.02em;
+                            text-transform: uppercase;
+                        }
 
                         .o_knowledge_author_badge {
                             display: inline-flex;
@@ -2049,6 +2094,19 @@ html {
                                 display: inline-block;
                             }
                         }
+                    }
+
+                    .o_knowledge_meta_people {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 6px 10px;
+                        align-items: center;
+                    }
+
+                    .o_knowledge_meta_person {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 6px;
                     }
                 }
 

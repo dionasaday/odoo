@@ -107,6 +107,13 @@ export class KnowledgeDocumentController extends Component {
             currentTextSelection: null, // Current text selection data
             triggerCommentCreation: false, // Trigger comment creation from floating button
             newCommentBody: "", // Draft comment body
+            dashboardCards: {
+                recent: [],
+                popular: [],
+                updated: [],
+                newest: [],
+            },
+            dashboardLoading: false,
         });
         this._floatingTOCHeadings = [];
         this.inlineTOCElement = null;
@@ -154,6 +161,7 @@ export class KnowledgeDocumentController extends Component {
                 this.state.currentUserId = null;
             }
             await this.loadArticles(1, false);
+            await this.loadDashboardCards();
             const actionArticleId = this._getActionArticleId();
             if (actionArticleId) {
                 this.state.selectedArticleId = actionArticleId;
@@ -227,6 +235,23 @@ export class KnowledgeDocumentController extends Component {
 
     updateNewCommentBody(value) {
         this.state.newCommentBody = value || "";
+    }
+
+    _normalizePdfUrl(pdfUrl) {
+        if (!pdfUrl) {
+            return pdfUrl;
+        }
+        const currentOrigin = window.location.origin || `${window.location.protocol}//${window.location.host}`;
+        try {
+            const parsedUrl = new URL(pdfUrl, currentOrigin);
+            if (parsedUrl.origin !== currentOrigin) {
+                return `${currentOrigin}${parsedUrl.pathname}${parsedUrl.search}${parsedUrl.hash}`;
+            }
+            return parsedUrl.toString();
+        } catch (error) {
+            logger.warn("Failed to normalize PDF URL, using raw value", { pdfUrl, error });
+            return pdfUrl;
+        }
     }
 
     renderContent() {
@@ -306,7 +331,10 @@ export class KnowledgeDocumentController extends Component {
             }
             
             // Use access_url for inline viewing (without download parameter)
-            let pdfUrl = pdfAttachment.access_url || pdfAttachment.url;
+            const rawPdfUrl = pdfAttachment.access_url || pdfAttachment.url;
+            const rawDownloadUrl = pdfAttachment.url || pdfAttachment.access_url;
+            let pdfUrl = this._normalizePdfUrl(rawPdfUrl);
+            const downloadUrl = this._normalizePdfUrl(rawDownloadUrl || rawPdfUrl);
             const pdfName = pdfAttachment.name || 'PDF Document';
             
             if (!pdfUrl) {
@@ -394,7 +422,7 @@ export class KnowledgeDocumentController extends Component {
                                 data-article-id="${currentArticleId}">
                                 <p class="o_knowledge_pdf_fallback_message">
                                     เบราว์เซอร์ของคุณไม่รองรับการแสดง PDF ในหน้าเว็บ 
-                                    <a href="${pdfAttachment.url || pdfUrl}" target="_blank" download="${pdfName}" class="btn btn-primary" style="margin-top: 10px; display: inline-block;">
+                                    <a href="${downloadUrl || pdfUrl}" target="_blank" download="${pdfName}" class="btn btn-primary" style="margin-top: 10px; display: inline-block;">
                                         ดาวน์โหลด PDF
                                     </a>
                                 </p>
@@ -1828,6 +1856,10 @@ export class KnowledgeDocumentController extends Component {
     }
 
     getRecentArticles(limit = 5) {
+        const recent = this.state.dashboardCards?.recent || [];
+        if (recent.length) {
+            return recent.slice(0, limit);
+        }
         const all = this.getAllArticlesFlat();
         const history = this._loadUserHistory();
         const recentOrder = history.recent || [];
@@ -1845,6 +1877,10 @@ export class KnowledgeDocumentController extends Component {
     }
 
     getPopularArticles(limit = 5) {
+        const popular = this.state.dashboardCards?.popular || [];
+        if (popular.length) {
+            return popular.slice(0, limit);
+        }
         const all = this.getAllArticlesFlat();
         const history = this._loadUserHistory();
         const counts = history.counts || {};
@@ -1860,6 +1896,10 @@ export class KnowledgeDocumentController extends Component {
     }
 
     getNewestArticles(limit = 5) {
+        const newest = this.state.dashboardCards?.newest || [];
+        if (newest.length) {
+            return newest.slice(0, limit);
+        }
         const all = this.getAllArticlesFlat();
         return all
             .slice()
@@ -1869,6 +1909,14 @@ export class KnowledgeDocumentController extends Component {
                 return bDate.localeCompare(aDate);
             })
             .slice(0, limit);
+    }
+
+    getRecentlyUpdatedArticles(limit = 5) {
+        const updated = this.state.dashboardCards?.updated || [];
+        if (updated.length) {
+            return updated.slice(0, limit);
+        }
+        return [];
     }
 
     getSearchResults() {
@@ -2064,6 +2112,36 @@ export class KnowledgeDocumentController extends Component {
         }
     }
 
+    async loadDashboardCards(limit = 5) {
+        this.state.dashboardLoading = true;
+        try {
+            const payload = await this.orm.call(
+                "knowledge.article",
+                "get_dashboard_cards",
+                [],
+                { limit }
+            );
+            const decorateUpdated = (items = []) => {
+                return items.map((item) => ({
+                    ...item,
+                    change_before: item.change_before ? markup(item.change_before) : "",
+                    change_after: item.change_after ? markup(item.change_after) : "",
+                }));
+            };
+            this.state.dashboardCards = {
+                recent: payload?.recent || [],
+                popular: payload?.popular || [],
+                updated: decorateUpdated(payload?.updated || []),
+                newest: payload?.newest || [],
+            };
+        } catch (error) {
+            logger.error("Error loading dashboard cards:", error);
+            this.state.dashboardCards = { recent: [], popular: [], updated: [], newest: [] };
+        } finally {
+            this.state.dashboardLoading = false;
+        }
+    }
+
     onSearchChange(query) {
         this.state.searchQuery = query;
         this.state.searchLoading = true;
@@ -2210,6 +2288,11 @@ export class KnowledgeDocumentController extends Component {
         history.recent = history.recent || [];
         history.recent = [articleId, ...history.recent.filter(id => id !== articleId)].slice(0, 50);
         this._saveUserHistory(history);
+
+        this.orm.call("knowledge.article", "track_article_view", [[articleId]])
+            .catch((error) => {
+                logger.warn("Error tracking article view:", error);
+            });
     }
 
     clearTagFilter() {

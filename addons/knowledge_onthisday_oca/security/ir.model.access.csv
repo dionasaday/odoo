@@ -17,3 +17,6 @@ access_knowledge_article_member_manager,knowledge.article.member.manager,model_k
 access_knowledge_article_revision_user,knowledge.article.revision.user,model_knowledge_article_revision,base.group_user,1,0,1,0
 access_knowledge_article_revision_system,knowledge.article.revision.system,model_knowledge_article_revision,base.group_system,1,1,1,1
 access_knowledge_article_revision_manager,knowledge.article.revision.manager,model_knowledge_article_revision,knowledge_onthisday_oca.group_knowledge_manager,1,1,1,1
+access_knowledge_article_view_user,knowledge.article.view.user,model_knowledge_article_view,base.group_user,1,1,1,0
+access_knowledge_article_view_system,knowledge.article.view.system,model_knowledge_article_view,base.group_system,1,1,1,1
+access_knowledge_article_view_manager,knowledge.article.view.manager,model_knowledge_article_view,knowledge_onthisday_oca.group_knowledge_manager,1,1,1,1

@@ -637,7 +637,7 @@
                                 </div>
                                 <div class="o_knowledge_empty_card">
                                     <div class="o_knowledge_empty_card_header">
-                                        <span>บทความล่าสุด</span>
+                                        <span>บทความที่ดูล่าสุด</span>
                                     </div>
                                     <t t-set="recentArticles" t-value="this.getRecentArticles(5)"/>
                                     <t t-if="recentArticles.length">
@@ -649,7 +649,10 @@
                                                     <t t-if="article.category_name">
                                                         <span t-esc="article.category_name"/>
                                                     </t>
-                                                    <t t-if="article.write_date">
+                                                    <t t-if="article.last_viewed">
+                                                        <span t-esc="article.last_viewed"/>
+                                                    </t>
+                                                    <t t-elif="article.write_date">
                                                         <span t-esc="article.write_date"/>
                                                     </t>
                                                     <t t-if="article.responsible_name">
@@ -667,6 +670,79 @@
                                             </li>
                                         </t>
                                     </ul>
+                                    </t>
+                                    <t t-else="">
+                                        <div class="o_knowledge_empty_list_placeholder">ยังไม่มีข้อมูล</div>
+                                    </t>
+                                </div>
+                                <div class="o_knowledge_empty_card">
+                                    <div class="o_knowledge_empty_card_header">
+                                        <span>บทความปรับปรุงล่าสุด</span>
+                                    </div>
+                                    <t t-set="updatedArticles" t-value="this.getRecentlyUpdatedArticles(5)"/>
+                                    <t t-if="updatedArticles.length">
+                                        <ul class="o_knowledge_empty_list">
+                                            <t t-foreach="updatedArticles" t-as="article" t-key="article.id">
+                                                <li t-on-click="() => this.onArticleClick(article.id)">
+                                                    <div class="o_knowledge_empty_list_title" t-esc="article.name"/>
+                                                    <t t-if="article.change_before or article.change_after">
+                                                        <div class="o_knowledge_change_block">
+                                                            <t t-if="article.change_before">
+                                                                <div class="o_knowledge_change_label">เดิม</div>
+                                                                <div class="o_knowledge_change_text" t-raw="article.change_before"/>
+                                                            </t>
+                                                            <t t-if="article.change_after">
+                                                                <div class="o_knowledge_change_label">ปรับปรุง</div>
+                                                                <div class="o_knowledge_change_text" t-raw="article.change_after"/>
+                                                            </t>
+                                                        </div>
+                                                    </t>
+                                                    <t t-elif="article.last_change_summary">
+                                                        <div class="o_knowledge_empty_list_summary" t-esc="article.last_change_summary"/>
+                                                    </t>
+                                                    <div class="o_knowledge_empty_list_meta">
+                                                        <t t-if="article.category_name">
+                                                            <span t-esc="article.category_name"/>
+                                                        </t>
+                                                        <t t-if="article.write_date">
+                                                            <span t-esc="article.write_date"/>
+                                                        </t>
+                                                        <t t-if="article.update_user_name or article.responsible_name">
+                                                            <div class="o_knowledge_meta_people">
+                                                                <t t-if="article.update_user_name">
+                                                                    <div class="o_knowledge_meta_person">
+                                                                        <span class="o_knowledge_update_label">ปรับปรุงโดย</span>
+                                                                        <span class="o_knowledge_author_badge">
+                                                                            <t t-if="article.update_user_avatar">
+                                                                                <img t-att-src="'data:image/png;base64,' + article.update_user_avatar" class="o_knowledge_author_avatar_img"/>
+                                                                            </t>
+                                                                            <t t-else="">
+                                                                                <span class="o_knowledge_author_avatar">👤</span>
+                                                                            </t>
+                                                                            <span t-esc="article.update_user_name"/>
+                                                                        </span>
+                                                                    </div>
+                                                                </t>
+                                                                <t t-if="article.responsible_name">
+                                                                    <div class="o_knowledge_meta_person">
+                                                                        <span class="o_knowledge_update_label">เจ้าของ</span>
+                                                                        <span class="o_knowledge_author_badge">
+                                                                            <t t-if="article.responsible_avatar">
+                                                                                <img t-att-src="'data:image/png;base64,' + article.responsible_avatar" class="o_knowledge_author_avatar_img"/>
+                                                                            </t>
+                                                                            <t t-else="">
+                                                                                <span class="o_knowledge_author_avatar">👤</span>
+                                                                            </t>
+                                                                            <span t-esc="article.responsible_name"/>
+                                                                        </span>
+                                                                    </div>
+                                                                </t>
+                                                            </div>
+                                                        </t>
+                                                    </div>
+                                                </li>
+                                            </t>
+                                        </ul>
                                     </t>
                                     <t t-else="">
                                         <div class="o_knowledge_empty_list_placeholder">ยังไม่มีข้อมูล</div>

@@ -10,6 +10,14 @@
             <field name="domain_force">['&amp;', ('active', '=', True), '|', ('responsible_id', '=', user.id), ('shared_user_ids', 'in', user.id)]</field>
             <field name="groups" eval="[(4, ref('base.group_user'))]"/>
         </record>
+
+        <!-- Rule: Regular users can see all active articles -->
+        <record id="knowledge_article_user_rule_active_all" model="ir.rule">
+            <field name="name">Knowledge Article: User Access - All Active</field>
+            <field name="model_id" ref="model_knowledge_article"/>
+            <field name="domain_force">[('active', '=', True)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
         
         <!-- Rule: System users can see all articles (including inactive/trashed) -->
         <!-- System administrators need full access to manage and restore articles -->
@@ -174,6 +182,30 @@
         <record id="knowledge_article_revision_manager_rule" model="ir.rule">
             <field name="name">Knowledge Article Revision: Manager Access</field>
             <field name="model_id" ref="model_knowledge_article_revision"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('knowledge_onthisday_oca.group_knowledge_manager'))]"/>
+        </record>
+
+        <!-- Rule: Users can see their own view history -->
+        <record id="knowledge_article_view_user_rule" model="ir.rule">
+            <field name="name">Knowledge Article View: User Access</field>
+            <field name="model_id" ref="model_knowledge_article_view"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        </record>
+
+        <!-- Rule: System users can see all view history -->
+        <record id="knowledge_article_view_system_rule" model="ir.rule">
+            <field name="name">Knowledge Article View: System Access</field>
+            <field name="model_id" ref="model_knowledge_article_view"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+        </record>
+
+        <!-- Rule: Knowledge Managers can see all view history -->
+        <record id="knowledge_article_view_manager_rule" model="ir.rule">
+            <field name="name">Knowledge Article View: Manager Access</field>
+            <field name="model_id" ref="model_knowledge_article_view"/>
             <field name="domain_force">[(1, '=', 1)]</field>
             <field name="groups" eval="[(4, ref('knowledge_onthisday_oca.group_knowledge_manager'))]"/>
         </record>

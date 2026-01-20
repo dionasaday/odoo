@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 
+import difflib
+import html as html_lib
+import re
+
 from odoo import models, fields, api, _
 from odoo.exceptions import AccessError, UserError
+from odoo.tools import html2plaintext
 
 
 class KnowledgeArticle(models.Model):
@@ -219,6 +224,11 @@ class KnowledgeArticle(models.Model):
         help='Default access rights for newly invited users'
     )
 
+    last_change_summary = fields.Text(
+        string='Last Change Summary',
+        help='Summary sentence for the latest content update.'
+    )
+
     # Tags: Many2many to track tags/labels for this article
     tag_ids = fields.Many2many(
         comodel_name='knowledge.article.tag',
@@ -371,6 +381,297 @@ class KnowledgeArticle(models.Model):
                 return True
         return False
 
+    def _can_read_article(self, user=None):
+        """Check if user has read access to this article
+        
+        Returns True if:
+        - User is system/admin/manager
+        - Internal users can read all active articles
+        - User is the responsible (owner)
+        - User is a share member with read or edit permission
+        """
+        user = user or self.env.user
+        if not user:
+            return False
+        if user.has_group('base.group_system') or user.has_group('knowledge_onthisday_oca.group_knowledge_manager'):
+            return True
+        if user.has_group('base.group_user'):
+            for article in self:
+                if article.active:
+                    return True
+            return False
+        for article in self:
+            # Owner always has access
+            if article.responsible_id.id == user.id:
+                return True
+            # Shared users (record rule uses shared_user_ids)
+            if article.shared_user_ids.filtered(lambda u: u.id == user.id):
+                return True
+            # Check if user is a share member with read or edit permission
+            if article.share_member_ids.filtered(lambda m: m.user_id.id == user.id and m.permission in ('read', 'edit')):
+                return True
+        return False
+
+    def _normalize_plain_text(self, html_content):
+        text = html2plaintext(html_content or "")
+        text = re.sub(r'\s+', ' ', text).strip()
+        return text
+
+    def _split_sentences(self, text):
+        if not text:
+            return []
+        parts = re.split(r'(?<=[.!?])\s+|\n+', text)
+        return [part.strip() for part in parts if part and part.strip()]
+
+    def _truncate_text(self, text, max_len=160):
+        if not text:
+            return ""
+        if len(text) <= max_len:
+            return text
+        return f"{text[:max_len].rstrip()}..."
+
+    def _build_change_summary(self, old_html, new_html):
+        old_text = self._normalize_plain_text(old_html)
+        new_text = self._normalize_plain_text(new_html)
+        if not new_text:
+            return ""
+        if not old_text:
+            return self._truncate_text(new_text)
+
+        old_sentences = self._split_sentences(old_text)
+        new_sentences = self._split_sentences(new_text)
+        if new_sentences:
+            diff = difflib.ndiff(old_sentences, new_sentences)
+            for item in diff:
+                if item.startswith('+ '):
+                    return self._truncate_text(item[2:])
+
+        if old_text != new_text:
+            matcher = difflib.SequenceMatcher(None, old_text, new_text)
+            for tag, _i1, _i2, j1, j2 in matcher.get_opcodes():
+                if tag in ('replace', 'insert'):
+                    snippet = new_text[j1:j2].strip()
+                    if snippet:
+                        return self._truncate_text(snippet)
+            return self._truncate_text(new_text)
+
+        return ""
+
+    def _highlight_sentence_diff(self, old_sentence, new_sentence, max_tokens=40):
+        old_tokens = [t for t in (old_sentence or "").split() if t]
+        new_tokens = [t for t in (new_sentence or "").split() if t]
+        if not old_tokens and not new_tokens:
+            return "", ""
+
+        base_matcher = difflib.SequenceMatcher(None, old_tokens, new_tokens)
+        diff_ops = [op for op in base_matcher.get_opcodes() if op[0] != 'equal']
+        if diff_ops:
+            _, i1, i2, j1, j2 = diff_ops[0]
+            old_start = max(0, i1 - 6)
+            old_end = min(len(old_tokens), i2 + 6)
+            new_start = max(0, j1 - 6)
+            new_end = min(len(new_tokens), j2 + 6)
+        else:
+            old_start, old_end = 0, min(len(old_tokens), max_tokens)
+            new_start, new_end = 0, min(len(new_tokens), max_tokens)
+
+        old_slice = old_tokens[old_start:old_end]
+        new_slice = new_tokens[new_start:new_end]
+        matcher = difflib.SequenceMatcher(None, old_slice, new_slice)
+
+        def _escape_tokens(tokens):
+            return [html_lib.escape(token, quote=True) for token in tokens]
+
+        escaped_old = _escape_tokens(old_slice)
+        escaped_new = _escape_tokens(new_slice)
+
+        def _build_highlight(side):
+            parts = []
+            for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+                if tag == 'equal':
+                    tokens = escaped_old[i1:i2] if side == 'old' else escaped_new[j1:j2]
+                    parts.append(" ".join(tokens))
+                elif tag in ('delete', 'replace') and side == 'old':
+                    tokens = " ".join(escaped_old[i1:i2])
+                    if tokens:
+                        parts.append(f"<mark class=\"o_knowledge_change_old\">{tokens}</mark>")
+                elif tag in ('insert', 'replace') and side == 'new':
+                    tokens = " ".join(escaped_new[j1:j2])
+                    if tokens:
+                        parts.append(f"<mark class=\"o_knowledge_change_new\">{tokens}</mark>")
+            return " ".join([p for p in parts if p])
+
+        old_text = _build_highlight('old')
+        new_text = _build_highlight('new')
+
+        old_prefix = "..." if old_start > 0 else ""
+        old_suffix = "..." if old_end < len(old_tokens) else ""
+        new_prefix = "..." if new_start > 0 else ""
+        new_suffix = "..." if new_end < len(new_tokens) else ""
+
+        old_text = f"{old_prefix}{old_text}{old_suffix}".strip()
+        new_text = f"{new_prefix}{new_text}{new_suffix}".strip()
+
+        return old_text, new_text
+
+    def _build_change_diff(self, old_html, new_html):
+        old_text = self._normalize_plain_text(old_html)
+        new_text = self._normalize_plain_text(new_html)
+        if not old_text and not new_text:
+            return {"before": "", "after": ""}
+        if not old_text:
+            escaped = html_lib.escape(new_text, quote=True)
+            return {"before": "", "after": self._truncate_text(escaped)}
+
+        old_sentences = self._split_sentences(old_text)
+        new_sentences = self._split_sentences(new_text)
+        if not new_sentences:
+            return {"before": "", "after": ""}
+
+        new_sentence = next((s for s in new_sentences if s not in old_sentences), new_sentences[0])
+        best_old = ""
+        best_ratio = 0.0
+        for sentence in old_sentences:
+            ratio = difflib.SequenceMatcher(None, sentence, new_sentence).ratio()
+            if ratio > best_ratio:
+                best_ratio = ratio
+                best_old = sentence
+        if not best_old:
+            best_old = old_sentences[0] if old_sentences else ""
+
+        before, after = self._highlight_sentence_diff(best_old, new_sentence)
+        return {
+            "before": before,
+            "after": after,
+        }
+
+    def track_article_view(self):
+        self.ensure_one()
+        if not self._can_read_article():
+            return False
+        View = self.env['knowledge.article.view'].sudo()
+        now = fields.Datetime.now()
+        view = View.search([
+            ('user_id', '=', self.env.user.id),
+            ('article_id', '=', self.id),
+        ], limit=1)
+        if view:
+            view.write({
+                'view_count': view.view_count + 1,
+                'last_viewed': now,
+            })
+        else:
+            View.create({
+                'user_id': self.env.user.id,
+                'article_id': self.id,
+                'view_count': 1,
+                'first_viewed': now,
+                'last_viewed': now,
+            })
+        return True
+
+    @api.model
+    def get_dashboard_cards(self, limit=5):
+        try:
+            limit = int(limit)
+        except (TypeError, ValueError):
+            limit = 5
+        limit = max(1, min(limit, 20))
+
+        user_id = self.env.user.id
+        View = self.env['knowledge.article.view'].sudo()
+
+        recent_views = View.search(
+            [('user_id', '=', user_id)],
+            order='last_viewed desc',
+            limit=limit,
+        )
+        popular_views = View.search(
+            [('user_id', '=', user_id)],
+            order='view_count desc, last_viewed desc',
+            limit=limit,
+        )
+
+        def _serialize_article(article, extra=None):
+            update_user = article.write_uid
+            return {
+                'id': article.id,
+                'name': article.name or '',
+                'category_name': article.category_id.name or '',
+                'responsible_name': article.responsible_id.name or '',
+                'responsible_avatar': article.responsible_id.image_128 or False,
+                'write_date': fields.Datetime.to_string(article.write_date) if article.write_date else '',
+                'create_date': fields.Datetime.to_string(article.create_date) if article.create_date else '',
+                'last_change_summary': article.last_change_summary or '',
+                'update_user_name': update_user.name if update_user else '',
+                'update_user_avatar': update_user.image_128 if update_user else False,
+                **(extra or {}),
+            }
+
+        def _serialize_ordered(view_records, include_view=False):
+            article_ids = view_records.mapped('article_id').ids
+            articles = {a.id: a for a in self.browse(article_ids).exists() if a.active}
+            result = []
+            for view in view_records:
+                article = articles.get(view.article_id.id)
+                if not article:
+                    continue
+                extra = {}
+                if include_view:
+                    extra = {
+                        'last_viewed': fields.Datetime.to_string(view.last_viewed) if view.last_viewed else '',
+                        'view_count': view.view_count,
+                    }
+                result.append(_serialize_article(article, extra))
+            return result
+
+        recent_articles = _serialize_ordered(recent_views, include_view=True)
+        popular_articles = _serialize_ordered(popular_views, include_view=False)
+
+        revision_map = {}
+        updated_articles = self.browse([])
+        revisions = self.env['knowledge.article.revision'].sudo().search(
+            [('article_id.active', '=', True)],
+            order='create_date desc',
+            limit=limit * 5,
+        )
+        for rev in revisions:
+            article = self.browse(rev.article_id.id)
+            if not article.exists() or not article.active:
+                continue
+            if not article._can_read_article():
+                continue
+            if article.id in revision_map:
+                continue
+            revision_map[article.id] = rev
+            updated_articles += article
+            if len(updated_articles) >= limit:
+                break
+
+        newest_articles = self.search([
+            ('active', '=', True),
+        ], order='create_date desc', limit=limit)
+
+        return {
+            'recent': recent_articles,
+            'popular': popular_articles,
+            'updated': [
+                _serialize_article(a, {
+                    'change_before': diff.get('before'),
+                    'change_after': diff.get('after'),
+                    'update_user_name': updater.name if updater else '',
+                    'update_user_avatar': updater.image_128 if updater else False,
+                })
+                for a in updated_articles
+                for rev in [revision_map.get(a.id)]
+                for updater in [rev.create_uid if rev and rev.create_uid else a.write_uid]
+                for diff in [self._build_change_diff(
+                    revision_map.get(a.id).content if revision_map.get(a.id) else "",
+                    a.content or "",
+                )]
+            ],
+            'newest': [_serialize_article(a) for a in newest_articles],
+        }
     def _can_manage_share(self, user=None):
         return self._can_edit_article(user=user)
 
@@ -574,15 +875,29 @@ class KnowledgeArticle(models.Model):
         return revision
 
     def write(self, vals):
+        skip_change_summary = self.env.context.get('skip_change_summary')
         if not self.env.context.get('skip_article_access_check'):
             allowed_fields = {'favorite_user_ids'}
             for article in self:
                 if not article._can_edit_article() and not (set(vals.keys()) <= allowed_fields):
                     raise AccessError(_('You do not have permission to edit this article.'))
+        old_contents = {}
+        if 'content' in vals:
+            for article in self:
+                old_contents[article.id] = article.content or ''
         if not self.env.context.get('skip_revision') and self._should_create_revision(vals):
             for article in self:
                 article._create_revision_snapshot()
-        return super().write(vals)
+        res = super().write(vals)
+        if 'content' in vals and not skip_change_summary:
+            for article in self:
+                summary = article._build_change_summary(old_contents.get(article.id), article.content or '')
+                article.with_context(
+                    skip_revision=True,
+                    skip_article_access_check=True,
+                    skip_change_summary=True,
+                ).write({'last_change_summary': summary or False})
+        return res
     
     # Comments relationship
     comment_ids = fields.One2many(
@@ -616,13 +931,25 @@ class KnowledgeArticle(models.Model):
     def get_pdf_attachment(self):
         """Get the first PDF attachment associated with this article
         
+        This method checks if the current user has read access to the article
+        before returning attachment information. It uses sudo() to read attachment
+        metadata but ensures proper access control.
+        
         Returns:
             dict: Attachment data with id, name, mimetype, and url, or empty dict if no PDF found
         """
         import logging
         _logger = logging.getLogger(__name__)
         
-        attachment_model = self.env['ir.attachment']
+        self.ensure_one()
+        
+        # Check if current user has read access to this article
+        if not self._can_read_article():
+            _logger.warning(f"User {self.env.user.id} does not have read access to article {self.id}")
+            return {}
+        
+        # Use sudo() to read attachment metadata (we've already checked article access)
+        attachment_model = self.env['ir.attachment'].sudo()
         has_datas_fname = 'datas_fname' in attachment_model._fields
         has_access_token = 'access_token' in attachment_model._fields
 
@@ -641,10 +968,34 @@ class KnowledgeArticle(models.Model):
             datas_fname = (attachment.datas_fname or '').lower() if has_datas_fname else ''
             return ('pdf' in mimetype) or name.endswith('.pdf') or datas_fname.endswith('.pdf')
         
-        self.ensure_one()
+        def _build_attachment_url(attachment, provided_access_token=None):
+            """Build attachment URL with proper access handling
+            
+            This uses the knowledge controller endpoint which checks article read access
+            before serving the attachment. This allows users with article read permissions
+            to view PDF attachments even if they don't have direct attachment access.
+            
+            Args:
+                attachment: ir.attachment record
+                provided_access_token: Optional access token (if found in HTML content, etc.)
+            
+            Returns:
+                tuple: (url, access_url)
+            """
+            base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
+            attachment_id = attachment.id
+            article_id = self.id
+            
+            # Use the knowledge controller endpoint that checks article read access
+            # This ensures users with article read permissions can view attachments
+            url = f"{base_url}/knowledge/article/{article_id}/attachment/{attachment_id}?download=true"
+            access_url = f"{base_url}/knowledge/article/{article_id}/attachment/{attachment_id}"
+            
+            return url, access_url
+        
         base_url = self.env['ir.config_parameter'].sudo().get_param('web.base.url')
         
-        _logger.info(f"Getting PDF attachment for article {self.id} ({self.name})")
+        _logger.info(f"Getting PDF attachment for article {self.id} ({self.name}) - User: {self.env.user.id}")
         
         # First, check message_main_attachment_id if available (Odoo 13+)
         # This is the main attachment shown in chatter
@@ -652,12 +1003,13 @@ class KnowledgeArticle(models.Model):
             main_attachment = self.message_main_attachment_id
             _logger.info(f"Found message_main_attachment_id: {main_attachment.id}, mimetype: {main_attachment.mimetype}")
             if _is_pdf_attachment(main_attachment):
+                url, access_url = _build_attachment_url(main_attachment)
                 result = {
                     'id': main_attachment.id,
                     'name': main_attachment.name,
                     'mimetype': main_attachment.mimetype or 'application/pdf',
-                    'url': f"{base_url}/web/content/{main_attachment.id}?download=true",
-                    'access_url': f"{base_url}/web/content/{main_attachment.id}",
+                    'url': url,
+                    'access_url': access_url,
                 }
                 _logger.info(f"Returning PDF attachment from message_main_attachment_id: {result}")
                 return result
@@ -679,12 +1031,13 @@ class KnowledgeArticle(models.Model):
         
         if pdf_attachments:
             attachment = pdf_attachments[0]
+            url, access_url = _build_attachment_url(attachment)
             result = {
                 'id': attachment.id,
                 'name': attachment.name,
                 'mimetype': attachment.mimetype or 'application/pdf',
-                'url': f"{base_url}/web/content/{attachment.id}?download=true",
-                'access_url': f"{base_url}/web/content/{attachment.id}",
+                'url': url,
+                'access_url': access_url,
             }
             _logger.info(f"Returning PDF attachment: {result}")
             return result
@@ -703,12 +1056,13 @@ class KnowledgeArticle(models.Model):
                 
                 if message_attachments:
                     attachment = message_attachments[0]
+                    url, access_url = _build_attachment_url(attachment)
                     result = {
                         'id': attachment.id,
                         'name': attachment.name,
                         'mimetype': attachment.mimetype or 'application/pdf',
-                        'url': f"{base_url}/web/content/{attachment.id}?download=true",
-                        'access_url': f"{base_url}/web/content/{attachment.id}",
+                        'url': url,
+                        'access_url': access_url,
                     }
                     _logger.info(f"Returning PDF attachment from messages: {result}")
                     return result
@@ -730,12 +1084,13 @@ class KnowledgeArticle(models.Model):
         pdf_from_all = all_attachments.filtered(lambda a: _is_pdf_attachment(a))
         if pdf_from_all:
             attachment = pdf_from_all[0]
+            url, access_url = _build_attachment_url(attachment)
             result = {
                 'id': attachment.id,
                 'name': attachment.name,
                 'mimetype': attachment.mimetype or 'application/pdf',
-                'url': f"{base_url}/web/content/{attachment.id}?download=true",
-                'access_url': f"{base_url}/web/content/{attachment.id}",
+                'url': url,
+                'access_url': access_url,
             }
             _logger.info(f"Returning PDF attachment from filtered attachments: {result}")
             return result
@@ -755,12 +1110,13 @@ class KnowledgeArticle(models.Model):
         if pdf_by_name:
             attachment = pdf_by_name[0]
             if _is_pdf_attachment(attachment):
+                url, access_url = _build_attachment_url(attachment)
                 result = {
                     'id': attachment.id,
                     'name': attachment.name,
                     'mimetype': attachment.mimetype or 'application/pdf',
-                    'url': f"{base_url}/web/content/{attachment.id}?download=true",
-                    'access_url': f"{base_url}/web/content/{attachment.id}",
+                    'url': url,
+                    'access_url': access_url,
                 }
                 _logger.info(f"Returning PDF attachment found by name pattern: {result}")
                 return result
@@ -848,15 +1204,13 @@ class KnowledgeArticle(models.Model):
                     if attachment_id:
                         attachment = attachment_model.browse(attachment_id)
                         if attachment.exists():
-                            token = attachment.access_token if has_access_token else None
-                            access_suffix = f"?access_token={token}" if token else ""
-                            download_suffix = f"?access_token={token}&download=true" if token else "?download=true"
+                            url, access_url = _build_attachment_url(attachment, access_token)
                             result = {
                                 'id': attachment.id,
                                 'name': attachment.name or filename or f"Attachment {attachment.id}",
                                 'mimetype': attachment.mimetype or 'application/pdf',
-                                'url': f"{base_url}/web/content/{attachment.id}{download_suffix}",
-                                'access_url': f"{base_url}/web/content/{attachment.id}{access_suffix}",
+                                'url': url,
+                                'access_url': access_url,
                             }
                             _logger.info(f"Returning PDF attachment found from embedded file ID: {result}")
                             return result
@@ -865,15 +1219,13 @@ class KnowledgeArticle(models.Model):
                             ('access_token', '=', access_token),
                         ], limit=1)
                         if attachment and (is_pdf_hint or _is_pdf_attachment(attachment)):
-                            token = attachment.access_token or access_token
-                            access_suffix = f"?access_token={token}" if token else ""
-                            download_suffix = f"?access_token={token}&download=true" if token else "?download=true"
+                            url, access_url = _build_attachment_url(attachment, access_token)
                             result = {
                                 'id': attachment.id,
                                 'name': attachment.name or filename or f"Attachment {attachment.id}",
                                 'mimetype': attachment.mimetype or 'application/pdf',
-                                'url': f"{base_url}/web/content/{attachment.id}{download_suffix}",
-                                'access_url': f"{base_url}/web/content/{attachment.id}{access_suffix}",
+                                'url': url,
+                                'access_url': access_url,
                             }
                             _logger.info(f"Returning PDF attachment found from embedded file access token: {result}")
                             return result
@@ -887,13 +1239,14 @@ class KnowledgeArticle(models.Model):
                         continue
                     attachment = attachment_model.browse(attachment_id)
                     if attachment.exists():
+                        url, access_url = _build_attachment_url(attachment)
                         name_hint = candidate['file_hint'].strip() or candidate['text'].strip()
                         result = {
                             'id': attachment.id,
                             'name': attachment.name or name_hint or f"Attachment {attachment.id}",
                             'mimetype': attachment.mimetype or 'application/pdf',
-                            'url': f"{base_url}/web/content/{attachment.id}?download=true",
-                            'access_url': f"{base_url}/web/content/{attachment.id}",
+                            'url': url,
+                            'access_url': access_url,
                         }
                         _logger.info(f"Returning PDF attachment found in HTML metadata: {result}")
                         return result
@@ -920,12 +1273,13 @@ class KnowledgeArticle(models.Model):
                             checked_ids.add(attachment_id)
                             attachment = self.env['ir.attachment'].browse(attachment_id)
                             if attachment.exists() and _is_pdf_attachment(attachment):
+                                url, access_url = _build_attachment_url(attachment)
                                 result = {
                                     'id': attachment.id,
                                     'name': attachment.name,
                                     'mimetype': attachment.mimetype or 'application/pdf',
-                                    'url': f"{base_url}/web/content/{attachment.id}?download=true",
-                                    'access_url': f"{base_url}/web/content/{attachment.id}",
+                                    'url': url,
+                                    'access_url': access_url,
                                 }
                                 _logger.info(f"Returning PDF attachment found in HTML content: {result}")
                                 return result

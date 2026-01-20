@@ -6,3 +6,4 @@ from . import knowledge_article_member
 from . import knowledge_article_category
 from . import knowledge_article_tag
 from . import knowledge_article_comment
+from . import knowledge_article_view
