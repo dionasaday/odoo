@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Allow employees to read their own contract versions for payslip printing.
+         For HR/Managers, return a false domain so existing HR rules stay in effect. -->
+    <record id="rule_hr_version_employee_own" model="ir.rule">
+        <field name="name">Employee Contract - Own</field>
+        <field name="model_id" ref="hr.model_hr_version"/>
+        <field name="domain_force">[(1, '=', 1)] if (user.has_group('hr.group_hr_user') or user.has_group('hr.group_hr_manager') or user.has_group('hr_payroll_community.group_hr_payroll_community_user') or user.has_group('hr_payroll_community.group_hr_payroll_community_manager') or user.has_group('onthisday_hr_discipline.group_discipline_hr') or user.has_group('onthisday_hr_discipline.group_discipline_manager') or user.has_group('base.group_system')) else [('employee_id.user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_read" eval="1"/>
+        <field name="perm_write" eval="0"/>
+        <field name="perm_create" eval="0"/>
+        <field name="perm_unlink" eval="0"/>
+    </record>
+</odoo>

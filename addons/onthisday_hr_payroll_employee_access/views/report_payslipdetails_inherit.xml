@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="report_payslipdetails_employee_bank_fix" model="ir.ui.view">
+        <field name="name">hr.payroll.payslipdetails.bank.fix</field>
+        <field name="type">qweb</field>
+        <field name="inherit_id" ref="hr_payroll_community.report_payslipdetails"/>
+        <field name="arch" type="xml">
+            <xpath expr="//span[@t-field='o.employee_id.bank_account_id']" position="replace">
+                <span t-esc="(o.employee_id.bank_account_ids and o.employee_id.bank_account_ids[:1].display_name) or ''"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

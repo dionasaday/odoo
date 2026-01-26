@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List View สำหรับพนักงาน: แสดงเฉพาะรายการ + ปุ่มพิมพ์ (ไม่ให้คลิกเข้า form) -->
+    <record id="view_my_payslip_tree" model="ir.ui.view">
+        <field name="name">hr.payslip.my.list</field>
+        <field name="model">hr.payslip</field>
+        <field name="inherit_id" ref="hr_payroll_community.hr_payslip_view_tree"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="attributes">
+                <attribute name="create">false</attribute>
+                <attribute name="edit">false</attribute>
+                <attribute name="delete">false</attribute>
+                <attribute name="open_form_view">false</attribute>
+            </xpath>
+            <xpath expr="//list/field[@name='payslip_run_id']" position="after">
+                <button name="%(hr_payroll_community.hr_payslip_report_action)d"
+                        string="Print"
+                        type="action"
+                        icon="fa-print"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Search View สำหรับพนักงานดูสลิปเงินเดือนของตัวเอง -->
+    <record id="view_my_payslip_search" model="ir.ui.view">
+        <field name="name">hr.payslip.my.search</field>
+        <field name="model">hr.payslip</field>
+        <field name="inherit_id" ref="hr_payroll_community.hr_payslip_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='done']" position="after">
+                <filter string="My Payslips" name="my_payslips" 
+                        domain="[('employee_id.user_id', '=', uid)]"/>
+            </xpath>
+        </field>
+    </record>
+    
+    <!-- Action สำหรับพนักงานดูสลิปเงินเดือนของตัวเอง -->
+    <record id="action_my_payslips" model="ir.actions.act_window">
+        <field name="name">My Payslips</field>
+        <field name="res_model">hr.payslip</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_my_payslip_tree"/>
+        <field name="domain">[('employee_id.user_id', '=', uid)]</field>
+        <field name="context">{'default_employee_id': False, 'search_default_my_payslips': 1}</field>
+        <field name="search_view_id" ref="view_my_payslip_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                ยังไม่มีสลิปเงินเดือน
+            </p>
+            <p>
+                สลิปเงินเดือนของคุณจะแสดงที่นี่เมื่อมีการสร้างสลิปแล้ว
+            </p>
+        </field>
+    </record>
+</odoo>

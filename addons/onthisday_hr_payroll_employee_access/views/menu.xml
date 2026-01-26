@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Menu สำหรับพนักงานดูสลิปเงินเดือนของตัวเอง -->
+    <menuitem id="menu_my_payslips"
+              name="My Payslips"
+              action="action_my_payslips"
+              parent="hr.menu_hr_root"
+              sequence="15"
+              groups="base.group_user"/>
+</odoo>

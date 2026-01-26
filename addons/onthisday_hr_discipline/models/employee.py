@@ -18,13 +18,13 @@ class HREmployee(models.Model):
         required=True,
         store=False,
         compute_sudo=True,
-        groups="hr.group_hr_user,onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager",
+        groups="base.group_user,hr.group_hr_user,onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager",
     )
     current_version_id = fields.Many2one(
         "hr.version",
         compute="_compute_current_version_id",
         store=True,
-        groups="hr.group_hr_user,onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager",
+        groups="base.group_user,hr.group_hr_user,onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager",
     )
 
     discipline_points_year = fields.Integer(
