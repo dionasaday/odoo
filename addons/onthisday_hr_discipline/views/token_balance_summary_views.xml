@@ -11,18 +11,42 @@
         <field name="job_id"/>
         <field name="parent_id"/>
         <field name="company_management_review_threshold" invisible="1"/>
-        <field name="current_token_balance" widget="badge"
-               decoration-danger="current_token_balance &lt;= 0"
-               decoration-warning="current_token_balance &gt; 0 and current_token_balance &lt;= (company_management_review_threshold or 0)"
-               decoration-success="current_token_balance &gt; (company_management_review_threshold or 0)"/>
-        <field name="tokens_deducted_this_period" string="Tokens Deducted"/>
-        <field name="token_period_start"/>
-        <field name="token_period_end"/>
+        <field name="token_balance_period" widget="badge"
+               decoration-danger="token_balance_period &lt;= 0"
+               decoration-warning="token_balance_period &gt; 0 and token_balance_period &lt;= (company_management_review_threshold or 0)"
+               decoration-success="token_balance_period &gt; (company_management_review_threshold or 0)"/>
+        <field name="tokens_deducted_period" string="Tokens Deducted"/>
+        <field name="token_period_start_period"/>
+        <field name="token_period_end_period"/>
       </list>
     </field>
   </record>
 
-  <!-- Token Balance Summary (Search) -->
+  <!-- Add Token Period filters to hr.employee search view (inheritance) for easy month selection -->
+  <record id="view_employee_filter_token_period" model="ir.ui.view">
+    <field name="name">hr.employee.filter.token.period</field>
+    <field name="model">hr.employee</field>
+    <field name="inherit_id" ref="hr.view_employee_filter"/>
+    <field name="arch" type="xml">
+      <xpath expr="//filter[@name='inactive']" position="after">
+        <separator/>
+        <filter string="Token: เดือนนี้" name="token_period_this_month"
+                context="{'token_period_date': (context_today()).strftime('%%Y-%%m-01')}"
+                groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+        <filter string="Token: เดือนที่แล้ว" name="token_period_last_month"
+                context="{'token_period_date': (context_today() + relativedelta(months=-1)).strftime('%%Y-%%m-01')}"
+                groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+        <filter string="Token: 2 เดือนที่แล้ว" name="token_period_2_months"
+                context="{'token_period_date': (context_today() + relativedelta(months=-2)).strftime('%%Y-%%m-01')}"
+                groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+        <filter string="Token: 3 เดือนที่แล้ว" name="token_period_3_months"
+                context="{'token_period_date': (context_today() + relativedelta(months=-3)).strftime('%%Y-%%m-01')}"
+                groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+      </xpath>
+    </field>
+  </record>
+
+  <!-- Token Balance Summary (Search) - standalone for action search_view_id -->
   <record id="view_employee_token_balance_summary_search" model="ir.ui.view">
     <field name="name">hr.employee.token.balance.summary.search</field>
     <field name="model">hr.employee</field>
@@ -33,6 +57,17 @@
         <field name="job_id"/>
         <field name="parent_id" string="Manager"/>
         <field name="company_id"/>
+        <separator/>
+        <filter string="เดือนนี้" name="token_period_this_month"
+                context="{'token_period_date': (context_today()).strftime('%%Y-%%m-01')}"/>
+        <filter string="เดือนที่แล้ว" name="token_period_last_month"
+                context="{'token_period_date': (context_today() + relativedelta(months=-1)).strftime('%%Y-%%m-01')}"/>
+        <filter string="2 เดือนที่แล้ว" name="token_period_2_months"
+                context="{'token_period_date': (context_today() + relativedelta(months=-2)).strftime('%%Y-%%m-01')}"/>
+        <filter string="3 เดือนที่แล้ว" name="token_period_3_months"
+                context="{'token_period_date': (context_today() + relativedelta(months=-3)).strftime('%%Y-%%m-01')}"/>
+        <separator/>
+        <field name="token_period_start_period" string="ช่วงเริ่มงวด"/>
       </search>
     </field>
   </record>

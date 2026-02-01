@@ -66,6 +66,30 @@ class HREmployee(models.Model):
         readonly=True,
     )
 
+    # Token balance fields for historical period view (context-driven)
+    token_balance_period = fields.Integer(
+        string="Token Balance (Period)",
+        compute="_compute_token_balance_period",
+        store=False,
+        help="Token balance for the selected period in context (token_period_date)."
+    )
+    tokens_deducted_period = fields.Integer(
+        string="Tokens Deducted (Period)",
+        compute="_compute_token_balance_period",
+        store=False,
+        help="Total tokens deducted in selected period."
+    )
+    token_period_start_period = fields.Date(
+        string="Token Period Start (Period)",
+        compute="_compute_token_balance_period",
+        store=False,
+    )
+    token_period_end_period = fields.Date(
+        string="Token Period End (Period)",
+        compute="_compute_token_balance_period",
+        store=False,
+    )
+
     @api.depends()
     def _compute_discipline_points_year(self):
         # Initialize first
@@ -115,107 +139,107 @@ class HREmployee(models.Model):
     @api.depends('company_id')
     def _compute_current_token_balance(self):
         """Compute current token balance for the current period (Policy 002/2025)."""
-        # Initialize all fields first to prevent errors
+        today = fields.Date.today()
+        self._compute_token_balance_for_date(
+            today,
+            target_fields=(
+                "current_token_balance",
+                "tokens_deducted_this_period",
+                "token_period_start",
+                "token_period_end",
+            ),
+        )
+
+    def _compute_token_balance_for_date(self, date_value, target_fields):
+        """Compute token balance for a given date and write to target field names."""
         for emp in self:
-            emp.current_token_balance = 0
-            emp.token_period_start = False
-            emp.token_period_end = False
-            emp.tokens_deducted_this_period = 0
-        
-        # Only compute if we have valid records
+            setattr(emp, target_fields[0], 0)
+            setattr(emp, target_fields[1], 0)
+            setattr(emp, target_fields[2], False)
+            setattr(emp, target_fields[3], False)
+
         if not self:
             return
-        
-        # Skip computation during record creation (before save)
-        # This prevents errors when compute is called during create()
+
         try:
-            # If all records are new (no id), skip computation
-            if not any(emp.id for emp in self if hasattr(emp, 'id') and emp.id):
+            if not any(emp.id for emp in self if hasattr(emp, "id") and emp.id):
                 return
         except Exception:
             pass
-        
-        # Only compute if model exists and env is ready
+
         try:
-            if not hasattr(self, 'env') or not self.env:
+            if not hasattr(self, "env") or not self.env:
                 return
-            # Check if model exists in registry
-            if 'hr.discipline.point.ledger' not in self.env:
+            if "hr.discipline.point.ledger" not in self.env:
                 return
         except (AttributeError, KeyError, Exception):
             return
-        
+
         try:
-            today = fields.Date.today()
-            
+            Ledger = self.env["hr.discipline.point.ledger"].sudo()
             for emp in self:
                 try:
-                    # Skip if record doesn't have id yet (new record)
                     if not emp.id:
                         continue
-                    
-                    # Skip if record is being created (check _origin)
+
                     try:
-                        if hasattr(emp, '_origin') and emp._origin and not emp._origin.id:
+                        if hasattr(emp, "_origin") and emp._origin and not emp._origin.id:
                             continue
                     except Exception:
                         pass
-                    
-                    # Skip if company_id is not set yet
+
+                    company = emp.company_id
+                    if not company or not hasattr(company, "token_period_type"):
+                        continue
+
                     try:
-                        company = emp.company_id
+                        period_start = emp._get_token_period_start(company, date_value)
+                        period_end = emp._get_token_period_end(company, date_value)
                     except Exception:
                         continue
-                    
-                    if not company:
-                        continue
-                    
-                    # Check if company has required fields
-                    if not hasattr(company, 'token_period_type'):
-                        continue
-                    
-                    # Get period start and end dates
-                    try:
-                        period_start = emp._get_token_period_start(company, today)
-                        period_end = emp._get_token_period_end(company, today)
-                    except Exception:
-                        continue
-                    
+
                     if not period_start or not period_end:
                         continue
-                    
-                    emp.token_period_start = period_start
-                    emp.token_period_end = period_end
-                    
-                    # Get starting tokens for this period
-                    starting_tokens = getattr(company, 'tokens_starting_per_period', 0) or 0
-                    
-                    # Calculate tokens deducted in this period (negative points from ledger)
-                    Ledger = self.env['hr.discipline.point.ledger'].sudo()
+
+                    setattr(emp, target_fields[2], period_start)
+                    setattr(emp, target_fields[3], period_end)
+
+                    starting_tokens = getattr(company, "tokens_starting_per_period", 0) or 0
                     domain = [
-                        ('employee_id', '=', emp.id),
-                        ('date', '>=', period_start),
-                        ('date', '<=', period_end),
+                        ("employee_id", "=", emp.id),
+                        ("date", ">=", period_start),
+                        ("date", "<=", period_end),
                     ]
                     ledger_records = Ledger.search(domain)
-                    # Sum negative points (token deductions)
-                    # Note: points_change is negative for token deductions (e.g., -1, -3)
-                    # So we need to sum the absolute values of negative points
-                    deducted = sum([abs(rec.points_change) for rec in ledger_records if rec.points_change < 0])
-                    
-                    # Log for debugging
-                    if ledger_records:
-                        _logger.debug("Token balance calculation for employee %s (ID=%s): period=%s to %s, ledger_count=%d, deducted=%d, starting=%d, balance=%d",
-                                    emp.name, emp.id, period_start, period_end, len(ledger_records), deducted, starting_tokens, starting_tokens - deducted)
-                    
-                    emp.tokens_deducted_this_period = deducted
-                    emp.current_token_balance = starting_tokens - deducted
+                    deducted = sum(
+                        abs(rec.points_change)
+                        for rec in ledger_records
+                        if rec.points_change < 0
+                    )
+                    setattr(emp, target_fields[1], deducted)
+                    setattr(emp, target_fields[0], starting_tokens - deducted)
                 except Exception:
-                    # Silently continue - defaults already set
                     pass
         except Exception:
-            # Silently fail - defaults already set
             pass
+
+    @api.depends_context("token_period_date")
+    def _compute_token_balance_period(self):
+        """Compute token balance for selected period in context (token_period_date)."""
+        ctx_date = self.env.context.get("token_period_date")
+        if ctx_date:
+            date_value = fields.Date.to_date(ctx_date)
+        else:
+            date_value = fields.Date.today()
+        self._compute_token_balance_for_date(
+            date_value,
+            target_fields=(
+                "token_balance_period",
+                "tokens_deducted_period",
+                "token_period_start_period",
+                "token_period_end_period",
+            ),
+        )
 
     def _get_token_period_start(self, company, date):
         """Get start date of current token period."""
@@ -461,6 +485,20 @@ class HREmployee(models.Model):
             _logger.info(
                 "Removed Discipline Manager group from %d users.", len(users_to_remove)
             )
+
+    # ---------------------------------------------------------------------
+    # Automation: Recompute token balance when date changes (new period)
+    # ---------------------------------------------------------------------
+    @api.model
+    def _cron_recompute_token_balance(self):
+        """Legacy cron: token balance fields are now store=False, so they compute
+        fresh on every read and always reflect today's period. This cron is kept
+        for backwards compatibility but does nothing.
+        """
+        _logger.debug(
+            "Token balance cron ran (fields are store=False, no action needed). Date: %s",
+            fields.Date.today(),
+        )
 
     def _allowed_employee_domain(self, user):
         """Return domain for employees visible to this user (non-HR)."""
@@ -722,13 +760,42 @@ class HREmployee(models.Model):
         action_data.pop("id", None)
         return action_data
 
+    @api.model
+    def action_open_token_balance_summary_with_period(self, months_back=0):
+        """Open token balance summary for a specific period (for historical view).
+        months_back: 0=current month, 1=last month, 2=2 months ago, etc.
+        """
+        from datetime import datetime
+        from dateutil.relativedelta import relativedelta
+
+        action_data = self.action_open_token_balance_summary()
+        if months_back <= 0:
+            return action_data
+
+        ref_date = (datetime.now() + relativedelta(months=-months_back)).replace(day=1)
+        period_date = ref_date.strftime("%Y-%m-%d")
+        ctx = action_data.get("context") or {}
+        ctx["token_period_date"] = period_date
+        action_data["context"] = ctx
+        # Update title to show period
+        month_names = [
+            "", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
+        ]
+        be_year = ref_date.year + 543
+        action_data["name"] = _("สรุป Token คงเหลือ (%s %s)") % (
+            month_names[ref_date.month],
+            be_year,
+        )
+        return action_data
+
     def _search(self, domain, offset=0, limit=None, order=None, **kwargs):
         """Allow sorting by non-stored token balance in summary view."""
         kwargs.pop("access_rights_uid", None)
         kwargs.pop("count", None)
         if self._context.get("token_balance_summary") and order:
             order_l = order.lower()
-            if "current_token_balance" in order_l:
+            if "current_token_balance" in order_l or "token_balance_period" in order_l:
                 ids = super()._search(
                     domain,
                     offset=0,
@@ -737,9 +804,10 @@ class HREmployee(models.Model):
                     **kwargs,
                 )
                 records = self.browse(ids)
-                descending = "current_token_balance desc" in order_l
+                descending = "desc" in order_l
+                key_attr = "token_balance_period" if "token_balance_period" in order_l else "current_token_balance"
                 records = records.sorted(
-                    key=lambda r: (r.current_token_balance, r.name or ""),
+                    key=lambda r: (getattr(r, key_attr, 0), r.name or ""),
                     reverse=descending,
                 )
                 ids = records.ids
@@ -761,16 +829,17 @@ class HREmployee(models.Model):
         """Sort by non-stored token balance in summary view without SQL order."""
         if self._context.get("token_balance_summary") and order:
             order_l = order.lower()
-            if "current_token_balance" in order_l:
-                descending = "current_token_balance desc" in order_l
+            if "current_token_balance" in order_l or "token_balance_period" in order_l:
+                descending = "desc" in order_l
+                key_attr = "token_balance_period" if "token_balance_period" in order_l else "current_token_balance"
                 records = self.search(domain, order="name")
                 if descending:
                     records = records.sorted(
-                        key=lambda r: (-r.current_token_balance, r.name or "")
+                        key=lambda r: (-getattr(r, key_attr, 0), r.name or "")
                     )
                 else:
                     records = records.sorted(
-                        key=lambda r: (r.current_token_balance, r.name or "")
+                        key=lambda r: (getattr(r, key_attr, 0), r.name or "")
                     )
                 if offset:
                     records = records[offset:]

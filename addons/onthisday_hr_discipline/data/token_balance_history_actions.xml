@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <data noupdate="0">
+    <!-- Server actions for viewing token balance by period -->
+    <record id="action_token_balance_last_month" model="ir.actions.server">
+      <field name="name">สรุป Token - เดือนที่แล้ว</field>
+      <field name="model_id" ref="hr.model_hr_employee"/>
+      <field name="state">code</field>
+      <field name="code">action = model.action_open_token_balance_summary_with_period(1)</field>
+    </record>
+    <record id="action_token_balance_2_months" model="ir.actions.server">
+      <field name="name">สรุป Token - 2 เดือนที่แล้ว</field>
+      <field name="model_id" ref="hr.model_hr_employee"/>
+      <field name="state">code</field>
+      <field name="code">action = model.action_open_token_balance_summary_with_period(2)</field>
+    </record>
+    <record id="action_token_balance_3_months" model="ir.actions.server">
+      <field name="name">สรุป Token - 3 เดือนที่แล้ว</field>
+      <field name="model_id" ref="hr.model_hr_employee"/>
+      <field name="state">code</field>
+      <field name="code">action = model.action_open_token_balance_summary_with_period(3)</field>
+    </record>
+
+    <!-- Menu items for historical token balance -->
+    <menuitem id="menu_token_balance_last_month"
+              name="เดือนที่แล้ว"
+              parent="onthisday_hr_discipline.menu_hr_discipline_root"
+              action="onthisday_hr_discipline.action_token_balance_last_month"
+              sequence="31"
+              groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+    <menuitem id="menu_token_balance_2_months"
+              name="2 เดือนที่แล้ว"
+              parent="onthisday_hr_discipline.menu_hr_discipline_root"
+              action="onthisday_hr_discipline.action_token_balance_2_months"
+              sequence="32"
+              groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+    <menuitem id="menu_token_balance_3_months"
+              name="3 เดือนที่แล้ว"
+              parent="onthisday_hr_discipline.menu_hr_discipline_root"
+              action="onthisday_hr_discipline.action_token_balance_3_months"
+              sequence="33"
+              groups="onthisday_hr_discipline.group_discipline_hr,onthisday_hr_discipline.group_discipline_manager"/>
+  </data>
+</odoo>

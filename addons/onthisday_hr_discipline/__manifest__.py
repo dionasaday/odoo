@@ -20,6 +20,7 @@
         "data/cron_lateness.xml",
         "data/cron_lateness_monthly_summary.xml",
         "data/cron_sync_discipline_manager.xml",
+        "data/cron_recompute_token_balance.xml",
         # Views with actions (ต้องมาก่อน menu.xml)
         "views/ledger_views.xml",  # action_hr_discipline_ledger
         "views/case_views.xml",  # action_hr_discipline_case
@@ -32,6 +33,7 @@
         "views/attendance_award_views.xml",  # action_attendance_award (ถ้ามี)
         'views/my_token_balance_views.xml',  # action_my_token_balance
         "views/token_balance_summary_views.xml",  # action_token_balance_summary
+        "data/token_balance_history_actions.xml",  # menu items for historical token balance
         'views/my_summary_views.xml',  # action_my_points_by_catalog
         # Menu (ต้องมาหลัง views ที่มี actions)
         "views/menu.xml",
