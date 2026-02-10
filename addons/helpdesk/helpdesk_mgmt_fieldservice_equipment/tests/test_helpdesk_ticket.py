@@ -36,6 +36,7 @@ class TestHelpdeskTicketEquipment(TransactionCase):
             {
                 "name": "Test Ticket",
                 "description": "Ticket test",
+                "purchase_order_number": "PO-FSM-EQ-0003",
                 "user_id": cls.user_demo.id,
                 "team_id": cls.team_id.id,
                 "fsm_location_id": cls.location.id,

@@ -48,6 +48,7 @@ class TestHelpdeskMgmtTimesheet(test_helpdesk_ticket.TestHelpdeskTicket):
                 "name": "Test Ticket 1",
                 "description": "Test ticket description",
                 "team_id": self.team_id.id,
+                "purchase_order_number": "PO-TIMESHEET-0002",
             }
         )
 

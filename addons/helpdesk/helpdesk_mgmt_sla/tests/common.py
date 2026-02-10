@@ -95,6 +95,7 @@ class CommonHelpdeskMgmtSla(test_helpdesk_ticket.TestHelpdeskTicket):
         vals = {
             "name": "Test Ticket",
             "description": "Ticket test",
+            "purchase_order_number": "PO-SLA-0001",
             "team_id": team.id,
         }
         if extra_vals:

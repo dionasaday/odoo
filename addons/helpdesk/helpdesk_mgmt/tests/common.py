@@ -50,6 +50,9 @@ class TestHelpdeskTicketBase(BaseCommon):
                     team.name, user.login if user else "unassigned"
                 ),
                 "description": "Description",
+                "purchase_order_number": "PO-TEAM-{:s}".format(
+                    user.login if user else "unassigned"
+                ),
                 "team_id": team.id,
                 "user_id": user.id if user else False,
                 "priority": "1",

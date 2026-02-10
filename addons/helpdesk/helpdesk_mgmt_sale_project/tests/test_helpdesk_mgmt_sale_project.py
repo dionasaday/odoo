@@ -24,7 +24,11 @@ class TestHelpdeskTicketSaleProject(TransactionCase):
             {"partner_id": cls.partner.id, "project_id": cls.project2.id}
         )
         cls.ticket = cls.env["helpdesk.ticket"].create(
-            {"name": "Ticket", "description": "Ticket Description"}
+            {
+                "name": "Ticket",
+                "description": "Ticket Description",
+                "purchase_order_number": "PO-SALE-PROJECT-0001",
+            }
         )
 
     def test_helpdesk_ticket_compute_project_id(self):

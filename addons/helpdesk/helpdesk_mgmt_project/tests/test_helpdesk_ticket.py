@@ -11,7 +11,13 @@ class TestHelpdeskTicketProject(TestHelpdeskTicketBase):
         Project = cls.env["project.project"]
         Task = cls.env["project.task"]
         cls.ticket = cls.ticket_a_unassigned
-        cls.ticket2 = Ticket.create({"name": "Test 2", "description": "Ticket test2"})
+        cls.ticket2 = Ticket.create(
+            {
+                "name": "Test 2",
+                "description": "Ticket test2",
+                "purchase_order_number": "PO-PROJECT-0001",
+            }
+        )
         cls.project1 = Project.create({"name": "Test Helpdesk-Project 1"})
         cls.milestone = cls.env["project.milestone"].create(
             {"name": "My milestone", "project_id": cls.project1.id}
@@ -140,6 +146,7 @@ class TestHelpdeskTicketProject(TestHelpdeskTicketBase):
                 "name": "Test ticket 01",
                 "description": "Test Ticket",
                 "project_id": self.project1.id,
+                "purchase_order_number": "PO-PROJECT-0002",
             }
         )
         self.assertFalse(ticket_1.milestone_id)
@@ -163,6 +170,7 @@ class TestHelpdeskTicketProject(TestHelpdeskTicketBase):
                 "description": "Test Ticket",
                 "project_id": self.project1.id,
                 "milestone_id": self.milestone.id,
+                "purchase_order_number": "PO-PROJECT-0003",
             }
         )
         self.milestone.invalidate_recordset()

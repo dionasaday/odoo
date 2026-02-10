@@ -24,6 +24,7 @@ class TestPartner(BaseCommon):
                     {
                         "name": f"Nice ticket {i}",
                         "description": f"Nice ticket {i} description",
+                        "purchase_order_number": f"PO-PARTNER-{i}",
                     }
                 )
             )

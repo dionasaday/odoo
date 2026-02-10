@@ -6,7 +6,7 @@ class HelpdeskTicket(models.Model):
     _name = "helpdesk.ticket"
     _description = "Helpdesk Ticket"
     _rec_name = "number"
-    _rec_names_search = ["number", "name"]
+    _rec_names_search = ["number", "name", "purchase_order_number"]
     _order = "priority desc, sequence, number desc, id desc"
     _mail_post_access = "read"
     _inherit = [
@@ -64,6 +64,7 @@ class HelpdeskTicket(models.Model):
 
     number = fields.Char(string="Ticket number", default="/", readonly=True)
     name = fields.Char(string="Title", required=True)
+    purchase_order_number = fields.Char(string="เลขคำสั่งซื้อ", required=True)
     description = fields.Html(required=True, sanitize_style=True)
     user_id = fields.Many2one(
         comodel_name="res.users",
@@ -341,6 +342,7 @@ class HelpdeskTicket(models.Model):
             "description": msg.get("body"),
             "partner_email": msg.get("from"),
             "partner_id": msg.get("author_id"),
+            "purchase_order_number": self.env._("N/A"),
         }
         defaults.update(custom_values)
 

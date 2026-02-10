@@ -17,7 +17,11 @@ class TestHelpdeskType(test_helpdesk_ticket.TestHelpdeskTicket):
         )
         cls.ht_type2 = Type.create({"name": "Type 2"})
         cls.ht_ticket1 = Ticket.create(
-            {"name": "Test 1", "description": "Ticket test 1"}
+            {
+                "name": "Test 1",
+                "description": "Ticket test 1",
+                "purchase_order_number": "PO-TYPE-0001",
+            }
         )
 
     def test_helpdesk_onchange_type_id(self):

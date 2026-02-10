@@ -14,6 +14,7 @@ class TestHelpdeskTicketMerge(BaseCommon):
             {
                 "name": name,
                 "description": description,
+                "purchase_order_number": "PO-MERGE-0001",
             }
         )
 

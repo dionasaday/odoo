@@ -30,6 +30,7 @@ class TestHelpdeskMgmtRating(BaseCommon):
             {
                 "name": "Test 1",
                 "description": "Ticket test",
+                "purchase_order_number": "PO-RATING-0001",
                 "partner_id": self.partner.id,
                 "user_id": self.env.user.id,
             }

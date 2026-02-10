@@ -45,6 +45,7 @@ class TestHelpdeskPortalBase(HttpCaseWithUserPortal):
             "partner_id": partner.id,
             "partner_email": partner.email,
             "partner_name": partner.name,
+            "purchase_order_number": "PO-PORTAL-0001",
         }
         data.update(**values)
         return cls.env["helpdesk.ticket"].create(data)
@@ -55,6 +56,7 @@ class TestHelpdeskPortalBase(HttpCaseWithUserPortal):
             "csrf_token": http.Request.csrf_token(self),
             "subject": self.new_ticket_title,
             "description": "\n".join(self.new_ticket_desc_lines),
+            "purchase_order_number": "PO-PORTAL-SUBMIT-0001",
         }
         data.update(**values)
         resp = self.url_open("/submitted/ticket", data=data)

@@ -37,6 +37,9 @@ class HelpdeskTicketMerge(models.TransientModel):
             partner_ids = self.ticket_ids.mapped("partner_id")
             ticket_category_ids = self.ticket_ids.mapped("category_id").ids
             priorities = self.ticket_ids.mapped("priority")
+            purchase_order_numbers = [
+                po for po in self.ticket_ids.mapped("purchase_order_number") if po
+            ]
             values.update(
                 {
                     "name": self.dst_ticket_name,
@@ -55,6 +58,10 @@ class HelpdeskTicketMerge(models.TransientModel):
                     and ticket_category_ids[0]
                     or False,
                     "priority": len(set(priorities)) == 1 and priorities[0] or False,
+                    "purchase_order_number": ", ".join(
+                        sorted(set(purchase_order_numbers))
+                    )
+                    or self.env._("N/A"),
                 }
             )
 

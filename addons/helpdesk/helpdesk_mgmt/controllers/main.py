@@ -78,6 +78,7 @@ class HelpdeskTicketController(http.Controller):
             "category_id": category.id,
             "description": plaintext2html(kw.get("description")),
             "name": kw.get("subject"),
+            "purchase_order_number": (kw.get("purchase_order_number") or "").strip(),
             "attachment_ids": False,
             "channel_id": request.env.ref(
                 "helpdesk_mgmt.helpdesk_ticket_channel_web", False

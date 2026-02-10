@@ -51,6 +51,7 @@ class TestHelpdeskMotive(BaseCommon):
                     team.name, user.login if user else "unassigned"
                 ),
                 "description": "Description",
+                "purchase_order_number": "PO-MOTIVE-0001",
                 "team_id": team.id,
                 "user_id": user.id if user else False,
                 "priority": "1",

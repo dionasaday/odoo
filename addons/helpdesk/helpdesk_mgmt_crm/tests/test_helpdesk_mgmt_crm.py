@@ -32,6 +32,7 @@ class TestHelpdeskMgmtCrm(common.TransactionCase):
                 "partner_id": cls.partner.id,
                 "user_id": cls.user.id,
                 "description": "Test description",
+                "purchase_order_number": "PO-CRM-0001",
             }
         )
 

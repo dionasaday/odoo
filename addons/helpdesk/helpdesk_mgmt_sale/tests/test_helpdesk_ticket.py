@@ -17,6 +17,7 @@ class TestHelpdeskTicketSale(BaseCommon):
                 "name": "Test Helpdesk Ticket",
                 "partner_id": cls.partner.id,
                 "description": "Test Helpdesk Ticket",
+                "purchase_order_number": "PO-SALE-0001",
             }
         )
         cls.sale_order_1 = cls.env["sale.order"].create(

@@ -29,6 +29,7 @@ class TestFSMEquipment(TransactionCase):
                 "equipment_id": self.equipment.id,
                 "description": "Ticket test",
                 "fsm_location_id": self.location.id,
+                "purchase_order_number": "PO-FSM-EQ-0001",
             }
         )
         self.equipment.invalidate_recordset()
@@ -40,6 +41,7 @@ class TestFSMEquipment(TransactionCase):
                 "equipment_id": self.equipment.id,
                 "description": "Ticket test",
                 "fsm_location_id": self.location.id,
+                "purchase_order_number": "PO-FSM-EQ-0002",
             }
         )
         self.equipment.invalidate_recordset()

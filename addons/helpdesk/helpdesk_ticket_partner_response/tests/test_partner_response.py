@@ -68,6 +68,7 @@ class TestCustomerResponse(HttpCaseWithUserPortal):
                 {
                     "name": f"Ticket ({team.name})",
                     "description": "Description",
+                    "purchase_order_number": "PO-PARTNER-RESP-0001",
                     "team_id": team.id,
                     "partner_id": partner.id,
                     "priority": "1",

@@ -20,6 +20,7 @@ class TestHelpdeskPortalBase(HttpCaseWithUserPortal):
             {
                 "name": "Test 1",
                 "description": "Ticket test",
+                "purchase_order_number": "PO-RATING-PORTAL-0001",
                 "partner_id": cls.partner.id,
                 "stage_id": cls.stage_done.id,
             }

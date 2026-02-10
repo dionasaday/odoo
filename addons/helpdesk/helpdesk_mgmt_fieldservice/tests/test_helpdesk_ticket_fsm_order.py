@@ -39,6 +39,7 @@ class TestHelpdeskTicketFSMOrder(TransactionCase):
             {
                 "name": "Test 1",
                 "description": "Ticket test",
+                "purchase_order_number": "PO-FSM-0001",
                 "user_id": cls.user_demo.id,
                 "team_id": cls.team_id.id,
                 "fsm_location_id": cls.test_location.id,
@@ -48,6 +49,7 @@ class TestHelpdeskTicketFSMOrder(TransactionCase):
             {
                 "name": "Test 2",
                 "description": "Ticket test",
+                "purchase_order_number": "PO-FSM-0002",
                 "user_id": cls.user_demo.id,
                 "team_id": cls.team_id.id,
                 "fsm_location_id": cls.test_location.id,

@@ -45,6 +45,7 @@ class TestHelpdeskTimesheetTimeControl(common.TransactionCase):
                 "team_id": team_id.id,
                 "project_id": self.project.id,
                 "description": "Test ticket description",
+                "purchase_order_number": "PO-TIMESHEET-0001",
                 "user_id": self.uid,
             }
         )

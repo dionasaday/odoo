@@ -17,6 +17,7 @@ class TestHelpdeskTicket(TestHelpdeskTicketBase):
                 "name": "Test ticket A",
                 "team_id": self.team_a.id,
                 "description": "description",
+                "purchase_order_number": "PO-TEST-0001",
             }
         )
         self.assertEqual(ticket_a.company_id, self.company)
@@ -26,6 +27,7 @@ class TestHelpdeskTicket(TestHelpdeskTicketBase):
                 "name": "Test ticket b",
                 "team_id": self.team_b.id,
                 "description": "description",
+                "purchase_order_number": "PO-TEST-0002",
             }
         )
         self.assertEqual(ticket_b.company_id, self.company)
@@ -43,6 +45,7 @@ class TestHelpdeskTicket(TestHelpdeskTicketBase):
                     "name": "Test ticket",
                     "team_id": team.id,
                     "description": "description",
+                    "purchase_order_number": "PO-TEST-0003",
                 }
             )
         )
@@ -56,6 +59,7 @@ class TestHelpdeskTicket(TestHelpdeskTicketBase):
                     "name": "Test ticket",
                     "team_id": team.id,
                     "description": "description",
+                    "purchase_order_number": "PO-TEST-0004",
                 }
             )
         )
@@ -163,6 +167,7 @@ class TestHelpdeskTicket(TestHelpdeskTicketBase):
                 "team_id": self.team_a.id,
                 "user_id": self.user.id,
                 "priority": "1",
+                "purchase_order_number": "PO-TEST-0005",
             }
         )
         self.assertEqual(new_ticket.stage_id, self.new_stage)
@@ -180,6 +185,7 @@ class TestHelpdeskTicket(TestHelpdeskTicketBase):
                 "description": "Description",
                 "user_id": self.user.id,
                 "priority": "1",
+                "purchase_order_number": "PO-TEST-0006",
             }
         )
         self.assertEqual(self.new_stage, new_ticket.stage_id)
@@ -195,6 +201,7 @@ class TestHelpdeskTicket(TestHelpdeskTicketBase):
                 {
                     "name": "New Ticket",
                     "description": "Description",
+                    "purchase_order_number": "PO-TEST-0007",
                 }
             )
         )
@@ -222,6 +229,7 @@ class TestHelpdeskTicket(TestHelpdeskTicketBase):
                 {
                     "name": "New Ticket A",
                     "description": "Description",
+                    "purchase_order_number": "PO-TEST-0008",
                 }
             )
         )
@@ -234,6 +242,7 @@ class TestHelpdeskTicket(TestHelpdeskTicketBase):
                 {
                     "name": "New Ticket B",
                     "description": "Description",
+                    "purchase_order_number": "PO-TEST-0009",
                 }
             )
         )
