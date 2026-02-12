@@ -74,14 +74,17 @@ class HelpdeskTicket(models.Model):
             else:
                 ticket.x_total_days = 0
 
-    @api.depends("x_stage_entered_at")
+    @api.depends("x_stage_entered_at", "last_stage_update", "create_date")
     def _compute_stage_hours(self):
         now = fields.Datetime.now()
         for ticket in self:
-            if ticket.x_stage_entered_at:
-                start = fields.Datetime.context_timestamp(
-                    ticket, ticket.x_stage_entered_at
-                )
+            entered_at = (
+                ticket.x_stage_entered_at
+                or ticket.last_stage_update
+                or ticket.create_date
+            )
+            if entered_at:
+                start = fields.Datetime.context_timestamp(ticket, entered_at)
                 end = fields.Datetime.context_timestamp(ticket, now)
                 delta = end - start
                 ticket.x_stage_hours = max(0.0, delta.total_seconds() / 3600.0)
@@ -143,9 +146,7 @@ class HelpdeskTicket(models.Model):
         string="Total Days", compute="_compute_total_days", store=True
     )
     x_stage_entered_at = fields.Datetime(string="Stage Entered At", store=True)
-    x_stage_hours = fields.Float(
-        string="Stage Hours", compute="_compute_stage_hours", store=True
-    )
+    x_stage_hours = fields.Float(string="Stage Hours", compute="_compute_stage_hours")
     x_sla_status = fields.Selection(
         selection=[
             ("safe", "Safe"),
@@ -154,7 +155,6 @@ class HelpdeskTicket(models.Model):
         ],
         string="SLA Status",
         compute="_compute_sla_status",
-        store=True,
     )
     partner_id = fields.Many2one(comodel_name="res.partner", string="Contact")
     commercial_partner_id = fields.Many2one(
