@@ -233,6 +233,7 @@
                 <field name="name" />
                 <field name="partner_name" />
                 <field name="channel_id" />
+                <field name="assigned_user_ids" />
                 <field name="user_id" />
                 <field name="user_ids" />
                 <field name="team_id" />
@@ -292,22 +293,22 @@
                                 options="{'color_field': 'color'}"
                             />
 
-                            <footer class="pt-1">
-                                <div class="d-flex mt-auto align-items-center">
+                            <footer class="pt-1 d-flex align-items-end">
+                                <div class="d-flex align-items-center gap-2">
                                     <field
                                         name="priority"
                                         widget="priority"
                                         groups="base.group_user"
-                                        class="me-2"
                                     />
                                     <field name="activity_ids" widget="kanban_activity" />
                                 </div>
-                                <field name="kanban_state" widget="state_selection" />
-                                <field
-                                    name="user_id"
-                                    widget="many2one_avatar_user"
-                                    class="ms-auto"
-                                />
+                                <div class="ms-auto d-flex align-items-center gap-2">
+                                    <field
+                                        name="assigned_user_ids"
+                                        widget="many2many_avatar_user"
+                                    />
+                                    <field name="kanban_state" widget="state_selection" />
+                                </div>
                             </footer>
                         </div>
                     </t>
