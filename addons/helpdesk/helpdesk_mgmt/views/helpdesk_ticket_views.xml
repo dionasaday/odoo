@@ -70,7 +70,7 @@
                     <field
                         name="stage_id"
                         widget="statusbar_duration"
-                        options="{'clickable': '1', 'fold_field': 'fold'}"
+                        options="{'clickable': '1', 'fold_field': 'fold', 'no_create': True, 'no_create_edit': True}"
                     />
                 </header>
                 <sheet>
@@ -221,7 +221,13 @@
         <field name="model">helpdesk.ticket</field>
         <field name="priority" eval="100" />
         <field name="arch" type="xml">
-            <kanban class="o_kanban_mobile" default_group_by="stage_id">
+            <kanban
+                class="o_kanban_mobile"
+                default_group_by="stage_id"
+                decoration-success="x_sla_status == 'safe'"
+                decoration-warning="x_sla_status == 'warning'"
+                decoration-danger="x_sla_status == 'danger'"
+            >
                 <field name="number" />
                 <field name="active" />
                 <field name="name" />
@@ -233,6 +239,8 @@
                 <field name="sequence" />
                 <field name="color" />
                 <field name="stage_id" />
+                <field name="x_total_days" />
+                <field name="x_sla_status" />
                 <field name="priority" widget="priority" />
                 <field name="assigned_date" />
                 <progressbar
@@ -258,7 +266,13 @@
                         <field name="color" widget="kanban_color_picker" />
                     </t>
                     <t t-name="card">
-                        <field class="fw-bold fs-5" name="name" />
+                        <div class="d-flex align-items-start gap-2">
+                            <field class="fw-bold fs-5 flex-grow-1 min-w-0 text-break" name="name" />
+                            <span class="badge text-bg-light flex-shrink-0">
+                                &#x23F1;
+                                <t t-esc="record.x_total_days.raw_value or 0" />d
+                            </span>
+                        </div>
                         <field name="category_id" class="text-muted" />
                         <field name="number" class="text-truncate" />
                         <div class="d-flex gap-2 text-muted text-nowrap">
