@@ -62,6 +62,47 @@ class HelpdeskTicket(models.Model):
         for record in self:
             record.duplicate_count = len(record.duplicate_ids)
 
+    @api.depends("create_date")
+    def _compute_total_days(self):
+        now = fields.Datetime.now()
+        for ticket in self:
+            if ticket.create_date:
+                start = fields.Datetime.context_timestamp(ticket, ticket.create_date)
+                end = fields.Datetime.context_timestamp(ticket, now)
+                delta = end - start
+                ticket.x_total_days = max(0, delta.days)
+            else:
+                ticket.x_total_days = 0
+
+    @api.depends("x_stage_entered_at")
+    def _compute_stage_hours(self):
+        now = fields.Datetime.now()
+        for ticket in self:
+            if ticket.x_stage_entered_at:
+                start = fields.Datetime.context_timestamp(
+                    ticket, ticket.x_stage_entered_at
+                )
+                end = fields.Datetime.context_timestamp(ticket, now)
+                delta = end - start
+                ticket.x_stage_hours = max(0.0, delta.total_seconds() / 3600.0)
+            else:
+                ticket.x_stage_hours = 0.0
+
+    @api.depends("x_stage_hours", "stage_id.x_sla_hours")
+    def _compute_sla_status(self):
+        for ticket in self:
+            sla_hours = ticket.stage_id.x_sla_hours or 0.0
+            if sla_hours <= 0:
+                ticket.x_sla_status = "safe"
+                continue
+            ratio = ticket.x_stage_hours / sla_hours
+            if ratio < 0.7:
+                ticket.x_sla_status = "safe"
+            elif ratio < 1:
+                ticket.x_sla_status = "warning"
+            else:
+                ticket.x_sla_status = "danger"
+
     number = fields.Char(string="Ticket number", default="/", readonly=True)
     name = fields.Char(string="Title", required=True)
     purchase_order_number = fields.Char(string="เลขคำสั่งซื้อ", required=True)
@@ -97,6 +138,23 @@ class HelpdeskTicket(models.Model):
         copy=False,
         index=True,
         domain="['|',('team_ids', '=', team_id),('team_ids','=',False)]",
+    )
+    x_total_days = fields.Integer(
+        string="Total Days", compute="_compute_total_days", store=True
+    )
+    x_stage_entered_at = fields.Datetime(string="Stage Entered At", store=True)
+    x_stage_hours = fields.Float(
+        string="Stage Hours", compute="_compute_stage_hours", store=True
+    )
+    x_sla_status = fields.Selection(
+        selection=[
+            ("safe", "Safe"),
+            ("warning", "Warning"),
+            ("danger", "Danger"),
+        ],
+        string="SLA Status",
+        compute="_compute_sla_status",
+        store=True,
     )
     partner_id = fields.Many2one(comodel_name="res.partner", string="Contact")
     commercial_partner_id = fields.Many2one(
@@ -298,6 +356,8 @@ class HelpdeskTicket(models.Model):
                 )
                 if channel_other_id:
                     vals["channel_id"] = channel_other_id.id
+            if not vals.get("x_stage_entered_at"):
+                vals["x_stage_entered_at"] = fields.Datetime.now()
         records = super().create(vals_list)
         if not self.env.context.get("skip_assignment_email"):
             for record in records:
@@ -338,6 +398,7 @@ class HelpdeskTicket(models.Model):
                 vals["last_stage_update"] = now
                 if stage.closed:
                     vals["closed_date"] = now
+            vals["x_stage_entered_at"] = now
         if vals.get("user_id"):
             vals["assigned_date"] = now
         res = super().write(vals)
