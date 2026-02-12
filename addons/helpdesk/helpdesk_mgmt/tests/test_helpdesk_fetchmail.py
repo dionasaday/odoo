@@ -79,5 +79,9 @@ class TestHelpdeskFetchmail(TestHelpdeskTicketBase):
         ticket_id = self.env["helpdesk.ticket"].search([]) - ticket_ids
         self.assertEqual(len(ticket_id), 1)
         self.assertEqual(ticket_id.name, "Need backup")
-        # ensure that the channel is not set
-        self.assertFalse(ticket_id.channel_id)
+        # ensure that the channel is set to a fallback
+        channel_other = self.env.ref(
+            "helpdesk_mgmt.helpdesk_ticket_channel_other",
+            raise_if_not_found=False,
+        )
+        self.assertEqual(ticket_id.channel_id, channel_other)

@@ -115,6 +115,7 @@ class HelpdeskTicket(models.Model):
     channel_id = fields.Many2one(
         comodel_name="helpdesk.ticket.channel",
         string="Channel",
+        required=True,
         help="Channel indicates where the source of a ticket"
         "comes from (it could be a phone call, an email...)",
     )
@@ -266,6 +267,14 @@ class HelpdeskTicket(models.Model):
                 )
                 if channel_email_id:
                     vals["channel_id"] = channel_email_id.id
+            # Fallback channel for programmatic creates without explicit channel
+            if not vals.get("channel_id"):
+                channel_other_id = self.env.ref(
+                    "helpdesk_mgmt.helpdesk_ticket_channel_other",
+                    raise_if_not_found=False,
+                )
+                if channel_other_id:
+                    vals["channel_id"] = channel_other_id.id
         return super().create(vals_list)
 
     def copy(self, default=None):
