@@ -266,15 +266,9 @@
                         <field name="color" widget="kanban_color_picker" />
                     </t>
                     <t t-name="card">
-                        <t t-set="sla_status" t-value="record.x_sla_status.raw_value or 'safe'" />
+                        <t t-set="sla_status" t-value="record.x_sla_status.raw_value || 'safe'" />
                         <div
-                            t-att-style="
-                                'border-left:4px solid #28a745; padding-left:8px;'
-                                if sla_status == 'safe'
-                                else 'border-left:4px solid #f0ad4e; padding-left:8px; background-color:rgba(240,173,78,0.08);'
-                                if sla_status == 'warning'
-                                else 'border-left:4px solid #d9534f; padding-left:8px; background-color:rgba(217,83,79,0.08);'
-                            "
+                            t-att-style="sla_status == 'safe' ? 'border-left:4px solid #28a745; padding-left:8px;' : (sla_status == 'warning' ? 'border-left:4px solid #f0ad4e; padding-left:8px; background-color:rgba(240,173,78,0.08);' : 'border-left:4px solid #d9534f; padding-left:8px; background-color:rgba(217,83,79,0.08);')"
                         >
                             <div class="d-flex align-items-start gap-2">
                                 <field class="fw-bold fs-5 flex-grow-1 min-w-0 text-break" name="name" />
