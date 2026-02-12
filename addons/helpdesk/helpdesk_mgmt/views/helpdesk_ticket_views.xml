@@ -266,45 +266,56 @@
                         <field name="color" widget="kanban_color_picker" />
                     </t>
                     <t t-name="card">
-                        <div class="d-flex align-items-start gap-2">
-                            <field class="fw-bold fs-5 flex-grow-1 min-w-0 text-break" name="name" />
-                            <span class="badge text-bg-light flex-shrink-0">
-                                &#x23F1;
-                                <t t-esc="record.x_total_days.raw_value or 0" />d
-                            </span>
-                        </div>
-                        <field name="category_id" class="text-muted" />
-                        <field name="number" class="text-truncate" />
-                        <div class="d-flex gap-2 text-muted text-nowrap">
-                            <field name="channel_id" />
-                            <field name="purchase_order_number" />
-                        </div>
-                        <small class="o_kanban_record_subtitle text-muted">
-                            <field name="partner_id" />
-                        </small>
-                        <field
-                            name="tag_ids"
-                            widget="many2many_tags"
-                            options="{'color_field': 'color'}"
-                        />
-
-                        <footer class="pt-1">
-                            <div class="d-flex mt-auto align-items-center">
-                                <field
-                                    name="priority"
-                                    widget="priority"
-                                    groups="base.group_user"
-                                    class="me-2"
-                                />
-                                <field name="activity_ids" widget="kanban_activity" />
+                        <t t-set="sla_status" t-value="record.x_sla_status.raw_value or 'safe'" />
+                        <div
+                            t-att-style="
+                                'border-left:4px solid #28a745; padding-left:8px;'
+                                if sla_status == 'safe'
+                                else 'border-left:4px solid #f0ad4e; padding-left:8px; background-color:rgba(240,173,78,0.08);'
+                                if sla_status == 'warning'
+                                else 'border-left:4px solid #d9534f; padding-left:8px; background-color:rgba(217,83,79,0.08);'
+                            "
+                        >
+                            <div class="d-flex align-items-start gap-2">
+                                <field class="fw-bold fs-5 flex-grow-1 min-w-0 text-break" name="name" />
+                                <span class="badge text-bg-light flex-shrink-0">
+                                    &#x23F1;
+                                    <t t-esc="record.x_total_days.raw_value or 0" />d
+                                </span>
                             </div>
-                            <field name="kanban_state" widget="state_selection" />
+                            <field name="category_id" class="text-muted" />
+                            <field name="number" class="text-truncate" />
+                            <div class="d-flex gap-2 text-muted text-nowrap">
+                                <field name="channel_id" />
+                                <field name="purchase_order_number" />
+                            </div>
+                            <small class="o_kanban_record_subtitle text-muted">
+                                <field name="partner_id" />
+                            </small>
                             <field
-                                name="user_id"
-                                widget="many2one_avatar_user"
-                                class="ms-auto"
+                                name="tag_ids"
+                                widget="many2many_tags"
+                                options="{'color_field': 'color'}"
                             />
-                        </footer>
+
+                            <footer class="pt-1">
+                                <div class="d-flex mt-auto align-items-center">
+                                    <field
+                                        name="priority"
+                                        widget="priority"
+                                        groups="base.group_user"
+                                        class="me-2"
+                                    />
+                                    <field name="activity_ids" widget="kanban_activity" />
+                                </div>
+                                <field name="kanban_state" widget="state_selection" />
+                                <field
+                                    name="user_id"
+                                    widget="many2one_avatar_user"
+                                    class="ms-auto"
+                                />
+                            </footer>
+                        </div>
                     </t>
                 </templates>
             </kanban>
