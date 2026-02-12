@@ -76,6 +76,12 @@ class HelpdeskTicket(models.Model):
         readonly=False,
         domain="team_id and [('share', '=', False),('id', 'in', user_ids)] or [('share', '=', False)]",  # noqa: B950,E501
     )
+    assigned_user_ids = fields.Many2many(
+        comodel_name="res.users",
+        string="Assigned user",
+        tracking=True,
+        domain="team_id and [('share', '=', False),('id', 'in', user_ids)] or [('share', '=', False)]",  # noqa: B950,E501
+    )
     user_ids = fields.Many2many(
         comodel_name="res.users", related="team_id.user_ids", string="Users"
     )
@@ -232,6 +238,23 @@ class HelpdeskTicket(models.Model):
             self.partner_name = self.partner_id.name
             self.partner_email = self.partner_id.email
 
+    @api.onchange("user_id")
+    def _onchange_user_id(self):
+        if self.user_id and self.user_id not in self.assigned_user_ids:
+            self.assigned_user_ids = self.assigned_user_ids | self.user_id
+
+    @api.onchange("assigned_user_ids")
+    def _onchange_assigned_user_ids(self):
+        if self.assigned_user_ids and self.user_id not in self.assigned_user_ids:
+            self.user_id = self.assigned_user_ids[0]
+        elif not self.assigned_user_ids:
+            self.user_id = False
+
+    @api.onchange("team_id")
+    def _onchange_team_id(self):
+        if self.team_id and self.assigned_user_ids:
+            self.assigned_user_ids = self.assigned_user_ids & self.team_id.user_ids
+
     # ---------------------------------------------------
     # CRUD
     # ---------------------------------------------------
@@ -275,7 +298,19 @@ class HelpdeskTicket(models.Model):
                 )
                 if channel_other_id:
                     vals["channel_id"] = channel_other_id.id
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        if not self.env.context.get("skip_assignment_email"):
+            for record in records:
+                assigned_users = set(record.assigned_user_ids.ids)
+                if record.user_id:
+                    assigned_users.add(record.user_id.id)
+                for user in self.env["res.users"].browse(assigned_users):
+                    record._send_assignment_email(user)
+        if not self.env.context.get("skip_assignment_sync"):
+            records.with_context(
+                skip_assignment_email=True, skip_assignment_sync=True
+            )._sync_assigned_users()
+        return records
 
     def copy(self, default=None):
         self.ensure_one()
@@ -289,6 +324,13 @@ class HelpdeskTicket(models.Model):
     def write(self, vals):
         """Update ticket with proper timestamp tracking."""
         now = fields.Datetime.now()
+        skip_email = self.env.context.get("skip_assignment_email")
+        old_users = {}
+        old_assigned = {}
+        if "user_id" in vals:
+            old_users = {rec.id: rec.user_id for rec in self}
+        if "assigned_user_ids" in vals:
+            old_assigned = {rec.id: set(rec.assigned_user_ids.ids) for rec in self}
         if vals.get("stage_id"):
             stage = self.env["helpdesk.ticket.stage"].browse([vals["stage_id"]])
             # Check if stage exists to prevent errors if stage was deleted
@@ -298,7 +340,25 @@ class HelpdeskTicket(models.Model):
                     vals["closed_date"] = now
         if vals.get("user_id"):
             vals["assigned_date"] = now
-        return super().write(vals)
+        res = super().write(vals)
+        if not skip_email and ("user_id" in vals or "assigned_user_ids" in vals):
+            for rec in self:
+                new_users = set()
+                if "assigned_user_ids" in vals:
+                    new_users |= set(rec.assigned_user_ids.ids) - old_assigned.get(
+                        rec.id, set()
+                    )
+                if "user_id" in vals:
+                    new_user = rec.user_id
+                    if new_user and new_user != old_users.get(rec.id):
+                        new_users.add(new_user.id)
+                for user in self.env["res.users"].browse(new_users):
+                    rec._send_assignment_email(user)
+        if not self.env.context.get("skip_assignment_sync"):
+            self.with_context(
+                skip_assignment_email=True, skip_assignment_sync=True
+            )._sync_assigned_users()
+        return res
 
     def action_duplicate_tickets(self):
         for ticket in self.browse(self.env.context["active_ids"]):
@@ -315,6 +375,38 @@ class HelpdeskTicket(models.Model):
         for item in self:
             item.access_url = f"/my/ticket/{item.id}"
         return res
+
+    def _sync_assigned_users(self):
+        for ticket in self:
+            updates = {}
+            if ticket.user_id and ticket.user_id not in ticket.assigned_user_ids:
+                updates["assigned_user_ids"] = [(4, ticket.user_id.id)]
+            elif ticket.assigned_user_ids and not ticket.user_id:
+                updates["user_id"] = ticket.assigned_user_ids[0].id
+            if updates:
+                ticket.with_context(
+                    skip_assignment_email=True, skip_assignment_sync=True
+                ).write(updates)
+
+    def _send_assignment_email(self, user):
+        template = self.env.ref(
+            "helpdesk_mgmt.assignment_email_template", raise_if_not_found=False
+        )
+        if not template or not user or not user.email:
+            return
+        for ticket in self:
+            email_values = {
+                "email_to": user.email,
+                "email_cc": False,
+                "recipient_ids": [(6, 0, [user.partner_id.id])],
+                "body_html": (
+                    f"<p>Hello {user.name},</p>"
+                    f"<p>The ticket {ticket.number} has been assigned to you.</p>"
+                ),
+            }
+            template.with_context(
+                lang=user.partner_id.lang or user.lang
+            ).send_mail(ticket.id, force_send=True, email_values=email_values, raise_exception=False)
 
     # ---------------------------------------------------
     # Mail gateway

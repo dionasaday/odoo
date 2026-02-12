@@ -37,10 +37,15 @@
                 <field name="name"/>
                 <field name="partner_id"/>
                 <field name="user_id"/>
+                <field name="assigned_user_ids"/>
                 <field name="stage_id"/>
                 <separator/>
                 <filter string="Open" name="open" domain="[('closed', '=', False)]"/>
-                <filter string="My Tickets" name="mytickets" domain="[('user_id', '=', uid)]"/>
+                <filter
+                    string="My Tickets"
+                    name="mytickets"
+                    domain="['|', ('user_id', '=', uid), ('assigned_user_ids', 'in', uid)]"
+                />
             </search>
         </field>
     </record>
@@ -121,10 +126,11 @@
                             <field name="duplicate_tracking_enabled" invisible="1" />
                             <field name="team_id" options='{"always_reload": True}' />
                             <field name="user_ids" invisible="1" readonly="1" />
+                            <field name="user_id" invisible="1" />
                             <field
-                                name="user_id"
+                                name="assigned_user_ids"
                                 options='{"always_reload": True}'
-                                widget="many2one_avatar_user"
+                                widget="many2many_avatar_user"
                             />
                             <field name="priority" widget="priority" />
                             <field
@@ -220,6 +226,7 @@
                 <field name="active" />
                 <field name="name" />
                 <field name="partner_name" />
+                <field name="channel_id" />
                 <field name="user_id" />
                 <field name="user_ids" />
                 <field name="team_id" />
@@ -254,7 +261,10 @@
                         <field class="fw-bold fs-5" name="name" />
                         <field name="category_id" class="text-muted" />
                         <field name="number" class="text-truncate" />
-                        <field name="purchase_order_number" class="text-truncate" />
+                        <div class="d-flex gap-2 text-muted text-nowrap">
+                            <field name="channel_id" />
+                            <field name="purchase_order_number" />
+                        </div>
                         <small class="o_kanban_record_subtitle text-muted">
                             <field name="partner_id" />
                         </small>
