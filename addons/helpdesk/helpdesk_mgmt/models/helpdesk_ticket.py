@@ -106,6 +106,19 @@ class HelpdeskTicket(models.Model):
             else:
                 ticket.x_sla_status = "danger"
 
+    @api.depends("write_date", "create_date")
+    def _compute_no_update_warning(self):
+        now = fields.Datetime.now()
+        for ticket in self:
+            last = ticket.write_date or ticket.create_date
+            if last:
+                start = fields.Datetime.context_timestamp(ticket, last)
+                end = fields.Datetime.context_timestamp(ticket, now)
+                hours = max(0.0, (end - start).total_seconds() / 3600.0)
+                ticket.x_no_update_warning = hours >= 48.0
+            else:
+                ticket.x_no_update_warning = False
+
     number = fields.Char(string="Ticket number", default="/", readonly=True)
     name = fields.Char(string="Title", required=True)
     purchase_order_number = fields.Char(string="เลขคำสั่งซื้อ", required=True)
@@ -155,6 +168,9 @@ class HelpdeskTicket(models.Model):
         ],
         string="SLA Status",
         compute="_compute_sla_status",
+    )
+    x_no_update_warning = fields.Boolean(
+        string="No Update > 48h", compute="_compute_no_update_warning"
     )
     partner_id = fields.Many2one(comodel_name="res.partner", string="Contact")
     commercial_partner_id = fields.Many2one(

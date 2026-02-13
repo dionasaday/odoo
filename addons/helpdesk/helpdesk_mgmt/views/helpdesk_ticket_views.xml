@@ -242,6 +242,7 @@
                 <field name="stage_id" />
                 <field name="x_total_days" />
                 <field name="x_sla_status" />
+                <field name="x_no_update_warning" />
                 <field name="priority" widget="priority" />
                 <field name="assigned_date" />
                 <progressbar
@@ -273,15 +274,26 @@
                         >
                             <div class="d-flex align-items-start gap-2">
                                 <field class="fw-bold fs-5 flex-grow-1 min-w-0 text-break" name="name" />
-                                <span class="badge text-bg-light flex-shrink-0">
-                                    &#x23F1;
-                                    <t t-esc="record.x_total_days.raw_value or 0" />d
-                                </span>
+                                <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                    <t t-if="record.x_no_update_warning.raw_value">
+                                        <span class="badge text-bg-warning" title="No update > 48h">
+                                            &#9888; 48h
+                                        </span>
+                                    </t>
+                                    <span class="badge text-bg-light">
+                                        &#x23F1;
+                                        <t t-esc="record.x_total_days.raw_value or 0" />d
+                                    </span>
+                                </div>
                             </div>
-                            <field name="category_id" class="text-muted" />
-                            <field name="number" class="text-truncate" />
+                            <div class="text-muted text-truncate">
+                                <field name="category_id" />
+                            </div>
                             <div class="d-flex gap-2 text-muted text-nowrap">
+                                <field name="number" />
                                 <field name="channel_id" />
+                            </div>
+                            <div class="text-muted text-truncate">
                                 <field name="purchase_order_number" />
                             </div>
                             <small class="o_kanban_record_subtitle text-muted">
