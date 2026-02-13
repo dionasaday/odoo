@@ -471,14 +471,35 @@ class HelpdeskTicket(models.Model):
         )
         if not template or not user or not user.email:
             return
+        base_url = (
+            self.env["ir.config_parameter"].sudo().get_param("web.base.url") or ""
+        )
         for ticket in self:
+            ticket_label = ticket.display_name or ticket.number or ticket.name or ""
+            ticket_url = (
+                f"{base_url}/web#id={ticket.id}&model=helpdesk.ticket&view_type=form"
+            )
+            cta_html = f"""
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                        <td style="background:#623412; border-radius:6px;">
+                            <a href="{ticket_url}" target="_blank"
+                               style="display:inline-block; padding:10px 16px; color:#ffffff;
+                                      text-decoration:none; font-weight:600;">
+                                View Helpdesk Ticket
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            """
             email_values = {
                 "email_to": user.email,
                 "email_cc": False,
                 "recipient_ids": [(6, 0, [user.partner_id.id])],
                 "body_html": (
                     f"<p>Hello {user.name},</p>"
-                    f"<p>The ticket {ticket.number} has been assigned to you.</p>"
+                    f"<p>The ticket <strong>{ticket_label}</strong> has been assigned to you.</p>"
+                    f"{cta_html}"
                 ),
             }
             template.with_context(
