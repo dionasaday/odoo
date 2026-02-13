@@ -106,11 +106,11 @@ class HelpdeskTicket(models.Model):
             else:
                 ticket.x_sla_status = "danger"
 
-    @api.depends("write_date", "create_date")
+    @api.depends("x_last_update_at", "create_date")
     def _compute_no_update_warning(self):
         now = fields.Datetime.now()
         for ticket in self:
-            last = ticket.write_date or ticket.create_date
+            last = ticket.x_last_update_at or ticket.create_date
             if last:
                 start = fields.Datetime.context_timestamp(ticket, last)
                 end = fields.Datetime.context_timestamp(ticket, now)
@@ -172,6 +172,7 @@ class HelpdeskTicket(models.Model):
     x_no_update_warning = fields.Boolean(
         string="No Update > 48h", compute="_compute_no_update_warning"
     )
+    x_last_update_at = fields.Datetime(string="Last Update At", copy=False)
     partner_id = fields.Many2one(comodel_name="res.partner", string="Contact")
     commercial_partner_id = fields.Many2one(
         string="Commercial Partner",
@@ -338,6 +339,7 @@ class HelpdeskTicket(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        now = fields.Datetime.now()
         for vals in vals_list:
             if vals.get("number", "/") == "/":
                 vals["number"] = self._prepare_ticket_number(vals)
@@ -374,6 +376,8 @@ class HelpdeskTicket(models.Model):
                     vals["channel_id"] = channel_other_id.id
             if not vals.get("x_stage_entered_at"):
                 vals["x_stage_entered_at"] = fields.Datetime.now()
+            if not vals.get("x_last_update_at"):
+                vals["x_last_update_at"] = now
         records = super().create(vals_list)
         if not self.env.context.get("skip_assignment_email"):
             for record in records:
@@ -415,6 +419,7 @@ class HelpdeskTicket(models.Model):
                 if stage.closed:
                     vals["closed_date"] = now
             vals["x_stage_entered_at"] = now
+            vals["x_last_update_at"] = now
         if vals.get("user_id"):
             vals["assigned_date"] = now
         res = super().write(vals)
@@ -435,6 +440,18 @@ class HelpdeskTicket(models.Model):
             self.with_context(
                 skip_assignment_email=True, skip_assignment_sync=True
             )._sync_assigned_users()
+        return res
+
+    def message_post(self, **kwargs):
+        res = super().message_post(**kwargs)
+        if not self.env.context.get("skip_last_update_at"):
+            subtype_id = kwargs.get("subtype_id")
+            if subtype_id:
+                mt_note = self.env.ref("mail.mt_note", raise_if_not_found=False)
+                if mt_note and subtype_id == mt_note.id:
+                    self.with_context(skip_last_update_at=True).write(
+                        {"x_last_update_at": fields.Datetime.now()}
+                    )
         return res
 
     def action_duplicate_tickets(self):
