@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_line_webhook_event_tree" model="ir.ui.view">
+        <field name="name">line.webhook.event.list</field>
+        <field name="model">x_line_webhook_event</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="received_at" />
+                <field name="line_user_id" />
+                <field name="message_text" />
+                <field name="matched_partner_id" />
+                <field name="created_partner_id" />
+                <field name="created_ticket_id" />
+                <field name="processed" />
+            </list>
+        </field>
+    </record>
+
+    <record id="view_line_webhook_event_form" model="ir.ui.view">
+        <field name="name">line.webhook.event.form</field>
+        <field name="model">x_line_webhook_event</field>
+        <field name="arch" type="xml">
+            <form string="LINE OA Event">
+                <sheet>
+                    <group>
+                        <field name="received_at" />
+                        <field name="line_user_id" />
+                        <field name="processed" />
+                    </group>
+                    <group>
+                        <field name="matched_partner_id" />
+                        <field name="created_partner_id" />
+                        <field name="created_ticket_id" />
+                    </group>
+                    <group>
+                        <field name="message_text" widget="text" />
+                        <field name="payload_snippet" widget="text" />
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_line_webhook_event" model="ir.actions.act_window">
+        <field name="name">LINE OA Events</field>
+        <field name="res_model">x_line_webhook_event</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem
+        id="helpdesk_line_webhook_event_menu"
+        name="LINE OA Events"
+        parent="helpdesk_ticket_config_main_menu"
+        action="action_line_webhook_event"
+        sequence="90"
+        groups="helpdesk_mgmt.group_helpdesk_manager"
+    />
+</odoo>

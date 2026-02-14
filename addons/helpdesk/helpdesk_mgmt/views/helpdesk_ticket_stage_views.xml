@@ -57,6 +57,17 @@
                         </group>
                         <group name="main_right">
                             <field name="x_sla_hours" />
+                            <field name="x_notify_customer_email" />
+                            <field name="x_notify_customer_line" />
+                            <field
+                                name="x_email_template_id"
+                                invisible="not x_notify_customer_email"
+                            />
+                            <field
+                                name="x_line_message_template"
+                                invisible="not x_notify_customer_line"
+                                placeholder="Use {ticket_name}, {ticket_id}, {customer_name}, {stage_name}, {email}, {phone}, {ticket_url}"
+                            />
                             <field name="active" invisible="1" />
                             <field name="closed" />
                             <field name="close_from_portal" invisible="not closed" />

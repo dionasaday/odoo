@@ -1,5 +1,11 @@
+import logging
+
+import requests
+
 from odoo import api, fields, models, tools
 from odoo.exceptions import AccessError
+
+_logger = logging.getLogger(__name__)
 
 
 class HelpdeskTicket(models.Model):
@@ -106,6 +112,16 @@ class HelpdeskTicket(models.Model):
             else:
                 ticket.x_sla_status = "danger"
 
+    @api.depends("partner_id", "partner_id.phone")
+    def _compute_contact_phone(self):
+        for ticket in self:
+            if ticket.partner_id:
+                partner = ticket.partner_id
+                mobile = getattr(partner, "mobile", False)
+                ticket.x_contact_phone = partner.phone or mobile or False
+            else:
+                ticket.x_contact_phone = False
+
     @api.depends("x_last_update_at", "create_date")
     def _compute_no_update_warning(self):
         now = fields.Datetime.now()
@@ -173,7 +189,25 @@ class HelpdeskTicket(models.Model):
         string="No Update > 48h", compute="_compute_no_update_warning"
     )
     x_last_update_at = fields.Datetime(string="Last Update At", copy=False)
+    x_last_notified_stage_id_email = fields.Many2one(
+        comodel_name="helpdesk.ticket.stage", string="Last Notified Stage (Email)"
+    )
+    x_last_notified_stage_id_line = fields.Many2one(
+        comodel_name="helpdesk.ticket.stage", string="Last Notified Stage (LINE)"
+    )
     partner_id = fields.Many2one(comodel_name="res.partner", string="Contact")
+    x_contact_email = fields.Char(
+        string="Contact Email", related="partner_id.email", store=True, readonly=True
+    )
+    x_contact_phone = fields.Char(
+        string="Contact Phone", compute="_compute_contact_phone", store=True
+    )
+    x_contact_line_user_id = fields.Char(
+        string="LINE User ID",
+        related="partner_id.x_line_user_id",
+        store=True,
+        readonly=True,
+    )
     commercial_partner_id = fields.Many2one(
         string="Commercial Partner",
         store=True,
@@ -407,10 +441,14 @@ class HelpdeskTicket(models.Model):
         skip_email = self.env.context.get("skip_assignment_email")
         old_users = {}
         old_assigned = {}
+        old_stage_ids = {}
+        stage_changed = "stage_id" in vals
         if "user_id" in vals:
             old_users = {rec.id: rec.user_id for rec in self}
         if "assigned_user_ids" in vals:
             old_assigned = {rec.id: set(rec.assigned_user_ids.ids) for rec in self}
+        if stage_changed:
+            old_stage_ids = {rec.id: rec.stage_id.id for rec in self}
         if vals.get("stage_id"):
             stage = self.env["helpdesk.ticket.stage"].browse([vals["stage_id"]])
             # Check if stage exists to prevent errors if stage was deleted
@@ -440,6 +478,8 @@ class HelpdeskTicket(models.Model):
             self.with_context(
                 skip_assignment_email=True, skip_assignment_sync=True
             )._sync_assigned_users()
+        if stage_changed and not self.env.context.get("skip_stage_notify"):
+            self._handle_stage_change_notifications(old_stage_ids)
         return res
 
     def message_post(self, **kwargs):
@@ -522,6 +562,142 @@ class HelpdeskTicket(models.Model):
             template.with_context(
                 lang=user.partner_id.lang or user.lang
             ).send_mail(ticket.id, force_send=True, email_values=email_values, raise_exception=False)
+
+    def _handle_stage_change_notifications(self, old_stage_ids):
+        for ticket in self:
+            if not ticket.stage_id:
+                continue
+            if old_stage_ids.get(ticket.id) == ticket.stage_id.id:
+                continue
+            ticket._notify_customer_stage_change()
+
+    def _notify_customer_stage_change(self):
+        stage = self.stage_id
+        if not stage:
+            return
+        if stage.x_notify_customer_email and self._helpdesk_email_enabled():
+            self._send_stage_email(stage)
+        if stage.x_notify_customer_line and self._lineoa_enabled():
+            self._send_stage_line_message(stage)
+
+    def _helpdesk_email_enabled(self):
+        return bool(
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("helpdesk_mgmt.helpdesk_email_enabled", "False")
+            == "True"
+        )
+
+    def _lineoa_enabled(self):
+        return bool(
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("helpdesk_mgmt.lineoa_enabled", "False")
+            == "True"
+        )
+
+    def _lineoa_access_token(self):
+        return (
+            self.env["ir.config_parameter"]
+            .sudo()
+            .get_param("helpdesk_mgmt.lineoa_channel_access_token")
+            or ""
+        )
+
+    def _ticket_url(self):
+        self.ensure_one()
+        if hasattr(self, "_portal_ensure_token"):
+            self._portal_ensure_token()
+        base_url = (
+            self.env["ir.config_parameter"].sudo().get_param("web.base.url") or ""
+        )
+        access_token = self.access_token or ""
+        return f"{base_url}/my/ticket/{self.id}?access_token={access_token}"
+
+    def _post_system_note(self, body):
+        self.with_context(skip_last_update_at=True).message_post(
+            body=body, subtype_xmlid="mail.mt_note"
+        )
+
+    def _send_stage_email(self, stage):
+        if self.x_last_notified_stage_id_email == stage:
+            return
+        partner = self.partner_id
+        if not partner or not partner.email:
+            self._post_system_note("Email notification skipped: customer email missing.")
+            return
+        template = stage.x_email_template_id
+        if not template:
+            self._post_system_note("Email notification skipped: no email template set.")
+            return
+        template.with_context(lang=partner.lang).send_mail(
+            self.id,
+            force_send=True,
+            email_values={"email_to": partner.email},
+            raise_exception=False,
+        )
+        self.with_context(skip_stage_notify=True).write(
+            {"x_last_notified_stage_id_email": stage.id}
+        )
+
+    def _render_line_message(self, template, stage):
+        values = {
+            "ticket_name": self.name or "",
+            "ticket_id": self.number or str(self.id),
+            "customer_name": self.partner_id.name if self.partner_id else "",
+            "stage_name": stage.name or "",
+            "email": self.partner_id.email if self.partner_id else "",
+            "phone": self.x_contact_phone or "",
+            "ticket_url": self._ticket_url(),
+        }
+        message = template or ""
+        for key, val in values.items():
+            message = message.replace("{" + key + "}", str(val or ""))
+        return message
+
+    def _send_stage_line_message(self, stage):
+        if self.x_last_notified_stage_id_line == stage:
+            return
+        partner = self.partner_id
+        if not partner or not partner.x_line_user_id:
+            self._post_system_note("LINE notification skipped: LINE user ID missing.")
+            return
+        if not stage.x_line_message_template:
+            self._post_system_note("LINE notification skipped: no LINE template set.")
+            return
+        access_token = self._lineoa_access_token()
+        if not access_token:
+            self._post_system_note("LINE notification skipped: access token missing.")
+            return
+        message_text = self._render_line_message(stage.x_line_message_template, stage)
+        try:
+            response = requests.post(
+                "https://api.line.me/v2/bot/message/push",
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "to": partner.x_line_user_id,
+                    "messages": [{"type": "text", "text": message_text}],
+                },
+                timeout=5,
+            )
+            if response.status_code >= 300:
+                _logger.warning(
+                    "LINE push failed for ticket %s: status=%s",
+                    self.id,
+                    response.status_code,
+                )
+                self._post_system_note("LINE notification failed to send.")
+                return
+        except Exception as exc:
+            _logger.warning("Failed to push LINE message for ticket %s: %s", self.id, exc)
+            self._post_system_note("LINE notification failed to send.")
+            return
+        self.with_context(skip_stage_notify=True).write(
+            {"x_last_notified_stage_id_line": stage.id}
+        )
 
     # ---------------------------------------------------
     # Mail gateway

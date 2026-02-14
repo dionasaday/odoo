@@ -143,6 +143,9 @@
                         </group>
                         <group>
                             <field name="partner_id" />
+                            <field name="x_contact_email" readonly="1" />
+                            <field name="x_contact_phone" readonly="1" />
+                            <field name="x_contact_line_user_id" readonly="1" />
                             <field name="purchase_order_number" />
                             <field name="partner_name" />
                             <field name="partner_email" />

@@ -180,6 +180,7 @@ class CustomerPortalHelpdesk(CustomerPortal):
         for attachment in ticket_sudo.attachment_ids:
             attachment.generate_access_token()
         values = self._ticket_get_page_view_values(ticket_sudo, access_token, **kw)
+        values["limited_portal_view"] = bool(access_token)
         return request.render("helpdesk_mgmt.portal_helpdesk_ticket_page", values)
 
     def _ticket_get_page_view_values(self, ticket, access_token, **kwargs):

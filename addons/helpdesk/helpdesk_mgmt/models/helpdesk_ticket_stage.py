@@ -10,6 +10,14 @@ class HelpdeskTicketStage(models.Model):
     description = fields.Html(translate=True, sanitize_style=True)
     sequence = fields.Integer(default=1)
     x_sla_hours = fields.Float(string="SLA Hours")
+    x_notify_customer_email = fields.Boolean(string="Notify Customer by Email")
+    x_notify_customer_line = fields.Boolean(string="Notify Customer by LINE")
+    x_email_template_id = fields.Many2one(
+        comodel_name="mail.template",
+        string="Customer Email Template",
+        domain=[("model", "=", "helpdesk.ticket")],
+    )
+    x_line_message_template = fields.Text(string="LINE Message Template")
     active = fields.Boolean(default=True)
     unattended = fields.Boolean()
     closed = fields.Boolean()

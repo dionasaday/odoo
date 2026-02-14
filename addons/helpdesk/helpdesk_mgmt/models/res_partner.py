@@ -4,6 +4,10 @@ from odoo import fields, models
 class ResPartner(models.Model):
     _inherit = "res.partner"
 
+    x_line_user_id = fields.Char(string="LINE User ID", index=True)
+    x_line_display_name = fields.Char(string="LINE Display Name")
+    x_line_last_seen = fields.Datetime(string="LINE Last Seen")
+
     helpdesk_ticket_ids = fields.One2many(
         comodel_name="helpdesk.ticket",
         inverse_name="partner_id",

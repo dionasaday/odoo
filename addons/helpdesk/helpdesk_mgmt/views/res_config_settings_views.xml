@@ -104,6 +104,102 @@
                             </div>
                         </setting>
                     </block>
+                    <block title="Customer Notifications">
+                        <setting
+                            id="helpdesk_mgmt_customer_email_enabled"
+                            string="Customer Email"
+                            help="Enable customer email notifications on stage changes."
+                        >
+                            <div class="content-group">
+                                <field name="helpdesk_email_enabled" />
+                                <label for="helpdesk_email_enabled" />
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="LINE OA">
+                        <setting
+                            id="lineoa_enabled"
+                            string="Enable LINE OA"
+                            help="Enable LINE OA webhook processing and messaging."
+                        >
+                            <div class="content-group">
+                                <field name="lineoa_enabled" />
+                                <label for="lineoa_enabled" />
+                            </div>
+                        </setting>
+                        <setting
+                            id="lineoa_credentials"
+                            string="Credentials"
+                            help="Store LINE OA channel credentials securely."
+                            invisible="not lineoa_enabled"
+                        >
+                            <div class="content-group">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <label
+                                            for="lineoa_channel_access_token"
+                                            class="o_light_label d-block"
+                                        />
+                                        <field
+                                            name="lineoa_channel_access_token"
+                                            widget="helpdesk_password_toggle"
+                                            placeholder="LINE OA Channel Access Token"
+                                        />
+                                    </div>
+                                    <div class="col-12">
+                                        <label
+                                            for="lineoa_channel_secret"
+                                            class="o_light_label d-block"
+                                        />
+                                        <field
+                                            name="lineoa_channel_secret"
+                                            widget="helpdesk_password_toggle"
+                                            placeholder="LINE OA Channel Secret"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting
+                            id="lineoa_webhook_path"
+                            string="Webhook Path"
+                            help="Webhook path used by LINE OA."
+                            invisible="not lineoa_enabled"
+                        >
+                            <div class="content-group">
+                                <field name="lineoa_webhook_path" />
+                            </div>
+                        </setting>
+                        <setting
+                            id="lineoa_ticket_creation"
+                            string="Ticket Creation"
+                            help="Create helpdesk tickets from LINE messages."
+                            invisible="not lineoa_enabled"
+                        >
+                            <div class="content-group">
+                                <div class="mt8">
+                                    <field name="lineoa_create_ticket" />
+                                    <label for="lineoa_create_ticket" />
+                                </div>
+                                <div class="mt8" invisible="not lineoa_create_ticket">
+                                    <field name="lineoa_helpdesk_team_id" />
+                                </div>
+                                <div class="mt8" invisible="not lineoa_create_ticket">
+                                    <field name="lineoa_default_stage_id" />
+                                </div>
+                            </div>
+                        </setting>
+                        <setting
+                            id="lineoa_match_mode"
+                            string="Contact Matching"
+                            help="How to match LINE messages to existing contacts."
+                            invisible="not lineoa_enabled"
+                        >
+                            <div class="content-group">
+                                <field name="lineoa_match_mode" />
+                            </div>
+                        </setting>
+                    </block>
                 </app>
             </xpath>
         </field>

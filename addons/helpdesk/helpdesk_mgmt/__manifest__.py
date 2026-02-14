@@ -32,6 +32,7 @@
         "views/helpdesk_ticket_tag_views.xml",
         "views/helpdesk_ticket_views.xml",
         "views/helpdesk_dashboard_views.xml",
+        "views/line_webhook_event_views.xml",
         "wizards/helpdesk_ticket_duplicate_wizard_views.xml",
     ],
     "demo": ["demo/helpdesk_demo.xml"],
@@ -42,6 +43,8 @@
         "web.assets_backend": [
             "helpdesk_mgmt/static/src/views/**/*.esm.js",
             "helpdesk_mgmt/static/src/views/**/*.xml",
+            "helpdesk_mgmt/static/src/js/helpdesk_password_toggle_field.js",
+            "helpdesk_mgmt/static/src/xml/helpdesk_password_toggle_field.xml",
         ],
         "web.assets_unit_tests": [
             "helpdesk_mgmt/static/tests/**/*.test.js",
