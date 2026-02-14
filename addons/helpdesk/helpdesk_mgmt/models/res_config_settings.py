@@ -89,3 +89,22 @@ class ResConfigSettings(models.TransientModel):
         config_parameter="helpdesk_mgmt.helpdesk_email_enabled",
         default=True,
     )
+
+    @api.model
+    def get_values(self):
+        res = super().get_values()
+        icp = self.env["ir.config_parameter"].sudo()
+        res.update(
+            lineoa_create_ticket=(
+                icp.get_param("helpdesk_mgmt.lineoa_create_ticket", "True") == "True"
+            )
+        )
+        return res
+
+    def set_values(self):
+        res = super().set_values()
+        self.env["ir.config_parameter"].sudo().set_param(
+            "helpdesk_mgmt.lineoa_create_ticket",
+            "True" if self.lineoa_create_ticket else "False",
+        )
+        return res
