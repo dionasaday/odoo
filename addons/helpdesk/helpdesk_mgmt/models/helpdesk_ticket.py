@@ -3,6 +3,7 @@ import logging
 import requests
 
 from odoo import api, fields, models, tools
+from odoo.tools import html2plaintext
 from odoo.exceptions import AccessError
 
 _logger = logging.getLogger(__name__)
@@ -49,24 +50,109 @@ class HelpdeskTicket(models.Model):
 
     @api.model
     def _read_group_stage_ids(self, stages, domain):
-        """Show always the stages without team, or stages of the default team."""
-        search_domain = [
-            "|",
-            ("id", "in", stages.ids),
+        """Prefer team stages when available; fallback to global stages."""
+        Stage = self.env["helpdesk.ticket.stage"]
+        team_id = (
+            self._context.get("default_team_id")
+            or self._context.get("team_id")
+            or self.default_get(["team_id"]).get("team_id")
+        )
+        if team_id:
+            team_domain = [
+                ("company_id", "in", [False, self.env.company.id]),
+                ("team_ids", "=", team_id),
+            ]
+            team_stages = Stage.search(team_domain)
+            if team_stages:
+                return team_stages
+        fallback_domain = [
+            ("company_id", "in", [False, self.env.company.id]),
             ("team_ids", "=", False),
         ]
-        default_team_id = self.default_get(["team_id"])
-        if default_team_id:
-            search_domain = [
-                "|",
-                ("team_ids", "=", default_team_id["team_id"]),
-            ] + search_domain
-        return stages.search(search_domain)
+        return Stage.search(fallback_domain)
+
+    @api.onchange("team_id")
+    def _onchange_team_id_stage_domain(self):
+        Stage = self.env["helpdesk.ticket.stage"]
+        if not self.team_id:
+            return {"domain": {"stage_id": [("team_ids", "=", False)]}}
+        team_domain = [
+            ("company_id", "in", [False, self.team_id.company_id.id]),
+            ("team_ids", "=", self.team_id.id),
+        ]
+        team_stages = Stage.search(team_domain)
+        if team_stages:
+            if self.stage_id and self.stage_id not in team_stages:
+                self.stage_id = False
+            return {"domain": {"stage_id": team_domain}}
+        fallback_domain = [
+            ("company_id", "in", [False, self.team_id.company_id.id]),
+            ("team_ids", "=", False),
+        ]
+        if self.stage_id and self.stage_id not in Stage.search(fallback_domain):
+            self.stage_id = False
+        return {"domain": {"stage_id": fallback_domain}}
 
     @api.depends("duplicate_ids")
     def _compute_duplicate_count(self):
         for record in self:
             record.duplicate_count = len(record.duplicate_ids)
+
+    def _format_ticket_name(self, product, short_description):
+        product_name = product.name or ""
+        if product.default_code:
+            base = f"[{product.default_code}] {product_name}"
+        else:
+            base = product_name
+        if short_description:
+            return f"{base} – {short_description}"
+        return base
+
+    def _get_short_description(self, description_html, limit=50):
+        if not description_html:
+            return ""
+        text = html2plaintext(description_html).replace("\n", " ").strip()
+        text = " ".join(text.split())
+        return text[:limit]
+
+    @api.onchange("product_id")
+    def _onchange_product_id_fill_description(self):
+        for ticket in self:
+            if not ticket.product_id:
+                continue
+            if ticket.description and html2plaintext(ticket.description).strip():
+                continue
+            ticket.description = (
+                ticket.product_id.display_name or ticket.product_id.name or ""
+            )
+
+    @api.onchange("product_id", "description")
+    def _onchange_product_description_fill_name(self):
+        for ticket in self:
+            if ticket.name or not ticket.product_id or not ticket.description:
+                continue
+            short_description = ticket._get_short_description(ticket.description)
+            if not short_description:
+                continue
+            ticket.name = ticket._format_ticket_name(
+                ticket.product_id, short_description
+            )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get("name") or not vals.get("product_id") or not vals.get(
+                "description"
+            ):
+                continue
+            product = self.env["product.product"].browse(vals["product_id"])
+            if not product:
+                continue
+            short_description = self._get_short_description(vals.get("description"))
+            if not short_description:
+                continue
+            vals["name"] = self._format_ticket_name(product, short_description)
+        return super().create(vals_list)
 
     @api.depends("create_date")
     def _compute_total_days(self):
@@ -208,6 +294,18 @@ class HelpdeskTicket(models.Model):
         store=True,
         readonly=True,
     )
+    x_line_channel_id = fields.Many2one(
+        comodel_name="helpdesk.lineoa.channel",
+        string="LINE OA Channel",
+        readonly=True,
+        copy=False,
+    )
+    x_line_user_id = fields.Char(
+        string="LINE User ID (Ticket)",
+        readonly=True,
+        copy=False,
+        index=True,
+    )
     commercial_partner_id = fields.Many2one(
         string="Commercial Partner",
         store=True,
@@ -233,6 +331,10 @@ class HelpdeskTicket(models.Model):
         required=True,
         help="Channel indicates where the source of a ticket"
         "comes from (it could be a phone call, an email...)",
+    )
+    product_id = fields.Many2one(
+        comodel_name="product.product",
+        string="Product",
     )
     category_id = fields.Many2one(
         comodel_name="helpdesk.ticket.category",
@@ -480,6 +582,8 @@ class HelpdeskTicket(models.Model):
             )._sync_assigned_users()
         if stage_changed and not self.env.context.get("skip_stage_notify"):
             self._handle_stage_change_notifications(old_stage_ids)
+        if stage_changed and not self.env.context.get("skip_followup"):
+            self._handle_followup_policies(old_stage_ids)
         return res
 
     def message_post(self, **kwargs):
@@ -571,6 +675,44 @@ class HelpdeskTicket(models.Model):
                 continue
             ticket._notify_customer_stage_change()
 
+    def _handle_followup_policies(self, old_stage_ids):
+        Policy = self.env["helpdesk.followup.policy"].sudo()
+        Event = self.env["helpdesk.followup.event"].sudo()
+        now = fields.Datetime.now()
+        for ticket in self:
+            if not ticket.stage_id:
+                continue
+            if old_stage_ids.get(ticket.id) == ticket.stage_id.id:
+                continue
+            policies = Policy.search(
+                [("active", "=", True), ("trigger_stage_id", "=", ticket.stage_id.id)]
+            )
+            if not policies:
+                continue
+            for policy in policies:
+                if not policy._matches_ticket(ticket):
+                    continue
+                existing = Event.search(
+                    [
+                        ("ticket_id", "=", ticket.id),
+                        ("policy_id", "=", policy.id),
+                        ("state", "in", ["pending", "escalated"]),
+                    ],
+                    limit=1,
+                )
+                if existing:
+                    continue
+                assigned_user = policy.default_assignee_user_id or ticket.user_id
+                Event.create(
+                    {
+                        "ticket_id": ticket.id,
+                        "policy_id": policy.id,
+                        "trigger_at": now,
+                        "assigned_user_id": assigned_user.id if assigned_user else False,
+                        "state": "pending",
+                    }
+                )
+
     def _notify_customer_stage_change(self):
         stage = self.stage_id
         if not stage:
@@ -597,12 +739,19 @@ class HelpdeskTicket(models.Model):
         )
 
     def _lineoa_access_token(self):
+        self.ensure_one()
+        if self.x_line_channel_id and self.x_line_channel_id.channel_access_token:
+            return self.x_line_channel_id.channel_access_token
         return (
             self.env["ir.config_parameter"]
             .sudo()
             .get_param("helpdesk_mgmt.lineoa_channel_access_token")
             or ""
         )
+
+    def _lineoa_user_id(self):
+        self.ensure_one()
+        return self.x_line_user_id or (self.partner_id.x_line_user_id if self.partner_id else "")
 
     def _ticket_url(self):
         self.ensure_one()
@@ -659,7 +808,8 @@ class HelpdeskTicket(models.Model):
         if self.x_last_notified_stage_id_line == stage:
             return
         partner = self.partner_id
-        if not partner or not partner.x_line_user_id:
+        line_user_id = self._lineoa_user_id()
+        if not partner or not line_user_id:
             self._post_system_note("LINE notification skipped: LINE user ID missing.")
             return
         if not stage.x_line_message_template:
@@ -678,7 +828,7 @@ class HelpdeskTicket(models.Model):
                     "Content-Type": "application/json",
                 },
                 json={
-                    "to": partner.x_line_user_id,
+                    "to": line_user_id,
                     "messages": [{"type": "text", "text": message_text}],
                 },
                 timeout=5,

@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_helpdesk_followup_kpi_summary_kanban" model="ir.ui.view">
+        <field name="name">helpdesk.followup.kpi.summary.kanban</field>
+        <field name="model">helpdesk.followup.kpi.summary</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="date" />
+                <field name="period_start" />
+                <field name="period_end" />
+                <field name="followup_created_count" />
+                <field name="followup_done_count" />
+                <field name="completion_rate" />
+                <field name="avg_response_time_hours" />
+                <field name="escalation_count" />
+                <templates>
+                    <t t-name="card">
+                        <div class="o_kanban_record">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="text-muted">Follow-up KPI Summary</div>
+                                    <div class="h4 mb-1">All Teams</div>
+                                    <small class="text-muted">
+                                        Period: <t t-esc="record.period_start.value" /> - <t t-esc="record.period_end.value" />
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    <div class="text-muted">Completion</div>
+                                    <div class="display-6 fw-bold">
+                                        <t t-esc="record.completion_rate.value || 0" />%
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4 d-flex flex-wrap gap-4">
+                                <div>
+                                    <div class="display-6 mb-0">
+                                        <t t-esc="record.followup_created_count.value || 0" />
+                                    </div>
+                                    <small class="text-muted">Created</small>
+                                </div>
+                                <div>
+                                    <div class="display-6 mb-0">
+                                        <t t-esc="record.followup_done_count.value || 0" />
+                                    </div>
+                                    <small class="text-muted">Done</small>
+                                </div>
+                                <div>
+                                    <div class="display-6 mb-0">
+                                        <t t-esc="record.avg_response_time_hours.value || 0" />h
+                                    </div>
+                                    <small class="text-muted">Avg Response</small>
+                                </div>
+                                <div>
+                                    <div class="display-6 mb-0">
+                                        <t t-esc="record.escalation_count.value || 0" />
+                                    </div>
+                                    <small class="text-muted">Escalations</small>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_helpdesk_followup_kpi_summary_tree" model="ir.ui.view">
+        <field name="name">helpdesk.followup.kpi.summary.list</field>
+        <field name="model">helpdesk.followup.kpi.summary</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="date" />
+                <field name="period_start" />
+                <field name="period_end" />
+                <field name="followup_created_count" />
+                <field name="followup_done_count" />
+                <field name="completion_rate" />
+                <field name="avg_response_time_hours" />
+                <field name="escalation_count" />
+            </list>
+        </field>
+    </record>
+
+    <record id="action_helpdesk_followup_kpi_summary" model="ir.actions.act_window">
+        <field name="name">Follow-up KPI Summary</field>
+        <field name="res_model">helpdesk.followup.kpi.summary</field>
+        <field name="view_mode">kanban,list</field>
+        <field name="view_id" ref="view_helpdesk_followup_kpi_summary_kanban" />
+    </record>
+</odoo>

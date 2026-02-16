@@ -39,9 +39,11 @@ class LineOAController(http.Controller):
 
         body = request.httprequest.get_data() or b""
         signature = request.httprequest.headers.get("X-Line-Signature")
-        secret = icp.get_param("helpdesk_mgmt.lineoa_channel_secret") or ""
-        if not self._verify_signature(secret, body, signature):
-            return http.Response(status=403)
+        channel = self._match_lineoa_channel(body, signature)
+        if not channel:
+            secret = icp.get_param("helpdesk_mgmt.lineoa_channel_secret") or ""
+            if not self._verify_signature(secret, body, signature):
+                return http.Response(status=403)
 
         try:
             payload = json.loads(body.decode("utf-8") if body else "{}")
@@ -50,7 +52,7 @@ class LineOAController(http.Controller):
 
         events = payload.get("events", [])
         for event in events:
-            self._process_event(event)
+            self._process_event(event, channel)
         return http.Response("OK", status=200)
 
     def _verify_signature(self, secret, body, signature):
@@ -60,7 +62,14 @@ class LineOAController(http.Controller):
         expected = base64.b64encode(digest).decode("utf-8")
         return hmac.compare_digest(expected, signature)
 
-    def _process_event(self, event):
+    def _match_lineoa_channel(self, body, signature):
+        Channel = request.env["helpdesk.lineoa.channel"].sudo()
+        for channel in Channel.search([("active", "=", True)]):
+            if self._verify_signature(channel.channel_secret or "", body, signature):
+                return channel
+        return None
+
+    def _process_event(self, event, channel=None):
         env = request.env
         icp = env["ir.config_parameter"].sudo()
         line_event = env["x_line_webhook_event"].sudo()
@@ -70,6 +79,7 @@ class LineOAController(http.Controller):
             line_event.create(
                 {
                     "received_at": fields.Datetime.now(),
+                    "lineoa_channel_id": channel.id if channel else False,
                     "processed": False,
                     "payload_snippet": payload_snippet,
                 }
@@ -81,6 +91,7 @@ class LineOAController(http.Controller):
             line_event.create(
                 {
                     "received_at": fields.Datetime.now(),
+                    "lineoa_channel_id": channel.id if channel else False,
                     "processed": False,
                     "payload_snippet": payload_snippet,
                 }
@@ -95,26 +106,42 @@ class LineOAController(http.Controller):
             timestamp = datetime.fromtimestamp(timestamp_ms / 1000, tz=timezone.utc)
 
         display_name = None
-        access_token = icp.get_param("helpdesk_mgmt.lineoa_channel_access_token") or ""
+        access_token = (
+            channel.channel_access_token if channel else icp.get_param("helpdesk_mgmt.lineoa_channel_access_token") or ""
+        )
         if access_token and line_user_id:
             display_name = self._fetch_line_profile(line_user_id, access_token)
 
+        match_mode = (
+            channel.match_mode
+            if channel
+            else icp.get_param(
+                "helpdesk_mgmt.lineoa_match_mode", "by_phone_or_email_in_message"
+            )
+        )
         partner, matched_partner, created_partner, conflict = self._map_partner(
-            line_user_id, message_text, display_name
+            line_user_id, message_text, display_name, match_mode
         )
 
         created_ticket = None
-        if icp.get_param("helpdesk_mgmt.lineoa_create_ticket", "True") == "True":
+        create_ticket = (
+            channel.create_ticket
+            if channel
+            else icp.get_param("helpdesk_mgmt.lineoa_create_ticket", "True") == "True"
+        )
+        if create_ticket:
             created_ticket = self._create_or_update_ticket(
                 partner,
                 line_user_id,
                 message_text,
                 timestamp,
+                channel,
             )
 
         line_event.create(
             {
                 "received_at": fields.Datetime.now(),
+                "lineoa_channel_id": channel.id if channel else False,
                 "line_user_id": line_user_id,
                 "message_text": message_text,
                 "matched_partner_id": matched_partner.id if matched_partner else False,
@@ -145,12 +172,8 @@ class LineOAController(http.Controller):
         except Exception:
             return None
 
-    def _map_partner(self, line_user_id, message_text, display_name):
+    def _map_partner(self, line_user_id, message_text, display_name, match_mode):
         env = request.env
-        icp = env["ir.config_parameter"].sudo()
-        match_mode = icp.get_param(
-            "helpdesk_mgmt.lineoa_match_mode", "by_phone_or_email_in_message"
-        )
         Partner = env["res.partner"].sudo()
 
         conflict = False
@@ -203,13 +226,17 @@ class LineOAController(http.Controller):
         created_partner = Partner.create(vals)
         return created_partner, matched_partner, created_partner, conflict
 
-    def _create_or_update_ticket(self, partner, line_user_id, message_text, timestamp):
+    def _create_or_update_ticket(self, partner, line_user_id, message_text, timestamp, channel=None):
         env = request.env
         icp = env["ir.config_parameter"].sudo()
         Ticket = env["helpdesk.ticket"].sudo()
 
-        team_id = icp.get_param("helpdesk_mgmt.lineoa_helpdesk_team_id")
-        stage_id = icp.get_param("helpdesk_mgmt.lineoa_default_stage_id")
+        team_id = (
+            channel.helpdesk_team_id.id if channel and channel.helpdesk_team_id else icp.get_param("helpdesk_mgmt.lineoa_helpdesk_team_id")
+        )
+        stage_id = (
+            channel.default_stage_id.id if channel and channel.default_stage_id else icp.get_param("helpdesk_mgmt.lineoa_default_stage_id")
+        )
         team_id = int(team_id) if team_id else False
         stage_id = int(stage_id) if stage_id else False
 
@@ -254,6 +281,8 @@ class LineOAController(http.Controller):
             "stage_id": stage_id,
             "channel_id": channel_id,
             "purchase_order_number": env._("N/A"),
+            "x_line_channel_id": channel.id if channel else False,
+            "x_line_user_id": line_user_id,
         }
         return Ticket.create(vals)
 

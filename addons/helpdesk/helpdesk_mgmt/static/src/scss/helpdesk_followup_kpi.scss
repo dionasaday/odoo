@@ -1,0 +1,61 @@
+.otd_followup_kpi_dashboard .o_kanban_records {
+  display: grid !important;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  width: 100% !important;
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+.otd_followup_kpi_dashboard .o_kanban_record {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.o_kanban_view.otd_followup_kpi_dashboard,
+.o_kanban_view .o_kanban_renderer.otd_followup_kpi_dashboard,
+.o_kanban_view.otd_followup_kpi_dashboard .o_kanban_renderer {
+  max-width: none !important;
+  width: 100% !important;
+}
+
+.otd_followup_kpi_dashboard .o_kanban_record.o_kpi_exec_header {
+  min-width: 0;
+}
+
+@media (min-width: 992px) {
+  .otd_followup_kpi_dashboard .o_kanban_records {
+    grid-template-columns: minmax(420px, 480px) minmax(0, 1fr);
+  }
+
+  .otd_followup_kpi_dashboard .o_kanban_record.o_kpi_exec_header {
+    grid-column: 1;
+  }
+
+  .otd_followup_kpi_dashboard .o_kanban_record:not(.o_kpi_exec_header) {
+    grid-column: 2;
+  }
+
+  .otd_followup_kpi_dashboard .o_kanban_record.o_kpi_exec_header {
+    min-width: 420px;
+  }
+}
+
+.otd_followup_kpi_dashboard .o_kpi_exec_header .kpi-tile {
+  min-width: 0;
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.otd_followup_kpi_dashboard .o_kpi_exec_header .kpi-title,
+.otd_followup_kpi_dashboard .o_kpi_exec_header .kpi-subtitle,
+.otd_followup_kpi_dashboard .o_kpi_exec_header .text-muted {
+  word-break: normal;
+  overflow-wrap: anywhere;
+}
+
+.otd_followup_kpi_dashboard .o_kpi_exec_header .kpi-value,
+.otd_followup_kpi_dashboard .o_kpi_exec_header .kpi-main-value {
+  white-space: nowrap;
+}

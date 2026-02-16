@@ -9,6 +9,9 @@ class LineWebhookEvent(models.Model):
     received_at = fields.Datetime(default=fields.Datetime.now, required=True)
     line_user_id = fields.Char(string="LINE User ID")
     message_text = fields.Text(string="Message Text")
+    lineoa_channel_id = fields.Many2one(
+        comodel_name="helpdesk.lineoa.channel", string="LINE OA Channel"
+    )
     matched_partner_id = fields.Many2one(
         comodel_name="res.partner", string="Matched Partner"
     )

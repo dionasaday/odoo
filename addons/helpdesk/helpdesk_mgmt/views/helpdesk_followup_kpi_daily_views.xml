@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="view_helpdesk_followup_kpi_daily_kanban" model="ir.ui.view">
+        <field name="name">helpdesk.followup.kpi.daily.kanban</field>
+        <field name="model">helpdesk.followup.kpi.daily</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_dashboard otd_followup_kpi_dashboard">
+                <field name="date" />
+                <field name="team_id" />
+                <field name="policy_id" />
+                <field name="assigned_user_id" />
+                <field name="followup_created_count" />
+                <field name="followup_done_count" />
+                <field name="completion_rate" />
+                <field name="avg_response_time_hours" />
+                <field name="escalation_count" />
+                <field name="card_completion_class" />
+                <field name="card_response_class" />
+                <field name="card_escalation_class" />
+                <field name="exec_is_header" />
+                <field name="exec_total_created" />
+                <field name="exec_total_done" />
+                <field name="exec_total_escalations" />
+                <field name="exec_completion_rate" />
+                <field name="exec_avg_response_time_hours" />
+                <field name="exec_completion_delta_display" />
+                <field name="exec_response_delta_display" />
+                <field name="exec_completion_delta" />
+                <field name="exec_response_delta" />
+                <field name="exec_completion_class" />
+                <field name="exec_response_class" />
+                <field name="exec_escalation_class" />
+                <field name="exec_completion_target" />
+                <field name="exec_response_sla_hours" />
+                <field name="exec_trend_points" />
+                <field name="exec_trend_interval" />
+                <field name="exec_cs_ranking" />
+                <field name="exec_escalation_ranking" />
+                <field name="exec_team_rankings" />
+                <templates>
+                    <t t-name="card">
+                        <t t-if="record.exec_is_header.raw_value === true">
+                            <div class="o_kanban_record o_kpi_exec_header w-100 mb-3">
+                                <div class="d-flex justify-content-between flex-wrap gap-2">
+                                    <div class="min-w-0">
+                                        <div class="text-muted">Executive KPI Summary</div>
+                                        <div class="h4 mb-1 text-truncate">All Teams</div>
+                                        <small class="text-muted">Filters in search bar apply</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="text-muted">Completion Rate</div>
+                                        <div t-att-class="(record.exec_completion_class.value or '') + ' display-6 fw-bold kpi-main-value'">
+                                            <t t-esc="record.exec_completion_rate.value || 0" />%
+                                        </div>
+                                        <div class="small text-muted">
+                                            Target <t t-esc="record.exec_completion_target.value or 90" />%
+                                        </div>
+                                        <div class="small">
+                                            <span t-att-class="record.exec_completion_delta.value &gt;= 0 and 'text-success' or 'text-danger'">
+                                                <t t-esc="record.exec_completion_delta_display.value" />
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row g-2 mt-3">
+                                    <div class="col-12 col-md-6 col-xl-3">
+                                        <div class="border rounded-3 bg-white px-3 py-2 h-100 kpi-tile">
+                                            <div class="small text-muted text-truncate kpi-title">Completion Rate</div>
+                                            <div class="d-flex align-items-baseline gap-2">
+                                                <div t-att-class="(record.exec_completion_class.value or '') + ' h4 fw-bold text-nowrap kpi-value'">
+                                                    <t t-esc="record.exec_completion_rate.value || 0" />%
+                                                </div>
+                                                <div class="small text-muted kpi-subtitle">
+                                                    Target <t t-esc="record.exec_completion_target.value or 90" />%
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-xl-3">
+                                        <div class="border rounded-3 bg-white px-3 py-2 h-100 kpi-tile">
+                                            <div class="small text-muted text-truncate kpi-title">Avg Response</div>
+                                            <div class="d-flex align-items-baseline gap-2">
+                                                <div t-att-class="(record.exec_response_class.value or '') + ' h4 fw-bold text-nowrap kpi-value'">
+                                                    <t t-esc="record.exec_avg_response_time_hours.value || 0" />h
+                                                </div>
+                                                <div class="small text-muted kpi-subtitle">
+                                                    SLA <t t-esc="record.exec_response_sla_hours.value or 2" />h
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-xl-3">
+                                        <div class="border rounded-3 bg-white px-3 py-2 h-100 kpi-tile">
+                                            <div class="small text-muted text-truncate kpi-title">Total Escalations</div>
+                                            <div t-att-class="(record.exec_escalation_class.value or '') + ' h4 fw-bold text-nowrap kpi-value'">
+                                                <t t-esc="record.exec_total_escalations.value || 0" />
+                                            </div>
+                                            <div class="small text-muted kpi-subtitle">0 = Green</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-xl-3">
+                                        <div class="border rounded-3 bg-white px-3 py-2 h-100 kpi-tile">
+                                            <div class="small text-muted text-truncate kpi-title">Total Follow-ups</div>
+                                            <div class="h4 fw-bold text-nowrap kpi-value">
+                                                <t t-esc="record.exec_total_created.value || 0" />
+                                            </div>
+                                            <div class="small text-muted kpi-subtitle">Done <t t-esc="record.exec_total_done.value || 0" /></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4">
+                                    <div class="fw-semibold">Trends</div>
+                                    <div class="text-muted small">
+                                        Bucket: <t t-esc="record.exec_trend_interval.value == 'week' and 'Weekly' or 'Daily'" />
+                                    </div>
+                                    <t t-set="trend_points" t-value="record.exec_trend_points.raw_value or []" />
+                                    <div class="row g-3 mt-1">
+                                        <div class="col-12 col-lg-4">
+                                            <div class="text-muted small">Completion Rate</div>
+                                            <t t-foreach="trend_points" t-as="point">
+                                                <div class="d-flex justify-content-between small">
+                                                    <span class="text-muted"><t t-esc="point['label']" /></span>
+                                                    <span class="fw-semibold"><t t-esc="point['completion_rate']" />%</span>
+                                                </div>
+                                                <div class="progress mb-2">
+                                                    <div class="progress-bar bg-success" t-att-style="'width: %s%%' % point['completion_rate']" />
+                                                </div>
+                                            </t>
+                                        </div>
+                                        <div class="col-12 col-lg-4">
+                                            <div class="text-muted small">Avg Response (h)</div>
+                                            <t t-foreach="trend_points" t-as="point">
+                                                <div class="d-flex justify-content-between small">
+                                                    <span class="text-muted"><t t-esc="point['label']" /></span>
+                                                    <span class="fw-semibold"><t t-esc="point['avg_response_time_hours']" />h</span>
+                                                </div>
+                                                <div class="progress mb-2">
+                                                    <div class="progress-bar bg-warning" t-att-style="'width: %s%%' % point['response_pct']" />
+                                                </div>
+                                            </t>
+                                        </div>
+                                        <div class="col-12 col-lg-4">
+                                            <div class="text-muted small">Escalations</div>
+                                            <t t-foreach="trend_points" t-as="point">
+                                                <div class="d-flex justify-content-between small">
+                                                    <span class="text-muted"><t t-esc="point['label']" /></span>
+                                                    <span class="fw-semibold"><t t-esc="point['escalation_count']" /></span>
+                                                </div>
+                                                <div class="progress mb-2">
+                                                    <div class="progress-bar bg-danger" t-att-style="'width: %s%%' % point['escalation_pct']" />
+                                                </div>
+                                            </t>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4">
+                                    <div class="fw-semibold">Top/Bottom Performance</div>
+                                    <t t-set="team_rankings" t-value="record.exec_team_rankings.raw_value or []" />
+                                    <t t-foreach="team_rankings" t-as="team">
+                                        <div class="mt-2 fw-semibold">
+                                            <t t-esc="team['team_name']" />
+                                        </div>
+                                        <div class="row g-3 mt-1">
+                                            <div class="col-12 col-lg-6">
+                                                <div class="text-muted small mb-1">CS Performance (Top 10)</div>
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>CS</th>
+                                                            <th class="text-end">Created</th>
+                                                            <th class="text-end">Done</th>
+                                                            <th class="text-end">Completion %</th>
+                                                            <th class="text-end">Avg Response</th>
+                                                            <th class="text-end">Esc</th>
+                                                            <th class="text-end">Score</th>
+                                                            <th class="text-end">Grade</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <t t-foreach="team['cs_rows']" t-as="row">
+                                                            <tr>
+                                                                <td><t t-esc="row['user']" /></td>
+                                                                <td class="text-end"><t t-esc="row['created']" /></td>
+                                                                <td class="text-end"><t t-esc="row['done']" /></td>
+                                                                <td class="text-end"><t t-esc="row['completion_rate']" />%</td>
+                                                                <td class="text-end"><t t-esc="row['avg_response_time_hours']" />h</td>
+                                                                <td class="text-end"><t t-esc="row['escalations']" /></td>
+                                                                <td class="text-end"><t t-esc="row['cs_score']" /></td>
+                                                                <td class="text-end"><t t-esc="row['cs_grade']" /></td>
+                                                            </tr>
+                                                        </t>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <div class="col-12 col-lg-6">
+                                                <div class="text-muted small mb-1">Escalation Count per CS</div>
+                                                <table class="table table-sm">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>CS</th>
+                                                            <th class="text-end">Escalations</th>
+                                                            <th class="text-end">Avg Response</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <t t-foreach="team['esc_rows']" t-as="row">
+                                                            <tr>
+                                                                <td><t t-esc="row['user']" /></td>
+                                                                <td class="text-end"><t t-esc="row['escalations']" /></td>
+                                                                <td class="text-end"><t t-esc="row['avg_response_time_hours']" />h</td>
+                                                            </tr>
+                                                        </t>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </t>
+                                </div>
+                                <div class="mt-2 small text-muted">
+                                    <div class="fw-semibold">หมายเหตุการคำนวณคะแนนรวม (CS Score)</div>
+                                    <div>น้ำหนัก: Completion 50% + Response 30% + Escalations 20%</div>
+                                    <div>Completion Score = min(100, Completion/Target × 100)</div>
+                                    <div>Response Score: ≤ SLA = 100, ≤ SLA×1.5 = 70, ≤ SLA×2 = 40, &gt; SLA×2 = 0</div>
+                                    <div>Escalations Score: 0 = 100, ≤2 = 70, ≤5 = 40, &gt;5 = 0</div>
+                                    <div>Grade: A≥90, B≥80, C≥70, D≥60, F&lt;60</div>
+                                </div>
+                            </div>
+                        </t>
+
+                        <div class="o_kanban_record" t-if="record.exec_is_header.raw_value !== true">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <strong t-esc="record.date.value" />
+                                    <div class="text-muted">
+                                        <t t-esc="record.team_id.value or ''" />
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="text-muted">Completion</div>
+                                    <div t-att-class="(record.card_completion_class.value or '') + ' fw-bold'">
+                                        <t t-esc="record.completion_rate.value || 0" />%
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-3 d-flex flex-wrap gap-3">
+                                <div>
+                                    <div class="h4 mb-0">
+                                        <t t-esc="record.followup_created_count.value || 0" />
+                                    </div>
+                                    <small class="text-muted">Created</small>
+                                </div>
+                                <div>
+                                    <div class="h4 mb-0">
+                                        <t t-esc="record.followup_done_count.value || 0" />
+                                    </div>
+                                    <small class="text-muted">Done</small>
+                                </div>
+                                <div>
+                                    <div class="h4 mb-0">
+                                        <span t-att-class="record.card_response_class.value">
+                                            <t t-esc="record.avg_response_time_hours.value || 0" />h
+                                        </span>
+                                    </div>
+                                    <small class="text-muted">Avg Response</small>
+                                </div>
+                                <div>
+                                    <div class="h4 mb-0">
+                                        <span t-att-class="record.card_escalation_class.value">
+                                            <t t-esc="record.escalation_count.value || 0" />
+                                        </span>
+                                    </div>
+                                    <small class="text-muted">Escalations</small>
+                                </div>
+                            </div>
+                            <div class="mt-2 text-muted" t-if="record.policy_id.value">
+                                Policy: <t t-esc="record.policy_id.value" />
+                            </div>
+                            <div class="text-muted" t-if="record.assigned_user_id.value">
+                                CS: <t t-esc="record.assigned_user_id.value" />
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_helpdesk_followup_kpi_daily_tree" model="ir.ui.view">
+        <field name="name">helpdesk.followup.kpi.daily.list</field>
+        <field name="model">helpdesk.followup.kpi.daily</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="date" />
+                <field name="team_id" />
+                <field name="policy_id" />
+                <field name="assigned_user_id" />
+                <field name="followup_created_count" />
+                <field name="followup_done_count" />
+                <field name="completion_rate" />
+                <field name="avg_response_time_hours" />
+                <field name="escalation_count" />
+            </list>
+        </field>
+    </record>
+
+    <record id="view_helpdesk_followup_kpi_daily_pivot" model="ir.ui.view">
+        <field name="name">helpdesk.followup.kpi.daily.pivot</field>
+        <field name="model">helpdesk.followup.kpi.daily</field>
+        <field name="arch" type="xml">
+            <pivot>
+                <field name="followup_created_count" type="measure" />
+                <field name="followup_done_count" type="measure" />
+                <field name="completion_rate" type="measure" />
+                <field name="avg_response_time_hours" type="measure" />
+                <field name="escalation_count" type="measure" />
+                <field name="assigned_user_id" type="row" />
+                <field name="date" type="col" interval="week" />
+            </pivot>
+        </field>
+    </record>
+
+    <record id="view_helpdesk_followup_kpi_daily_graph" model="ir.ui.view">
+        <field name="name">helpdesk.followup.kpi.daily.graph</field>
+        <field name="model">helpdesk.followup.kpi.daily</field>
+        <field name="arch" type="xml">
+            <graph type="line" sample="false">
+                <field name="completion_rate" type="measure" />
+                <field name="avg_response_time_hours" type="measure" />
+                <field name="escalation_count" type="measure" />
+                <field name="date" type="col" interval="day" />
+            </graph>
+        </field>
+    </record>
+
+    <record id="action_helpdesk_followup_kpi" model="ir.actions.act_window">
+        <field name="name">Follow-up KPI Dashboard</field>
+        <field name="res_model">helpdesk.followup.kpi.daily</field>
+        <field name="view_mode">kanban,pivot,graph,list</field>
+        <field name="view_id" ref="view_helpdesk_followup_kpi_daily_kanban" />
+        <field name="context">{'search_default_last_30_days': 1}</field>
+    </record>
+</odoo>

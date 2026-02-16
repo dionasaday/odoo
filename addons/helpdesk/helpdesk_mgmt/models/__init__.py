@@ -10,3 +10,10 @@ from . import res_config_settings
 from . import res_partner
 from . import res_users
 from . import line_webhook_event
+from . import helpdesk_lineoa_channel
+from . import helpdesk_followup_policy
+from . import helpdesk_followup_event
+from . import mail_activity
+from . import product_product
+from . import helpdesk_followup_kpi_daily
+from . import helpdesk_followup_kpi_summary

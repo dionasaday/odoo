@@ -116,7 +116,43 @@
                             </div>
                         </setting>
                     </block>
-                    <block title="LINE OA">
+                    <block title="Follow-up KPI">
+                        <setting
+                            id="helpdesk_mgmt_followup_kpi_targets"
+                            string="Targets &amp; SLA"
+                            help="กำหนดเป้าหมายและ SLA ที่ใช้คำนวณ/แสดงผลใน Follow-up KPI Dashboard"
+                        >
+                            <div class="content-group">
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <label
+                                            for="helpdesk_followup_completion_target"
+                                            class="o_light_label d-block"
+                                            string="Completion Target (%)"
+                                        />
+                                        <div class="form-text text-muted">
+                                            เป้าหมายอัตราปิดงาน Follow-up ให้สำเร็จ (%)
+                                            เช่น 90 = ต้องปิดงานให้ได้อย่างน้อย 90%
+                                        </div>
+                                        <field name="helpdesk_followup_completion_target" />
+                                    </div>
+                                    <div class="col-12 col-md-6">
+                                        <label
+                                            for="helpdesk_followup_response_sla_hours"
+                                            class="o_light_label d-block"
+                                            string="Response SLA (hours)"
+                                        />
+                                        <div class="form-text text-muted">
+                                            เป้าหมายเวลาเฉลี่ยในการทำ Follow-up ให้เสร็จ (ชั่วโมง)
+                                            นับจากสร้างกิจกรรมจนกด Done
+                                        </div>
+                                        <field name="helpdesk_followup_response_sla_hours" />
+                                    </div>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="LINE OA" invisible="1">
                         <setting
                             id="lineoa_enabled"
                             string="Enable LINE OA"

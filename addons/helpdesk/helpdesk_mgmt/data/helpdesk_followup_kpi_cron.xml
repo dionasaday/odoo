@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="ir_cron_helpdesk_followup_kpi_daily" model="ir.cron">
+        <field name="name">Helpdesk Follow-up: KPI Daily</field>
+        <field name="model_id" ref="model_helpdesk_followup_kpi_daily" />
+        <field name="state">code</field>
+        <field name="code">model._cron_compute_daily_kpis()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="active">True</field>
+    </record>
+    <record id="ir_cron_helpdesk_followup_kpi_summary" model="ir.cron">
+        <field name="name">Helpdesk Follow-up: KPI Summary</field>
+        <field name="model_id" ref="model_helpdesk_followup_kpi_summary" />
+        <field name="state">code</field>
+        <field name="code">model._cron_compute_summary_kpi()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="active">True</field>
+    </record>
+</odoo>

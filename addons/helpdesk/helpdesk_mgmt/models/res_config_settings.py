@@ -89,6 +89,16 @@ class ResConfigSettings(models.TransientModel):
         config_parameter="helpdesk_mgmt.helpdesk_email_enabled",
         default=True,
     )
+    helpdesk_followup_completion_target = fields.Float(
+        string="Follow-up Completion Target (%)",
+        config_parameter="helpdesk_mgmt.followup_completion_target",
+        default=90.0,
+    )
+    helpdesk_followup_response_sla_hours = fields.Float(
+        string="Follow-up Response SLA (hours)",
+        config_parameter="helpdesk_mgmt.followup_response_sla_hours",
+        default=2.0,
+    )
 
     @api.model
     def get_values(self):

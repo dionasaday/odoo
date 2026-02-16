@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+    <record id="helpdesk_ticket_product_form_context" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.form.product.context</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="inherit_id" ref="helpdesk_mgmt.ticket_view_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='channel_id']" position="after">
+                <field name="product_id" context="{'show_sku_name': True}" invisible="1" />
+            </xpath>
+            <xpath expr="//group[@name='main']" position="after">
+                <group>
+                    <field
+                        name="product_id"
+                        context="{'show_sku_name': True}"
+                        class="otd_product_full"
+                        colspan="2"
+                    />
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="helpdesk_ticket_product_tree_context" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.tree.product.context</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="inherit_id" ref="helpdesk_mgmt.ticket_view_tree" />
+        <field name="arch" type="xml">
+            <field name="user_id" position="after">
+                <field name="product_id" optional="show" context="{'show_sku_name': True}" />
+            </field>
+        </field>
+    </record>
+
+    <record id="helpdesk_ticket_product_search_context" model="ir.ui.view">
+        <field name="name">helpdesk.ticket.search.product.context</field>
+        <field name="model">helpdesk.ticket</field>
+        <field name="inherit_id" ref="helpdesk_mgmt.helpdesk_ticket_view_search" />
+        <field name="arch" type="xml">
+            <field name="user_id" position="after">
+                <field name="product_id" />
+            </field>
+            <search>
+                <filter
+                    string="Product Related"
+                    name="product_filter"
+                    domain="[('product_id', '!=', False )]"
+                />
+                <filter
+                    string="Product"
+                    name="by_product"
+                    domain="[]"
+                    context="{'group_by':'product_id'}"
+                />
+            </search>
+        </field>
+    </record>
+</odoo>

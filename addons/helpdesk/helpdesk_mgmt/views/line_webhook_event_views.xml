@@ -6,6 +6,7 @@
         <field name="arch" type="xml">
             <list>
                 <field name="received_at" />
+                <field name="lineoa_channel_id" />
                 <field name="line_user_id" />
                 <field name="message_text" />
                 <field name="matched_partner_id" />
@@ -24,6 +25,7 @@
                 <sheet>
                     <group>
                         <field name="received_at" />
+                        <field name="lineoa_channel_id" />
                         <field name="line_user_id" />
                         <field name="processed" />
                     </group>

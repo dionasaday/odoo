@@ -104,19 +104,25 @@ class HelpdeskTeam(models.Model):
                 record.complete_name = record.name
 
     def _get_applicable_stages(self):
+        Stage = self.env["helpdesk.ticket.stage"]
         if self:
-            domain = [
+            team_domain = [
                 ("company_id", "in", [False, self.company_id.id]),
-                "|",
-                ("team_ids", "=", False),
                 ("team_ids", "=", self.id),
             ]
-        else:
-            domain = [
-                ("company_id", "in", [False, self.env.company.id]),
+            team_stages = Stage.search(team_domain)
+            if team_stages:
+                return team_stages
+            fallback_domain = [
+                ("company_id", "in", [False, self.company_id.id]),
                 ("team_ids", "=", False),
             ]
-        return self.env["helpdesk.ticket.stage"].search(domain)
+            return Stage.search(fallback_domain)
+        fallback_domain = [
+            ("company_id", "in", [False, self.env.company.id]),
+            ("team_ids", "=", False),
+        ]
+        return Stage.search(fallback_domain)
 
     @api.depends("ticket_ids", "ticket_ids.stage_id")
     def _compute_todo_tickets(self):

@@ -4,7 +4,7 @@
     "name": "Helpdesk Management",
     "summary": """
         Helpdesk""",
-    "version": "19.0.1.16.1",
+    "version": "19.0.1.17.0",
     "license": "AGPL-3",
     "category": "After-Sales",
     "author": "AdaptiveCity, "
@@ -16,9 +16,11 @@
     "SDi Soluciones, "
     "Odoo Community Association (OCA)",
     "website": "https://github.com/OCA/helpdesk",
-    "depends": ["mail", "portal"],
+    "depends": ["mail", "portal", "product"],
     "data": [
         "data/helpdesk_data.xml",
+        "data/helpdesk_followup_cron.xml",
+        "data/helpdesk_followup_kpi_cron.xml",
         "security/helpdesk_security.xml",
         "security/ir.model.access.csv",
         "views/res_partner_views.xml",
@@ -31,7 +33,15 @@
         "views/helpdesk_ticket_channel_views.xml",
         "views/helpdesk_ticket_tag_views.xml",
         "views/helpdesk_ticket_views.xml",
+        "views/helpdesk_ticket_product_context_views.xml",
         "views/helpdesk_dashboard_views.xml",
+        "views/helpdesk_lineoa_channel_views.xml",
+        "views/helpdesk_followup_policy_views.xml",
+        "views/helpdesk_followup_event_views.xml",
+        "views/helpdesk_followup_kpi_daily_views.xml",
+        "views/helpdesk_followup_kpi_summary_views.xml",
+        "views/helpdesk_followup_kpi_search.xml",
+        "views/helpdesk_followup_kpi_menu.xml",
         "views/line_webhook_event_views.xml",
         "wizards/helpdesk_ticket_duplicate_wizard_views.xml",
     ],
@@ -45,6 +55,8 @@
             "helpdesk_mgmt/static/src/views/**/*.xml",
             "helpdesk_mgmt/static/src/js/helpdesk_password_toggle_field.js",
             "helpdesk_mgmt/static/src/xml/helpdesk_password_toggle_field.xml",
+            "helpdesk_mgmt/static/src/scss/helpdesk_followup_kpi.scss",
+            "helpdesk_mgmt/static/src/scss/helpdesk_ticket_product.scss",
         ],
         "web.assets_unit_tests": [
             "helpdesk_mgmt/static/tests/**/*.test.js",
