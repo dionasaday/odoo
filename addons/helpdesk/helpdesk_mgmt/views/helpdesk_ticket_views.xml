@@ -151,8 +151,6 @@
                             <field name="x_contact_phone" readonly="1" />
                             <field name="x_contact_line_user_id" readonly="1" />
                             <field name="purchase_order_number" />
-                            <field name="partner_name" />
-                            <field name="partner_email" />
                             <field name="category_id" />
                             <field
                                 name="tag_ids"
@@ -190,7 +188,6 @@
                 <field name="purchase_order_number" optional="show" />
                 <field name="name" />
                 <field name="partner_id" optional="hide" widget="many2one_avatar" />
-                <field name="partner_name" optional="show" />
                 <field name="user_id" optional="show" widget="many2one_avatar_user" />
                 <field name="category_id" optional="hide" />
                 <field name="unattended" column_invisible="1" />
@@ -242,7 +239,7 @@
                 <field name="number" />
                 <field name="active" />
                 <field name="name" />
-                <field name="partner_name" />
+                <field name="partner_id" />
                 <field name="channel_id" />
                 <field name="assigned_user_ids" />
                 <field name="user_id" />
