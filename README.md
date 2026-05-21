@@ -84,6 +84,15 @@ custom_addons/
 - Log files and temporary files are excluded from version control
 - See `.gitignore` for complete list of ignored files
 
+## GitOps Deploy (Odoo 19)
+
+Production deployment is configured for Local -> Git -> Server Pull:
+
+- CI workflow: `.github/workflows/odoo-ci.yml`
+- Deploy workflow: `.github/workflows/deploy-production.yml`
+- Deploy scripts: `scripts/deploy/`
+- Full guide: `docs/ODOO19_GITOPS_DEPLOY.md`
+
 ## License
 
 Proprietary - On This Day Company

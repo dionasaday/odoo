@@ -1,0 +1,90 @@
+name: Odoo CI
+
+on:
+  pull_request:
+  push:
+    branches-ignore:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Resolve Diff Range
+        id: range
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_EVENT_NAME}" == "pull_request" ]]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            HEAD="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE="${{ github.event.before }}"
+            HEAD="${{ github.sha }}"
+            if [[ "$BASE" == "0000000000000000000000000000000000000000" ]]; then
+              BASE="$(git rev-list --max-parents=0 "$HEAD")"
+            fi
+          fi
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+          echo "Diff range: $BASE..$HEAD"
+
+      - name: Validate Changed Files
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="${{ steps.range.outputs.base }}"
+          HEAD="${{ steps.range.outputs.head }}"
+
+          mapfile -t CHANGED < <(git diff --name-only "$BASE" "$HEAD")
+          if [[ ${#CHANGED[@]} -eq 0 ]]; then
+            echo "No changed files in range."
+            exit 0
+          fi
+
+          echo "Changed files:"
+          printf '%s\n' "${CHANGED[@]}"
+
+          echo ""
+          echo "1) Python syntax check"
+          mapfile -t PY_FILES < <(printf '%s\n' "${CHANGED[@]}" | rg '\.py$' || true)
+          if [[ ${#PY_FILES[@]} -gt 0 ]]; then
+            python -m py_compile "${PY_FILES[@]}"
+          fi
+
+          echo ""
+          echo "2) XML well-formed check"
+          mapfile -t XML_FILES < <(printf '%s\n' "${CHANGED[@]}" | rg '\.xml$' || true)
+          if [[ ${#XML_FILES[@]} -gt 0 ]]; then
+            for xml_file in "${XML_FILES[@]}"; do
+              python -c 'import sys, xml.etree.ElementTree as ET; ET.parse(sys.argv[1])' "$xml_file"
+            done
+          fi
+
+          echo ""
+          echo "3) Unsafe && check for QWeb XML attributes"
+          mapfile -t MODULES < <(
+            printf '%s\n' "${CHANGED[@]}" \
+              | awk -F/ 'NF>1{print $1}' \
+              | sort -u
+          )
+          for module in "${MODULES[@]}"; do
+            if [[ -d "$module/static/src/xml" ]]; then
+              if rg -n "&&" "$module/static/src/xml"; then
+                echo "Found raw && in $module/static/src/xml (must use &amp;&amp;)."
+                exit 1
+              fi
+            fi
+          done
+
+          echo "Validation passed."

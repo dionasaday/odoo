@@ -1,0 +1,67 @@
+name: Deploy Odoo 19 Production
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to deploy (branch/tag/commit)"
+        required: false
+        default: "main"
+      modules:
+        description: "Comma-separated modules to upgrade (optional)"
+        required: false
+        default: ""
+      dry_run:
+        description: "Dry run only (true/false)"
+        required: false
+        default: "false"
+
+concurrency:
+  group: odoo-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Resolve Inputs
+        id: vars
+        shell: bash
+        run: |
+          set -euo pipefail
+          REF_INPUT="${{ github.event.inputs.ref }}"
+          MODULES_INPUT="${{ github.event.inputs.modules }}"
+          DRY_RUN_INPUT="${{ github.event.inputs.dry_run }}"
+
+          if [[ -z "${REF_INPUT}" ]]; then
+            REF_INPUT="main"
+          fi
+          if [[ -z "${DRY_RUN_INPUT}" ]]; then
+            DRY_RUN_INPUT="false"
+          fi
+
+          echo "ref=${REF_INPUT}" >> "$GITHUB_OUTPUT"
+          echo "modules=${MODULES_INPUT}" >> "$GITHUB_OUTPUT"
+          echo "dry_run=${DRY_RUN_INPUT}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy On Server Over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.PROD_HOST }}
+          username: ${{ secrets.PROD_USER }}
+          key: ${{ secrets.PROD_SSH_KEY }}
+          port: ${{ secrets.PROD_PORT }}
+          script_stop: true
+          command_timeout: 40m
+          script: |
+            set -euo pipefail
+            cd /opt/odoo/custom_addons
+            chmod +x scripts/deploy/*.sh
+            scripts/deploy/deploy_odoo19.sh \
+              --ref "${{ steps.vars.outputs.ref }}" \
+              --modules "${{ steps.vars.outputs.modules }}" \
+              --dry-run "${{ steps.vars.outputs.dry_run }}"
