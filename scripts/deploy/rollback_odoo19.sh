@@ -7,6 +7,8 @@ DB_NAME="odoo19"
 ODOO_BIN="/opt/odoo/odoo-bin"
 ODOO_CONF="/etc/odoo.conf"
 ODOO_SERVICE="odoo.service"
+ODOO_USER="odoo"
+PSQL_USER="postgres"
 MODULES=""
 DRY_RUN="false"
 
@@ -23,6 +25,8 @@ Options:
   --odoo-bin <path>             odoo-bin path (default: /opt/odoo/odoo-bin)
   --odoo-conf <path>            Odoo config path (default: /etc/odoo.conf)
   --service <name>              systemd service name (default: odoo.service)
+  --odoo-user <user>            User to run odoo-bin upgrade command (default: odoo)
+  --psql-user <user>            User to run psql command (default: postgres)
   --dry-run <true|false>        Print actions without changing system
   -h, --help                    Show this help
 USAGE
@@ -40,6 +44,33 @@ run_cmd() {
   eval "$*"
 }
 
+run_odoo_upgrade() {
+  local modules="$1"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "DRY_RUN: sudo -H -u $ODOO_USER $ODOO_BIN -c $ODOO_CONF -d $DB_NAME -u $modules --stop-after-init"
+    return 0
+  fi
+
+  if [[ "$(id -u)" -eq 0 && "$ODOO_USER" != "root" ]]; then
+    sudo -H -u "$ODOO_USER" "$ODOO_BIN" -c "$ODOO_CONF" -d "$DB_NAME" -u "$modules" --stop-after-init
+  else
+    "$ODOO_BIN" -c "$ODOO_CONF" -d "$DB_NAME" -u "$modules" --stop-after-init
+  fi
+}
+
+run_asset_clear() {
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "DRY_RUN: sudo -H -u $PSQL_USER psql -d $DB_NAME -c DELETE FROM ir_attachment WHERE url LIKE '/web/assets/%';"
+    return 0
+  fi
+
+  if [[ "$(id -u)" -eq 0 && "$PSQL_USER" != "root" ]]; then
+    sudo -H -u "$PSQL_USER" psql -d "$DB_NAME" -c "DELETE FROM ir_attachment WHERE url LIKE '/web/assets/%';"
+  else
+    psql -d "$DB_NAME" -c "DELETE FROM ir_attachment WHERE url LIKE '/web/assets/%';"
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --to) TARGET_REF="$2"; shift 2 ;;
@@ -49,6 +80,8 @@ while [[ $# -gt 0 ]]; do
     --odoo-bin) ODOO_BIN="$2"; shift 2 ;;
     --odoo-conf) ODOO_CONF="$2"; shift 2 ;;
     --service) ODOO_SERVICE="$2"; shift 2 ;;
+    --odoo-user) ODOO_USER="$2"; shift 2 ;;
+    --psql-user) PSQL_USER="$2"; shift 2 ;;
     --dry-run) DRY_RUN="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
@@ -70,10 +103,10 @@ run_cmd "git -C \"$REPO_DIR\" fetch origin --tags"
 run_cmd "git -C \"$REPO_DIR\" checkout \"$TARGET_REF\""
 
 if [[ -n "$MODULES" ]]; then
-  run_cmd "\"$ODOO_BIN\" -c \"$ODOO_CONF\" -d \"$DB_NAME\" -u \"$MODULES\" --stop-after-init"
+  run_odoo_upgrade "$MODULES"
 fi
 
-run_cmd "psql -d \"$DB_NAME\" -c \"DELETE FROM ir_attachment WHERE url LIKE '/web/assets/%';\""
+run_asset_clear
 run_cmd "systemctl restart \"$ODOO_SERVICE\""
 run_cmd "systemctl --no-pager --full status \"$ODOO_SERVICE\" | sed -n '1,12p'"
 

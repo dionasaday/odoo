@@ -8,6 +8,8 @@ DB_NAME="odoo19"
 ODOO_BIN="/opt/odoo/odoo-bin"
 ODOO_CONF="/etc/odoo.conf"
 ODOO_SERVICE="odoo.service"
+ODOO_USER="odoo"
+PSQL_USER="postgres"
 DRY_RUN="false"
 SKIP_RESTART="false"
 SKIP_ASSET_CLEAR="false"
@@ -25,6 +27,8 @@ Options:
   --odoo-bin <path>             odoo-bin path (default: /opt/odoo/odoo-bin)
   --odoo-conf <path>            Odoo config path (default: /etc/odoo.conf)
   --service <name>              systemd service name (default: odoo.service)
+  --odoo-user <user>            User to run odoo-bin upgrade command (default: odoo)
+  --psql-user <user>            User to run psql command (default: postgres)
   --dry-run <true|false>        Print actions without changing system
   --skip-restart <true|false>   Skip service restart
   --skip-asset-clear <true|false> Skip DELETE /web/assets/% step
@@ -44,6 +48,33 @@ run_cmd() {
   eval "$*"
 }
 
+run_odoo_upgrade() {
+  local modules="$1"
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "DRY_RUN: sudo -H -u $ODOO_USER $ODOO_BIN -c $ODOO_CONF -d $DB_NAME -u $modules --stop-after-init"
+    return 0
+  fi
+
+  if [[ "$(id -u)" -eq 0 && "$ODOO_USER" != "root" ]]; then
+    sudo -H -u "$ODOO_USER" "$ODOO_BIN" -c "$ODOO_CONF" -d "$DB_NAME" -u "$modules" --stop-after-init
+  else
+    "$ODOO_BIN" -c "$ODOO_CONF" -d "$DB_NAME" -u "$modules" --stop-after-init
+  fi
+}
+
+run_asset_clear() {
+  if [[ "$DRY_RUN" == "true" ]]; then
+    log "DRY_RUN: sudo -H -u $PSQL_USER psql -d $DB_NAME -c DELETE FROM ir_attachment WHERE url LIKE '/web/assets/%';"
+    return 0
+  fi
+
+  if [[ "$(id -u)" -eq 0 && "$PSQL_USER" != "root" ]]; then
+    sudo -H -u "$PSQL_USER" psql -d "$DB_NAME" -c "DELETE FROM ir_attachment WHERE url LIKE '/web/assets/%';"
+  else
+    psql -d "$DB_NAME" -c "DELETE FROM ir_attachment WHERE url LIKE '/web/assets/%';"
+  fi
+}
+
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --ref) REF="$2"; shift 2 ;;
@@ -53,6 +84,8 @@ while [[ $# -gt 0 ]]; do
     --odoo-bin) ODOO_BIN="$2"; shift 2 ;;
     --odoo-conf) ODOO_CONF="$2"; shift 2 ;;
     --service) ODOO_SERVICE="$2"; shift 2 ;;
+    --odoo-user) ODOO_USER="$2"; shift 2 ;;
+    --psql-user) PSQL_USER="$2"; shift 2 ;;
     --dry-run) DRY_RUN="$2"; shift 2 ;;
     --skip-restart) SKIP_RESTART="$2"; shift 2 ;;
     --skip-asset-clear) SKIP_ASSET_CLEAR="$2"; shift 2 ;;
@@ -102,14 +135,14 @@ fi
 
 if [[ -n "$MODULES" ]]; then
   log "Upgrading modules: $MODULES"
-  run_cmd "\"$ODOO_BIN\" -c \"$ODOO_CONF\" -d \"$DB_NAME\" -u \"$MODULES\" --stop-after-init"
+  run_odoo_upgrade "$MODULES"
 else
   log "No module upgrade required (no changed manifests detected)."
 fi
 
 if [[ "$SKIP_ASSET_CLEAR" != "true" ]]; then
   log "Clearing web assets cache from database $DB_NAME"
-  run_cmd "psql -d \"$DB_NAME\" -c \"DELETE FROM ir_attachment WHERE url LIKE '/web/assets/%';\""
+  run_asset_clear
 else
   log "Skip assets clear by request."
 fi
@@ -123,6 +156,6 @@ else
 fi
 
 run_cmd "mkdir -p \"$REPO_DIR/.deploy\""
-run_cmd "printf '%s,%s,%s,%s\n' \"$(date -u +'%Y-%m-%dT%H:%M:%SZ')\" \"$OLD_REV\" \"$NEW_REV\" \"$MODULES\" >> \"$REPO_DIR/.deploy/releases.log\""
+run_cmd "printf '%s,%s,%s,%s\\n' \"$(date -u +'%Y-%m-%dT%H:%M:%SZ')\" \"$OLD_REV\" \"$NEW_REV\" \"$MODULES\" >> \"$REPO_DIR/.deploy/releases.log\""
 
 log "Deploy completed."
