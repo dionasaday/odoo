@@ -35,6 +35,13 @@ jobs:
       - name: Resolve Inputs
         id: vars
         shell: bash
+        env:
+          SECRET_PROD_HOST: ${{ secrets.PROD_HOST }}
+          SECRET_PROD_USER: ${{ secrets.PROD_USER }}
+          SECRET_PROD_PORT: ${{ secrets.PROD_PORT }}
+          VAR_PROD_HOST: ${{ vars.PROD_HOST }}
+          VAR_PROD_USER: ${{ vars.PROD_USER }}
+          VAR_PROD_PORT: ${{ vars.PROD_PORT }}
         run: |
           set -euo pipefail
           REF_INPUT="${{ github.event.inputs.ref }}"
@@ -57,18 +64,49 @@ jobs:
             FINAL_REPO="/opt/odoo/custom_addons_deploy_clean"
           fi
 
+          SSH_HOST="${SECRET_PROD_HOST:-}"
+          SSH_USER="${SECRET_PROD_USER:-}"
+          SSH_PORT="${SECRET_PROD_PORT:-}"
+
+          if [[ -z "$SSH_HOST" ]]; then SSH_HOST="${VAR_PROD_HOST:-}"; fi
+          if [[ -z "$SSH_USER" ]]; then SSH_USER="${VAR_PROD_USER:-}"; fi
+          if [[ -z "$SSH_PORT" ]]; then SSH_PORT="${VAR_PROD_PORT:-22}"; fi
+
+          if [[ -z "$SSH_HOST" ]]; then
+            echo "::error::Missing PROD_HOST. Add it in Environment secret (production) or Repository variable/secret."
+            exit 1
+          fi
+          if [[ -z "$SSH_USER" ]]; then
+            echo "::error::Missing PROD_USER. Add it in Environment secret (production) or Repository variable/secret."
+            exit 1
+          fi
+
           echo "ref=${REF_INPUT}" >> "$GITHUB_OUTPUT"
           echo "modules=${MODULES_INPUT}" >> "$GITHUB_OUTPUT"
           echo "dry_run=${DRY_RUN_INPUT}" >> "$GITHUB_OUTPUT"
           echo "repo_dir=${FINAL_REPO}" >> "$GITHUB_OUTPUT"
+          echo "ssh_host=${SSH_HOST}" >> "$GITHUB_OUTPUT"
+          echo "ssh_user=${SSH_USER}" >> "$GITHUB_OUTPUT"
+          echo "ssh_port=${SSH_PORT}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify SSH key exists
+        shell: bash
+        env:
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${PROD_SSH_KEY}" ]]; then
+            echo "::error::Missing PROD_SSH_KEY secret. Set it in Environment secrets (production) or Repository secrets."
+            exit 1
+          fi
 
       - name: Deploy On Server Over SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
+          host: ${{ steps.vars.outputs.ssh_host }}
+          username: ${{ steps.vars.outputs.ssh_user }}
           key: ${{ secrets.PROD_SSH_KEY }}
-          port: ${{ secrets.PROD_PORT }}
+          port: ${{ steps.vars.outputs.ssh_port }}
           script_stop: true
           command_timeout: 40m
           script: |
