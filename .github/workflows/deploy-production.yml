@@ -75,8 +75,8 @@ jobs:
             set -euo pipefail
             DEPLOY_REPO="${{ steps.vars.outputs.repo_dir }}"
 
-            if [[ ! -d "$DEPLOY_REPO/.git" ]]; then
-              echo "Deploy repo not found: $DEPLOY_REPO"
+            if ! git -C "$DEPLOY_REPO" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+              echo "Deploy repo not found or invalid git worktree: $DEPLOY_REPO"
               echo "Create it first or set repo_dir input/DEPLOY_REPO_DIR variable correctly."
               exit 1
             fi
