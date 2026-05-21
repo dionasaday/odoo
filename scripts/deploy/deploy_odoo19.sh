@@ -61,7 +61,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ ! -d "$REPO_DIR/.git" ]]; then
+if ! git -C "$REPO_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "Not a git repository: $REPO_DIR" >&2
   exit 1
 fi
