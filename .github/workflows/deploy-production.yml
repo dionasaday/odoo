@@ -18,6 +18,10 @@ on:
         description: "Dry run only (true/false)"
         required: false
         default: "false"
+      repo_dir:
+        description: "Deploy repository directory on server (optional)"
+        required: false
+        default: ""
 
 concurrency:
   group: odoo-production-deploy
@@ -36,6 +40,8 @@ jobs:
           REF_INPUT="${{ github.event.inputs.ref }}"
           MODULES_INPUT="${{ github.event.inputs.modules }}"
           DRY_RUN_INPUT="${{ github.event.inputs.dry_run }}"
+          REPO_INPUT="${{ github.event.inputs.repo_dir }}"
+          REPO_VAR="${{ vars.DEPLOY_REPO_DIR }}"
 
           if [[ -z "${REF_INPUT}" ]]; then
             REF_INPUT="main"
@@ -43,10 +49,18 @@ jobs:
           if [[ -z "${DRY_RUN_INPUT}" ]]; then
             DRY_RUN_INPUT="false"
           fi
+          if [[ -n "${REPO_INPUT}" ]]; then
+            FINAL_REPO="${REPO_INPUT}"
+          elif [[ -n "${REPO_VAR}" ]]; then
+            FINAL_REPO="${REPO_VAR}"
+          else
+            FINAL_REPO="/opt/odoo/custom_addons_deploy_clean"
+          fi
 
           echo "ref=${REF_INPUT}" >> "$GITHUB_OUTPUT"
           echo "modules=${MODULES_INPUT}" >> "$GITHUB_OUTPUT"
           echo "dry_run=${DRY_RUN_INPUT}" >> "$GITHUB_OUTPUT"
+          echo "repo_dir=${FINAL_REPO}" >> "$GITHUB_OUTPUT"
 
       - name: Deploy On Server Over SSH
         uses: appleboy/ssh-action@v1.2.0
@@ -59,9 +73,18 @@ jobs:
           command_timeout: 40m
           script: |
             set -euo pipefail
-            cd /opt/odoo/custom_addons
+            DEPLOY_REPO="${{ steps.vars.outputs.repo_dir }}"
+
+            if [[ ! -d "$DEPLOY_REPO/.git" ]]; then
+              echo "Deploy repo not found: $DEPLOY_REPO"
+              echo "Create it first or set repo_dir input/DEPLOY_REPO_DIR variable correctly."
+              exit 1
+            fi
+
+            cd "$DEPLOY_REPO"
             chmod +x scripts/deploy/*.sh
             scripts/deploy/deploy_odoo19.sh \
+              --repo "$DEPLOY_REPO" \
               --ref "${{ steps.vars.outputs.ref }}" \
               --modules "${{ steps.vars.outputs.modules }}" \
               --dry-run "${{ steps.vars.outputs.dry_run }}"
